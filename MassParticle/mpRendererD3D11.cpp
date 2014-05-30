@@ -398,7 +398,7 @@ void mpRendererD3D11::render()
     g_pImmediateContext->RSSetState(g_pRasterState);
 
     // Render cubes
-    g_pImmediateContext->DrawIndexedInstanced( 36, (UINT)m_world->num_active_particles, 0, 0, 0 );
+    g_pImmediateContext->DrawIndexedInstanced( 36, (UINT)m_world->m_num_active_particles, 0, 0, 0 );
 
     g_pImmediateContext->OMSetDepthStencilState(ds_old, ds_stencil_ref);
     g_pImmediateContext->RSSetState(rs_old);

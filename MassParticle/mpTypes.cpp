@@ -118,9 +118,7 @@ inline void mpGenIndex(uint32 hash, int32 &xi, int32 &zi)
 
 
 mpWorld::mpWorld()
-    : num_active_particles(0)
-    , particle_lifetime(3600.0f)
-    , m_solver(mpSolver_Impulse)
+    : m_num_active_particles(0)
     , m_renderer(nullptr)
 {
     collision_spheres.reserve(64);
@@ -147,12 +145,12 @@ void mpWorld::clearCollidersAndForces()
 
 void mpWorld::addParticles(mpParticle *p, uint32_t num)
 {
-    num = std::min<uint32_t>(num, mpMaxParticleNum - num_active_particles);
+    num = std::min<uint32_t>(num, mpMaxParticleNum - m_num_active_particles);
     for (uint32_t i = 0; i<num; ++i) {
-        particles[num_active_particles+i] = p[i];
-        particles[num_active_particles+i].params.lifetime = particle_lifetime;
+        particles[m_num_active_particles+i] = p[i];
+        particles[m_num_active_particles+i].params.lifetime = m_params.LifeTime;
     }
-    num_active_particles += num;
+    m_num_active_particles += num;
 }
 
 void mpWorld::update(float32 dt)
@@ -166,7 +164,7 @@ void mpWorld::update(float32 dt)
     ispc::PlaneCollider   *plane_c = collision_planes.empty() ? nullptr : &collision_planes[0];
     ispc::BoxCollider     *box_c = collision_boxes.empty() ? nullptr : &collision_boxes[0];
 
-    ispc::sphInitializeConstants();
+    ispc::sphInitializeConstants(m_params);
 
     // clear grid
     tbb::parallel_for(tbb::blocked_range<int>(0, mpWorldCellNum, 128),
@@ -177,7 +175,7 @@ void mpWorld::update(float32 dt)
         });
 
     // gen hash
-    tbb::parallel_for(tbb::blocked_range<int>(0, (int32)num_active_particles, 1024),
+    tbb::parallel_for(tbb::blocked_range<int>(0, (int32)m_num_active_particles, 1024),
         [&](const tbb::blocked_range<int> &r) {
             for(int i=r.begin(); i!=r.end(); ++i) {
                 particles[i].params.lifetime = std::max<float32>(particles[i].params.lifetime-dt, 0.0f);
@@ -186,11 +184,11 @@ void mpWorld::update(float32 dt)
         });
 
     // パーティクルを hash で sort
-    tbb::parallel_sort(particles, particles+num_active_particles, 
+    tbb::parallel_sort(particles, particles+m_num_active_particles, 
         [&](const mpParticle &a, const mpParticle &b) { return a.params.hash < b.params.hash; } );
 
     // パーティクルがどの grid に入っているかを算出
-    tbb::parallel_for(tbb::blocked_range<int>(0, (int32)num_active_particles, 1024),
+    tbb::parallel_for(tbb::blocked_range<int>(0, (int32)m_num_active_particles, 1024),
         [&](const tbb::blocked_range<int> &r) {
             for(int i=r.begin(); i!=r.end(); ++i) {
                 const uint32 G_ID = i;
@@ -202,7 +200,7 @@ void mpWorld::update(float32 dt)
                 uint32 cell_next = (G_ID_NEXT==mpMaxParticleNum) ? -2 : particles[G_ID_NEXT].params.hash;
                 if((cell & 0x80000000) != 0) { // 最上位 bit が立っていたら死んでいる扱い
                     if((cell_prev & 0x80000000) == 0) { // 
-                        num_active_particles = G_ID;
+                        m_num_active_particles = G_ID;
                     }
                 }
                 else {
@@ -217,10 +215,10 @@ void mpWorld::update(float32 dt)
     });
     {
         if( (particles[0].params.hash & 0x80000000) != 0 ) {
-            num_active_particles = 0;
+            m_num_active_particles = 0;
         }
         else if( (particles[mpMaxParticleNum-1].params.hash & 0x80000000) == 0 ) {
-            num_active_particles = mpMaxParticleNum;
+            m_num_active_particles = mpMaxParticleNum;
         }
     }
 
@@ -244,7 +242,7 @@ void mpWorld::update(float32 dt)
             }
     });
 
-    if (m_solver == mpSolver_Impulse) {
+    if (m_params.SolverType == mpSolver_Impulse) {
         // impulse
         tbb::parallel_for(tbb::blocked_range<int>(0, mpWorldCellNum, 128),
             [&](const tbb::blocked_range<int> &r) {
@@ -277,8 +275,8 @@ void mpWorld::update(float32 dt)
             }
         });
     }
-    else if (m_solver == mpSolver_SPH || m_solver == mpSolver_SPHEst) {
-        if (m_solver == mpSolver_SPH) {
+    else if (m_params.SolverType == mpSolver_SPH || m_params.SolverType == mpSolver_SPHEst) {
+        if (m_params.SolverType == mpSolver_SPH) {
             tbb::parallel_for(tbb::blocked_range<int>(0, mpWorldCellNum, 128),
                 [&](const tbb::blocked_range<int> &r) {
                 for (int i = r.begin(); i != r.end(); ++i) {
@@ -290,7 +288,7 @@ void mpWorld::update(float32 dt)
                 }
             });
         }
-        else if (m_solver == mpSolver_SPHEst) {
+        else if (m_params.SolverType == mpSolver_SPHEst) {
             tbb::parallel_for(tbb::blocked_range<int>(0, mpWorldCellNum, 128),
                 [&](const tbb::blocked_range<int> &r) {
                 for (int i = r.begin(); i != r.end(); ++i) {

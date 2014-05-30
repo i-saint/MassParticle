@@ -104,6 +104,21 @@ struct GridData
 };
 
 
+struct KernelParams
+{
+    int SolverType;
+    float LifeTime;
+    float Timestep;
+    float Decelerate;
+
+    float SPHPressureStiffness;
+    float SPHRestDensity;
+    float SPHParticleMass;
+    float SPHViscosity;
+
+    float ImpPressureStiffness;
+};
+
 // struct ‚ÌQÆ“n‚µ‚ª‚Å‚«‚È‚¢‚Á‚Û‚¢‚Ì‚Å macro ‚Å...
 // •¡”‚ÌŒ^‚É‘Î‰‚Å‚«‚é‚Ì‚Å‚Ş‚µ‚ë‚±‚Á‚¿‚Ì‚ª‚¢‚¢‚Ì‚©‚à
 #define get_pos(p)      {p.x, p.y, p.z}

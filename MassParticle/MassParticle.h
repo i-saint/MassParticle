@@ -3,6 +3,7 @@
 
 #include <xnamath.h>
 #include "UnityPluginInterface.h"
+#include "mpCore_ispc.h"
 
 //external
 extern "C" EXPORT_API mpWorld*      mpCreateContext(uint32_t max_particles);
@@ -12,10 +13,8 @@ extern "C" EXPORT_API void          mpClearParticles();
 extern "C" EXPORT_API void          mpUpdate(float dt);
 
 extern "C" EXPORT_API void          mpSetViewProjectionMatrix(XMFLOAT4X4 view, XMFLOAT4X4 proj);
-
-extern "C" EXPORT_API void          mpSetSolverType(mpSolverType st);
-extern "C" EXPORT_API float         mpGetParticleLifeTime();
-extern "C" EXPORT_API void          mpSetParticleLifeTime(float lifetime);
+extern "C" EXPORT_API ispc::KernelParams mpGetKernelParams();
+extern "C" EXPORT_API void          mpSetKernelParams(ispc::KernelParams *params);
 
 extern "C" EXPORT_API uint32_t      mpGetNumParticles();
 extern "C" EXPORT_API mpParticle*   mpGetParticles();

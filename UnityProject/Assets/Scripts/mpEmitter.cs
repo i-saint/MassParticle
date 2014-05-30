@@ -6,13 +6,26 @@ using System.Runtime.InteropServices;
 [StructLayout(LayoutKind.Explicit)]
 public struct mpParticle
 {
-    [FieldOffset( 0)] Vector4 position;
-    [FieldOffset(16)] Vector4 velocity;
-    [FieldOffset(32)] float density;
-    [FieldOffset(36)] uint hash;
-    [FieldOffset(40)] int hit;
-    [FieldOffset(44)] float lifetime;
+    [FieldOffset( 0)] public Vector4 position;
+    [FieldOffset(16)] public Vector4 velocity;
+    [FieldOffset(32)] public float density;
+    [FieldOffset(36)] public uint hash;
+    [FieldOffset(40)] public int hit;
+    [FieldOffset(44)] public float lifetime;
 }
+
+[StructLayout(LayoutKind.Explicit)]
+struct mpKernelParams {
+	[FieldOffset( 0)] public int SolverType;
+	[FieldOffset( 4)] public float LifeTime;
+	[FieldOffset( 8)] public float Timestep;
+	[FieldOffset(12)] public float Decelerate;
+	[FieldOffset(16)] public float SPHPressureStiffness;
+	[FieldOffset(20)] public float SPHRestDensity;
+	[FieldOffset(24)] public float SPHParticleMass;
+	[FieldOffset(28)] public float SPHViscosity;
+	[FieldOffset(32)] public float ImpPressureStiffness;
+};
 
 public enum mpSolverType
 {
@@ -23,18 +36,14 @@ public enum mpSolverType
 
 public class mpEmitter : MonoBehaviour {
 
-	[DllImport ("MassParticle")]
-	private static extern void mpSetViewProjectionMatrix(Matrix4x4 view, Matrix4x4 proj);
-
-    [DllImport("MassParticle")]
-    private static extern void mpSetRenderTargets(IntPtr renderTexture, IntPtr depthTexture);
-
-    [DllImport("MassParticle")]
-    private static extern void mpClearParticles();
+	[DllImport ("MassParticle")] private static extern void mpSetViewProjectionMatrix(Matrix4x4 view, Matrix4x4 proj);
+    [DllImport ("MassParticle")] private static extern void mpSetRenderTargets(IntPtr renderTexture, IntPtr depthTexture);
+    [DllImport ("MassParticle")] private static extern void mpClearParticles();
 	
-	[DllImport ("MassParticle")] private static extern void mpSetSolverType(mpSolverType t);
-	[DllImport ("MassParticle")] private static extern float mpGetParticleLifeTime();
-	[DllImport ("MassParticle")] private static extern void mpSetParticleLifeTime(float lifetime);
+	[DllImport ("MassParticle")] private static extern mpKernelParams mpGetKernelParams();
+	[DllImport ("MassParticle")] private static extern void mpSetKernelParams(ref mpKernelParams p);
+
+
 	[DllImport ("MassParticle")] private static extern uint mpGetNumParticles();
 
 	[DllImport ("MassParticle")] private static extern uint mpAddBoxCollider(Matrix4x4 transform, Vector3 size);
@@ -47,15 +56,24 @@ public class mpEmitter : MonoBehaviour {
 
 	public float particleRadius;
 	public float particleLifeTime;
+	public float timeStep;
+	public float deceleration;
 	public mpSolverType solverType;
 
 	public float gravityStrength = 10.0f;
 	public Vector3 gravityDirection = new Vector3(0.0f,-1.0f,0.0f);
 
+	mpEmitter()
+	{
+		mpKernelParams p = mpGetKernelParams();
+		particleLifeTime = p.LifeTime;
+		timeStep = p.Timestep;
+		deceleration = p.Decelerate;
+		solverType = (mpSolverType)p.SolverType;
+	}
 
 	void Start () {
         mpClearParticles();
-		particleLifeTime = mpGetParticleLifeTime();
 	}
 
 	void Update()
@@ -63,8 +81,14 @@ public class mpEmitter : MonoBehaviour {
 		mpScatterParticlesSphererical (transform.position, 0.5f, 32);
 		mpAddDirectionalForce (gravityDirection, gravityStrength);
 
-		mpSetSolverType(solverType);
-		mpSetParticleLifeTime(particleLifeTime);
+		{
+			mpKernelParams p = mpGetKernelParams();
+			p.LifeTime = particleLifeTime;
+			p.Timestep = timeStep;
+			p.Decelerate = deceleration;
+			p.SolverType = (int)solverType;
+			mpSetKernelParams(ref p);
+		}
 		mpUpdate (Time.timeSinceLevelLoad);
 	}
 	

@@ -140,7 +140,6 @@ extern "C" void EXPORT_API UnityRenderEvent (int eventID)
 bool mpInitialize(ID3D11Device *dev)
 {
     tbb::task_scheduler_init tbb_init;
-    //tbb::task_scheduler_init tbb_init(1); // for debug
 
     g_mpWorld.m_renderer = mpCreateRendererD3D11(dev, g_mpWorld);
     return g_mpWorld.m_renderer !=nullptr;
@@ -157,29 +156,24 @@ void mpClearParticles()
     g_mpWorld.clearParticles();
 }
 
+extern "C" EXPORT_API ispc::KernelParams mpGetKernelParams()
+{
+    return g_mpWorld.m_params;
+}
+
+extern "C" EXPORT_API void mpSetKernelParams(ispc::KernelParams *params)
+{
+    g_mpWorld.m_params = *(mpKernelParams*)params;
+}
+
 extern "C" EXPORT_API void mpSetViewProjectionMatrix(XMFLOAT4X4 view, XMFLOAT4X4 proj)
 {
     g_mpWorld.m_camera.forceSetMatrix(view, proj);
 }
 
-extern "C" EXPORT_API void mpSetSolverType(mpSolverType st)
-{
-    g_mpWorld.m_solver = st;
-}
-
-extern "C" EXPORT_API float mpGetParticleLifeTime()
-{
-    return g_mpWorld.particle_lifetime;
-;}
-
-extern "C" EXPORT_API void mpSetParticleLifeTime(float lifetime)
-{
-    g_mpWorld.particle_lifetime = lifetime;
-}
-
 extern "C" EXPORT_API uint32_t mpGetNumParticles()
 {
-    return g_mpWorld.num_active_particles;
+    return g_mpWorld.m_num_active_particles;
 }
 
 extern "C" EXPORT_API uint32_t mpScatterParticlesSphererical(XMFLOAT3 center, float radius, uint32 num)
@@ -188,7 +182,7 @@ extern "C" EXPORT_API uint32_t mpScatterParticlesSphererical(XMFLOAT3 center, fl
     for (size_t i = 0; i < particles.size(); ++i) {
         particles[i].position = ist::simdvec4_set(
             center.x + mpGenRand()*radius, center.y + mpGenRand()*radius, center.z + mpGenRand()*radius, 1.0f);
-        particles[i].velocity = _mm_set1_ps(0.0f);
+        particles[i].velocity = ist::simdvec4_set(mpGenRand()*0.4f, mpGenRand()*0.4f, mpGenRand()*0.4f, 0.0f);
     }
     g_mpWorld.addParticles(&particles[0], particles.size());
     return num;
@@ -284,7 +278,7 @@ extern "C" EXPORT_API void mpUpdate(float dt)
 
     if (s_timer.getElapsedMillisecond() - s_prev > 1000.0f) {
         char buf[128];
-        _snprintf(buf, _countof(buf), "  SPH update: %d particles %.3fms\n", g_mpWorld.num_active_particles, timer.getElapsedMillisecond());
+        _snprintf(buf, _countof(buf), "  SPH update: %d particles %.3fms\n", g_mpWorld.m_num_active_particles, timer.getElapsedMillisecond());
         OutputDebugStringA(buf);
         s_prev = s_timer.getElapsedMillisecond();
     }

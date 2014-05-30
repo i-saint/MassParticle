@@ -34,6 +34,25 @@ enum mpSolverType
     mpSolver_SPHEst,
 };
 
+struct mpKernelParams : ispc::KernelParams
+{
+    mpKernelParams()
+    {
+        SolverType = mpSolver_Impulse;
+        LifeTime = 3600.0f;
+        Timestep = 0.01f;
+        Decelerate = 0.995f;
+
+        SPHPressureStiffness = 200.0f;
+        SPHRestDensity = 1000.0f;
+        SPHParticleMass = 0.002f;
+        SPHViscosity = 0.1f;
+
+        ImpPressureStiffness = 100.0f;
+    }
+};
+
+
 struct mpParticle
 {
     simdvec4 position;
@@ -167,6 +186,7 @@ mpRenderer* mpCreateRendererD3D9(void *dev, mpWorld &world);
 mpRenderer* mpCreateRendererD3D11(void *dev, mpWorld &world);
 mpRenderer* mpCreateRendererOpenGL(void *dev, mpWorld &world);
 
+
 class mpWorld
 {
 public:
@@ -174,8 +194,7 @@ public:
     mpParticle particles[mpMaxParticleNum];
     sphParticleSOA8 particles_soa[mpMaxParticleNum];
     sphGridData cell[mpWorldDivNum][mpWorldDivNum];
-    uint32_t num_active_particles;
-    float32 particle_lifetime;
+    uint32_t m_num_active_particles;
 
     std::vector<ispc::SphereCollider>   collision_spheres;
     std::vector<ispc::PlaneCollider>    collision_planes;
@@ -186,7 +205,7 @@ public:
     std::vector<ispc::BoxForce>         force_box;
 
     std::mutex m_mutex;
-    mpSolverType m_solver;
+    mpKernelParams m_params;
     mpCamera m_camera;
     mpRenderer *m_renderer;
 

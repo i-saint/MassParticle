@@ -11,6 +11,9 @@
 typedef unsigned int32 uint32;
 
 
+static uniform float mpTimestep;
+static uniform float mpDecelerate;
+
 static uniform float mpSPHPressureStiffness;
 static uniform float mpSPHRestDensity;
 static uniform float mpSPHParticleMass;
@@ -22,17 +25,20 @@ static uniform float mpSPHLapViscosityCoef;
 static uniform float mpImpPressureStiffness;
 
 
-export void sphInitializeConstants()
+export void sphInitializeConstants(uniform KernelParams &params)
 {
-    mpSPHPressureStiffness = 200.0f;
-    mpSPHRestDensity = 1000.0f;
-    mpSPHParticleMass = 0.002f;
-    mpSPHViscosity = 0.1f;
+    mpTimestep = params.Timestep;
+    mpDecelerate = params.Decelerate;
+
+    mpSPHPressureStiffness = params.SPHPressureStiffness;
+    mpSPHRestDensity = params.SPHRestDensity;
+    mpSPHParticleMass = params.SPHParticleMass;
+    mpSPHViscosity = params.SPHViscosity;
     mpSPHDensityCoef = mpSPHParticleMass * 315.0f / (64.0f * PI * pow(mpParticleSize, 9));
     mpSPHGradPressureCoef = mpSPHParticleMass * -45.0f / (PI * pow(mpParticleSize, 6));
     mpSPHLapViscosityCoef = mpSPHParticleMass * mpSPHViscosity * 45.0f / (PI * pow(mpParticleSize, 6));
 
-    mpImpPressureStiffness = 100.0f;
+    mpImpPressureStiffness = params.ImpPressureStiffness;
 }
 
 static soa<8> Force g_forces[mpMaxParticleNum];
@@ -405,19 +411,16 @@ export void sphIntegrate(
     soa<8> Particle * uniform particles = &all_particles[gd.soai*8];
     soa<8> Force * uniform forces = &g_forces[gd.soai*8];
 
-    uniform const float timestep = 0.01f;
-
     foreach(i=0 ... particle_num) {
         vec3 vel = get_vel(particles[i]);
         vec3 accel = get_accel(forces[i]);
         vec3 pos = get_pos(particles[i]);
 
-        const uniform float DECELERATE = 0.999;
-        vel += accel * timestep;
+        vel += accel * mpTimestep;
         // Ž©‘RŒ¸‘¬
-        vel *= DECELERATE;
+        vel *= mpDecelerate;
 
-        pos += vel * timestep;
+        pos += vel * mpTimestep;
 
         set_vel(particles[i], vel);
         set_pos(particles[i], pos);
@@ -487,19 +490,17 @@ export void impIntegrate(
     soa<8> Particle * uniform particles = &all_particles[gd.soai*8];
     soa<8> Force * uniform forces = &g_forces[gd.soai*8];
 
-    uniform const float timestep = 0.01f;
 
     foreach(i=0 ... particle_num) {
         vec3 pos = get_pos(particles[i]);
         vec3 accel = get_accel(forces[i]);
         vec3 vel = get_vel(particles[i]);
 
-        const uniform float DECELERATE = 0.9925f;
-        vel += accel * timestep;
+        vel += accel * mpTimestep;
         // Ž©‘RŒ¸‘¬
-        vel *= DECELERATE;
+        vel *= mpDecelerate;
 
-        pos += vel * timestep;
+        pos += vel * mpTimestep;
         set_pos(particles[i], pos);
         set_vel(particles[i], vel);
     }
