@@ -7,12 +7,11 @@
 #include <d3dcompiler.h>
 #include <xnamath.h>
 #include <cstdio>
-#include <tbb/tbb.h>
 #include "resource.h"
 
-
-#include "SPH_types.h"
-#include "SPH_core_ispc.h"
+#include "mpTypes.h"
+#include "mpCore_ispc.h"
+#include "MassParticle.h"
 
 //--------------------------------------------------------------------------------------
 // Structures
@@ -37,97 +36,6 @@ struct CBChangesEveryFrame
 };
 
 
-class PerspectiveCamera
-{
-private:
-    XMMATRIX m_viewproj;
-    XMMATRIX m_view;
-    XMMATRIX m_proj;
-    XMVECTOR m_eye;
-    XMVECTOR m_focus;
-    XMVECTOR m_up;
-    FLOAT m_fovy;
-    FLOAT m_aspect;
-    FLOAT m_near;
-    FLOAT m_far;
-
-public:
-    PerspectiveCamera() {}
-
-    const XMMATRIX& getViewProjectionMatrix() const { return m_viewproj; }
-    const XMMATRIX& getViewMatrix() const           { return m_view; }
-    const XMMATRIX& getProjectionMatrix() const     { return m_proj; }
-    XMVECTOR getEye() const     { return m_eye; }
-    XMVECTOR getFocus() const   { return m_focus; }
-    XMVECTOR getUp() const      { return m_up; }
-    FLOAT getFovy() const       { return m_fovy; }
-    FLOAT getAspect() const     { return m_aspect; }
-    FLOAT getNear() const       { return m_near; }
-    FLOAT getFar() const        { return m_far; }
-
-    void setEye(XMVECTOR v) { m_eye=v; }
-
-    void setView(XMVECTOR eye, XMVECTOR focus, XMVECTOR up)
-    {
-        m_eye   = eye;
-        m_focus = focus;
-        m_up    = up;
-    }
-
-    void setProjection(FLOAT fovy, FLOAT aspect, FLOAT _near, FLOAT _far)
-    {
-        m_fovy  = fovy;
-        m_aspect= aspect;
-        m_near  = _near;
-        m_far   = _far;
-    }
-
-    void updateMatrix()
-    {
-        m_view      = XMMatrixLookAtLH( m_eye, m_focus, m_up );
-        m_proj      = XMMatrixPerspectiveFovLH( m_fovy, m_aspect, m_near, m_far );
-        m_viewproj  = XMMatrixMultiply( m_view, m_proj );
-    }
-
-    void forceSetMatrix(const XMFLOAT4X4 &view, const XMFLOAT4X4 &proj)
-    {
-        m_view = (FLOAT*)&view;
-        m_proj = (FLOAT*)&proj;
-        m_viewproj = XMMatrixMultiply(m_view, m_proj);
-        m_eye = m_view.r[3];
-    }
-};
-
-class PerformanceCounter
-{
-private:
-    LARGE_INTEGER m_start;
-    LARGE_INTEGER m_end;
-
-public:
-    PerformanceCounter()
-    {
-        reset();
-    }
-
-    void reset()
-    {
-        ::QueryPerformanceCounter( &m_start );
-    }
-
-    float getElapsedSecond()
-    {
-        LARGE_INTEGER freq;
-        ::QueryPerformanceCounter( &m_end );
-        ::QueryPerformanceFrequency( &freq );
-        return ((float)(m_end.QuadPart - m_start.QuadPart) / (float)freq.QuadPart);
-    }
-
-    float getElapsedMillisecond()
-    {
-        return getElapsedSecond()*1000.0f;
-    }
-};
 
 
 //--------------------------------------------------------------------------------------
@@ -147,160 +55,11 @@ ID3D11Buffer*                       g_pCubeInstanceBuffer = NULL;
 ID3D11Buffer*                       g_pCubeIndexBuffer = NULL;
 ID3D11Buffer*                       g_pCBChangesEveryFrame = NULL;
 XMFLOAT4                            g_vMeshColor( 0.7f, 0.7f, 0.7f, 1.0f );
-PerspectiveCamera                   g_camera;
 
-peWorld                            g_peworld;
-
-
-
-inline float32 GenRand()
-{
-    return float32((rand() - (RAND_MAX / 2)) * 2) / (float32)RAND_MAX;
-}
-// 0.0f-1.0f
-FLOAT GenRand1() { return (FLOAT)rand()/RAND_MAX; }
-
-// -1.0f-1.0f
-FLOAT GenRand2() { return (GenRand1()-0.5f)*2.0f; }
-
-//--------------------------------------------------------------------------------------
-// Forward declarations
-//--------------------------------------------------------------------------------------
-HRESULT InitDevice(ID3D11Device *dev);
-void CleanupDevice();
-LRESULT CALLBACK    WndProc( HWND, UINT, WPARAM, LPARAM );
-void peRender();
+extern mpPerspectiveCamera g_camera;
+extern mpWorld g_mpWorld;
 
 
-
-
-
-bool peInitialize(ID3D11Device *dev)
-{
-    tbb::task_scheduler_init tbb_init;
-    //tbb::task_scheduler_init tbb_init(1); // for debug
-
-
-    if (FAILED(InitDevice(dev)))
-    {
-        CleanupDevice();
-        return false;
-    }
-    peClearParticles();
-
-    return true;
-}
-
-void peFinalize()
-{
-    CleanupDevice();
-}
-
-extern "C" EXPORT_API void peSetViewProjectionMatrix(XMFLOAT4X4 view, XMFLOAT4X4 proj)
-{
-    g_camera.forceSetMatrix(view, proj);
-}
-
-//extern "C" EXPORT_API peWorld*      peCreateContext(uint32_t max_particles);
-//extern "C" EXPORT_API void          peDeleteContext(peWorld *ctx);
-//extern "C" EXPORT_API void          peResetState(peWorld *ctx);
-//extern "C" EXPORT_API void          peResetStateAll();
-//
-//extern "C" EXPORT_API peParticle*   peGetParticles(peWorld *ctx);
-//extern "C" EXPORT_API uint32_t      pePutParticles(peWorld *ctx, peParticle *particles, uint32_t num_particles);
-//extern "C" EXPORT_API void          peUpdateParticle(peWorld *ctx, uint32_t index, peParticleRaw particle);
-
-extern "C" EXPORT_API uint32_t peGetNumParticles(peWorld *ctx)
-{
-    return g_peworld.num_active_particles;
-}
-
-extern "C" EXPORT_API uint32_t peScatterParticlesSphererical(peWorld *ctx, XMFLOAT3 center, float radius, uint32 num)
-{
-    std::vector<peParticle> particles(num);
-    for (size_t i = 0; i < particles.size(); ++i) {
-        particles[i].position = ist::simdvec4_set(
-            center.x + GenRand()*radius, center.y + GenRand()*radius, center.z + GenRand()*radius, 1.0f);
-        particles[i].velocity = _mm_set1_ps(0.0f);
-    }
-    g_peworld.addParticles(&particles[0], particles.size());
-    return num;
-}
-
-extern "C" EXPORT_API uint32_t peAddBoxCollider(peWorld *ctx, XMFLOAT4X4 transform, XMFLOAT3 size)
-{
-    size.x *= 0.5f;
-    size.y *= 0.5f;
-    size.z *= 0.5f;
-
-    XMMATRIX st = XMMATRIX((float*)&transform);
-    XMVECTOR vertices[] = {
-        { size.x, size.y, size.z, 0.0f},
-        {-size.x, size.y, size.z, 0.0f},
-        {-size.x,-size.y, size.z, 0.0f},
-        { size.x,-size.y, size.z, 0.0f},
-        { size.x, size.y,-size.z, 0.0f},
-        {-size.x, size.y,-size.z, 0.0f},
-        {-size.x,-size.y,-size.z, 0.0f},
-        { size.x,-size.y,-size.z, 0.0f},
-    };
-    for (int i = 0; i < _countof(vertices); ++i) {
-        vertices[i] = XMVector4Transform(vertices[i], st);
-    }
-
-    XMVECTOR normals[6] = {
-        XMVector3Normalize(XMVector3Cross(XMVectorSubtract(vertices[3], vertices[0]), XMVectorSubtract(vertices[4], vertices[0]))),
-        XMVector3Normalize(XMVector3Cross(XMVectorSubtract(vertices[5], vertices[1]), XMVectorSubtract(vertices[2], vertices[1]))),
-        XMVector3Normalize(XMVector3Cross(XMVectorSubtract(vertices[7], vertices[3]), XMVectorSubtract(vertices[2], vertices[3]))),
-        XMVector3Normalize(XMVector3Cross(XMVectorSubtract(vertices[1], vertices[0]), XMVectorSubtract(vertices[4], vertices[0]))),
-        XMVector3Normalize(XMVector3Cross(XMVectorSubtract(vertices[1], vertices[0]), XMVectorSubtract(vertices[3], vertices[0]))),
-        XMVector3Normalize(XMVector3Cross(XMVectorSubtract(vertices[7], vertices[4]), XMVectorSubtract(vertices[5], vertices[4]))),
-    };
-    float32 distances[6] = {
-        -XMVector3Dot(vertices[0], normals[0]).m128_f32[0],
-        -XMVector3Dot(vertices[1], normals[1]).m128_f32[0],
-        -XMVector3Dot(vertices[0], normals[2]).m128_f32[0],
-        -XMVector3Dot(vertices[3], normals[3]).m128_f32[0],
-        -XMVector3Dot(vertices[0], normals[4]).m128_f32[0],
-        -XMVector3Dot(vertices[4], normals[5]).m128_f32[0],
-    };
-
-    ispc::BoxCollider box = {
-        0,
-        { 0.0f, 0.0f, 0.0f,  0.0f, 0.0f, 0.0f },
-        transform.m[3][0], transform.m[3][1], transform.m[3][2],
-        {
-            { normals[0].m128_f32[0], normals[0].m128_f32[1], normals[0].m128_f32[2], distances[0] },
-            { normals[1].m128_f32[0], normals[1].m128_f32[1], normals[1].m128_f32[2], distances[1] },
-            { normals[2].m128_f32[0], normals[2].m128_f32[1], normals[2].m128_f32[2], distances[2] },
-            { normals[3].m128_f32[0], normals[3].m128_f32[1], normals[3].m128_f32[2], distances[3] },
-            { normals[4].m128_f32[0], normals[4].m128_f32[1], normals[4].m128_f32[2], distances[4] },
-            { normals[5].m128_f32[0], normals[5].m128_f32[1], normals[5].m128_f32[2], distances[5] },
-        }
-    };
-    g_peworld.collision_boxes.push_back(box);
-    return 0;
-}
-
-extern "C" EXPORT_API uint32_t peAddSphereCollider(peWorld *ctx, XMFLOAT3 center, float radius)
-{
-    ispc::SphereCollider sphere = {
-        0,
-        { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f },
-        center.x, center.y, center.z, radius
-    };
-    g_peworld.collision_spheres.push_back(sphere);
-    return 0;
-}
-
-extern "C" EXPORT_API uint32_t peAddDirectionalForce(peWorld *ctx, XMFLOAT3 direction, float strength)
-{
-    ispc::DirectionalForce force;
-    set_nxyz(force, direction.x, direction.y, direction.z);
-    force.strength = strength;
-    g_peworld.force_directional.push_back(force);
-    return 0;
-}
 
 
 
@@ -362,8 +121,9 @@ ID3D11Buffer* CreateVertexBuffer(const void *data, UINT size)
 //--------------------------------------------------------------------------------------
 // Create Direct3D device and swap chain
 //--------------------------------------------------------------------------------------
-HRESULT InitDevice(ID3D11Device *dev)
+bool mpInitializeDevice(void *_dev)
 {
+    ID3D11Device *dev = (ID3D11Device*)_dev;
     HRESULT hr = S_OK;
 
     g_pd3dDevice = dev;
@@ -372,12 +132,12 @@ HRESULT InitDevice(ID3D11Device *dev)
     {
         // Compile the vertex shader
         ID3DBlob* pVSBlob = NULL;
-        hr = CompileShaderFromFile( L"Tutorial07.fx", "VS", "vs_4_0", &pVSBlob );
+        hr = CompileShaderFromFile( L"MassParticle.fx", "VS", "vs_4_0", &pVSBlob );
         if( FAILED( hr ) )
         {
             MessageBox( NULL,
                         L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK );
-            return hr;
+            return false;
         }
 
         // Create the vertex shader
@@ -385,7 +145,7 @@ HRESULT InitDevice(ID3D11Device *dev)
         if( FAILED( hr ) )
         {    
             pVSBlob->Release();
-            return hr;
+            return false;
         }
 
         // Create the input layout
@@ -402,26 +162,28 @@ HRESULT InitDevice(ID3D11Device *dev)
         hr = g_pd3dDevice->CreateInputLayout( layout, numElements, pVSBlob->GetBufferPointer(),
             pVSBlob->GetBufferSize(), &g_pCubeVertexLayout );
         pVSBlob->Release();
-        if( FAILED( hr ) )
-            return hr;
+        if (FAILED(hr)) {
+            return false;
+        }
     }
 
     {
         // Compile the pixel shader
         ID3DBlob* pPSBlob = NULL;
-        hr = CompileShaderFromFile( L"Tutorial07.fx", "PS", "ps_4_0", &pPSBlob );
+        hr = CompileShaderFromFile( L"MassParticle.fx", "PS", "ps_4_0", &pPSBlob );
         if( FAILED( hr ) )
         {
             MessageBox( NULL,
                 L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK );
-            return hr;
+            return false;
         }
 
         // Create the pixel shader
         hr = g_pd3dDevice->CreatePixelShader( pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), NULL, &g_pCubePixelShader );
         pPSBlob->Release();
-        if( FAILED( hr ) )
-            return hr;
+        if (FAILED(hr)) {
+            return false;
+        }
     }
 
     // Create vertex buffer
@@ -461,7 +223,7 @@ HRESULT InitDevice(ID3D11Device *dev)
         g_pCubeVertexBuffer = CreateVertexBuffer(vertices, sizeof(SimpleVertex)*ARRAYSIZE(vertices));
     }
     {
-        g_pCubeInstanceBuffer = CreateVertexBuffer(g_peworld.particles, sizeof(peParticle) * SPH_MAX_PARTICLE_NUM);
+        g_pCubeInstanceBuffer = CreateVertexBuffer(g_mpWorld.particles, sizeof(mpParticle) * SPH_MAX_PARTICLE_NUM);
     }
 
     // Create index buffer
@@ -487,8 +249,9 @@ HRESULT InitDevice(ID3D11Device *dev)
         ZeroMemory( &InitData, sizeof(InitData) );
         InitData.pSysMem = indices;
         hr = g_pd3dDevice->CreateBuffer( &bd, &InitData, &g_pCubeIndexBuffer );
-        if( FAILED( hr ) )
-            return hr;
+        if (FAILED(hr)) {
+            return false;
+        }
     }
 
     // Create the constant buffers
@@ -500,21 +263,22 @@ HRESULT InitDevice(ID3D11Device *dev)
         bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
         bd.CPUAccessFlags = 0;
         hr = g_pd3dDevice->CreateBuffer( &bd, NULL, &g_pCBChangesEveryFrame );
-        if( FAILED( hr ) )
-            return hr;
+        if (FAILED(hr)) {
+            return false;
+        }
     }
 
     g_camera.setProjection(XMConvertToRadians(45.0f), 1.0f, 0.1f, 100.0f);
     g_camera.setView(XMVectorSet(0.0f, 10.0f, -12.5f, 0.0f), XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f), XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f));
 
-    return S_OK;
+    return true;
 }
 
 
 //--------------------------------------------------------------------------------------
 // Clean up the objects we've created
 //--------------------------------------------------------------------------------------
-void CleanupDevice()
+void mpCleanupDevice()
 {
     if( g_pCBChangesEveryFrame ) g_pCBChangesEveryFrame->Release();
     if( g_pCubeInstanceBuffer ) g_pCubeInstanceBuffer->Release();
@@ -531,7 +295,7 @@ void CleanupDevice()
 
 
 
-extern "C" EXPORT_API void peUpdate(float dt)
+extern "C" EXPORT_API void mpUpdate(float dt)
 {
 
     //{
@@ -560,12 +324,12 @@ extern "C" EXPORT_API void peUpdate(float dt)
         static float s_prev = 0.0f;
         PerformanceCounter timer;
 
-        g_peworld.update(1.0f);
-        g_peworld.clearCollidersAndForces();
+        g_mpWorld.update(1.0f);
+        g_mpWorld.clearCollidersAndForces();
 
         if (s_timer.getElapsedMillisecond() - s_prev > 1000.0f) {
             char buf[128];
-            _snprintf(buf, _countof(buf), "  SPH update: %d particles %.3fms\n", g_peworld.num_active_particles, timer.getElapsedMillisecond());
+            _snprintf(buf, _countof(buf), "  SPH update: %d particles %.3fms\n", g_mpWorld.num_active_particles, timer.getElapsedMillisecond());
             OutputDebugStringA(buf);
             s_prev = s_timer.getElapsedMillisecond();
         }
@@ -576,10 +340,10 @@ extern "C" EXPORT_API void peUpdate(float dt)
 //--------------------------------------------------------------------------------------
 // Render a frame
 //--------------------------------------------------------------------------------------
-void peRender()
+void mpRender()
 {
     {
-        std::unique_lock<std::mutex> lock(g_peworld.m_mutex);
+        std::unique_lock<std::mutex> lock(g_mpWorld.m_mutex);
 
         CBChangesEveryFrame cb;
         XMVECTOR eye = g_camera.getEye();
@@ -591,13 +355,13 @@ void peRender()
         cb.LightColor       = XMFLOAT4(0.9f, 0.9f, 0.9f, 1.0f);
         cb.MeshShininess    = 200.0f;
         g_pImmediateContext->UpdateSubresource( g_pCBChangesEveryFrame, 0, NULL, &cb, 0, 0 );
-        g_pImmediateContext->UpdateSubresource(g_pCubeInstanceBuffer, 0, NULL, &g_peworld.particles, 0, 0);
+        g_pImmediateContext->UpdateSubresource(g_pCubeInstanceBuffer, 0, NULL, &g_mpWorld.particles, 0, 0);
     }
 
 
     {
         ID3D11Buffer *buffers[] = {g_pCubeVertexBuffer, g_pCubeInstanceBuffer};
-        UINT strides[] = {sizeof(SimpleVertex), sizeof(peParticle), };
+        UINT strides[] = {sizeof(SimpleVertex), sizeof(mpParticle), };
         UINT offsets[] = {0, 0};
         g_pImmediateContext->IASetVertexBuffers( 0, ARRAYSIZE(buffers), buffers, strides, offsets );
     }
@@ -630,7 +394,7 @@ void peRender()
     }
 
     // Render cubes
-    g_pImmediateContext->DrawIndexedInstanced( 36, (UINT)g_peworld.num_active_particles, 0, 0, 0 );
+    g_pImmediateContext->DrawIndexedInstanced( 36, (UINT)g_mpWorld.num_active_particles, 0, 0, 0 );
 
     g_pImmediateContext->OMSetDepthStencilState(ds_old, ds_stencil_ref);
     g_pImmediateContext->RSSetState(rs_old);

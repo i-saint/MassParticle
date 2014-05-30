@@ -6,28 +6,28 @@
 
 
 #include "ispc_vectormath.h"
-#include "SPH_const.h"
-#include "SPH_collision.h"
+#include "mpConst.h"
+#include "mpCollision.h"
 typedef unsigned int32 uint32;
 
 
-#define SPH_PRESSURE_STIFFNESS 200.0f
-#define SPH_REST_DENSITY 1000.0f
-#define SPH_PARTICLE_MASS 0.002f
-#define SPH_PARTICLE_VISCOSITY 0.1f
+#define mpPressureStiffnessSPH 200.0f
+#define mpRestDensity 1000.0f
+#define mpParticleMass 0.002f
+#define mpParticleViscosity 0.1f
 
-#define IMP_PRESSURE_STIFFNESS 50.0f
+#define mpPressureStiffnessImp 50.0f
 
+static uniform float mpDensityCoef;
+static uniform float mpGradPressureCoef;
+static uniform float mpLapViscosityCoef;
 
-static uniform float SPH_DENSITY_COEF;
-static uniform float SPH_GRAD_PRESSURE_COEF;
-static uniform float SPH_LAP_VISCOSITY_COEF;
 
 export void sphInitializeConstants()
 {
-    SPH_DENSITY_COEF = SPH_PARTICLE_MASS * 315.0f / (64.0f * PI * pow(SPH_PARTICLE_SIZE, 9));
-    SPH_GRAD_PRESSURE_COEF = SPH_PARTICLE_MASS * -45.0f / (PI * pow(SPH_PARTICLE_SIZE, 6));
-    SPH_LAP_VISCOSITY_COEF = SPH_PARTICLE_MASS * SPH_PARTICLE_VISCOSITY * 45.0f / (PI * pow(SPH_PARTICLE_SIZE, 6));
+    mpDensityCoef = mpParticleMass * 315.0f / (64.0f * PI * pow(SPH_PARTICLE_SIZE, 9));
+    mpGradPressureCoef = mpParticleMass * -45.0f / (PI * pow(SPH_PARTICLE_SIZE, 6));
+    mpLapViscosityCoef = mpParticleMass * mpParticleViscosity * 45.0f / (PI * pow(SPH_PARTICLE_SIZE, 6));
 }
 
 static soa<8> Force g_forces[SPH_MAX_PARTICLE_NUM];
@@ -184,7 +184,7 @@ static inline float sphComputeDensity(
         // Implements this equation:
         // W_poly6(r, h) = 315 / (64 * pi * h^9) * (h^2 - r^2)^3
         // g_fDensityCoef = fParticleMass * 315.0f / (64.0f * PI * fSmoothlen^9)
-        return SPH_DENSITY_COEF * (h_sq - r_sq) * (h_sq - r_sq) * (h_sq - r_sq);
+        return mpDensityCoef * (h_sq - r_sq) * (h_sq - r_sq) * (h_sq - r_sq);
     }
     return 0.0f;
 }
@@ -275,11 +275,11 @@ static inline float sphCalculatePressure(float density)
 {
     // Implements this equation:
     // Pressure = B * ((rho / rho_0)^y  - 1)
-    return SPH_PRESSURE_STIFFNESS * max(pow(density / SPH_REST_DENSITY, 3) - 1.0f, 0.0f);
+    return mpPressureStiffnessSPH * max(pow(density / mpRestDensity, 3) - 1.0f, 0.0f);
 }
 static inline uniform float sphCalculatePressure(uniform float density)
 {
-    return SPH_PRESSURE_STIFFNESS * max(pow(density / SPH_REST_DENSITY, 3) - 1.0f, 0.0f);
+    return mpPressureStiffnessSPH * max(pow(density / mpRestDensity, 3) - 1.0f, 0.0f);
 }
 
 
@@ -291,7 +291,7 @@ static inline vec3 sphCalculateGradPressure(float r, float P_pressure, float N_p
     // W_spkiey(r, h) = 15 / (pi * h^6) * (h - r)^3
     // GRAD( W_spikey(r, h) ) = -45 / (pi * h^6) * (h - r)^2
     // g_fGradPressureCoef = fParticleMass * -45.0f / (PI * fSmoothlen^6)
-    return (SPH_GRAD_PRESSURE_COEF * avg_pressure / N_density * (h - r) * (h - r) / r) * diff;
+    return (mpGradPressureCoef * avg_pressure / N_density * (h - r) * (h - r) / r) * diff;
 }
 
 static inline vec3 sphCalculateLapVelocity(float r, vec3 P_velocity, vec3 N_velocity, float N_density)
@@ -302,7 +302,7 @@ static inline vec3 sphCalculateLapVelocity(float r, vec3 P_velocity, vec3 N_velo
     // W_viscosity(r, h) = 15 / (2 * pi * h^3) * (-r^3 / (2 * h^3) + r^2 / h^2 + h / (2 * r) - 1)
     // LAPLACIAN( W_viscosity(r, h) ) = 45 / (pi * h^6) * (h - r)
     // g_fLapViscosityCoef = fParticleMass * fViscosity * 45.0f / (PI * fSmoothlen^6)
-    return  (SPH_LAP_VISCOSITY_COEF / N_density * (h - r)) * vel_diff;
+    return  (mpLapViscosityCoef / N_density * (h - r)) * vel_diff;
 }
 
 static inline float sphCalculateDensity(float r_sq)
@@ -311,7 +311,7 @@ static inline float sphCalculateDensity(float r_sq)
     // Implements this equation:
     // W_poly6(r, h) = 315 / (64 * pi * h^9) * (h^2 - r^2)^3
     // g_fDensityCoef = fParticleMass * 315.0f / (64.0f * PI * fSmoothlen^9)
-    return SPH_DENSITY_COEF * (h_sq - r_sq) * (h_sq - r_sq) * (h_sq - r_sq);
+    return mpDensityCoef * (h_sq - r_sq) * (h_sq - r_sq) * (h_sq - r_sq);
 }
 
 static inline vec3 sphComputeAccel(
@@ -424,7 +424,7 @@ static inline void impComputeParticleInteraction(
     float d = length3(diff); // float d = length3est(diff); // âΩåÃÇ© est ÇÃï˚Ç™íxÇ≠Ç»ÇÈ
     if(d > 0.0f) { // d==0: è’ìÀå≥Åïè’ìÀëäéËÇ™ìØàÍ
         vec3 dir = diff * SPH_RCP_PARTICLE_SIZE2; // vec3 dir = diff / d;
-        accel += dir * (min(0.0f, d-(SPH_PARTICLE_SIZE*2.0f)) * IMP_PRESSURE_STIFFNESS);
+        accel += dir * (min(0.0f, d-(SPH_PARTICLE_SIZE*2.0f)) * mpPressureStiffnessImp);
     }
 }
 

@@ -1,7 +1,7 @@
 //#include "stdafx.h"
-#include "SPH_types.h"
 #include <tbb/tbb.h>
 #include <algorithm>
+#include "mpTypes.h"
 
 
 
@@ -24,7 +24,7 @@ inline void simd_store(void *address, T v)
     _mm_store_ps((float*)address, (const simdvec4&)v);
 }
 
-void SoAnize( int32 num, const peParticle *particles, ispc::Particle_SOA8 *out )
+void SoAnize( int32 num, const mpParticle *particles, ispc::Particle_SOA8 *out )
 {
     int32 blocks = soa_blocks(num);
     for(int32 bi=0; bi<blocks; ++bi) {
@@ -59,7 +59,7 @@ void SoAnize( int32 num, const peParticle *particles, ispc::Particle_SOA8 *out )
     }
 }
 
-void AoSnize( int32 num, const ispc::Particle_SOA8 *particles, peParticle *out )
+void AoSnize( int32 num, const ispc::Particle_SOA8 *particles, mpParticle *out )
 {
     int32 blocks = soa_blocks(num);
     for(int32 bi=0; bi<blocks; ++bi) {
@@ -99,7 +99,7 @@ void AoSnize( int32 num, const ispc::Particle_SOA8 *particles, peParticle *out )
     }
 }
 
-inline uint32 GenHash(const peParticle &particle)
+inline uint32 GenHash(const mpParticle &particle)
 {
     static const float32 rcpcellsize = 1.0f/SPH_GRID_CELL_SIZE;
 
@@ -116,7 +116,7 @@ inline void GenIndex(uint32 hash, int32 &xi, int32 &zi)
     zi = (hash >> (SPH_GRID_DIV_BITS*1)) & (SPH_GRID_DIV-1);
 }
 
-peWorld::peWorld()
+mpWorld::mpWorld()
     : num_active_particles(0)
     , particle_lifetime(3600.0f)
 {
@@ -124,14 +124,14 @@ peWorld::peWorld()
     clearParticles();
 }
 
-void peWorld::clearParticles()
+void mpWorld::clearParticles()
 {
     for (uint32 i = 0; i < _countof(particles); ++i) {
         particles[i].params.lifetime = 0.0f;
     }
 }
 
-void peWorld::clearCollidersAndForces()
+void mpWorld::clearCollidersAndForces()
 {
     collision_spheres.clear();
     collision_planes.clear();
@@ -142,7 +142,7 @@ void peWorld::clearCollidersAndForces()
     force_box.clear();
 }
 
-void peWorld::addParticles(peParticle *p, uint32_t num)
+void mpWorld::addParticles(mpParticle *p, uint32_t num)
 {
     num = std::min<uint32_t>(num, SPH_MAX_PARTICLE_NUM - num_active_particles);
     for (uint32_t i = 0; i<num; ++i) {
@@ -152,7 +152,7 @@ void peWorld::addParticles(peParticle *p, uint32_t num)
     num_active_particles += num;
 }
 
-void peWorld::update(float32 dt)
+void mpWorld::update(float32 dt)
 {
     std::unique_lock<std::mutex> lock(m_mutex);
 
@@ -186,7 +186,7 @@ void peWorld::update(float32 dt)
 
     // パーティクルを hash で sort
     tbb::parallel_sort(particles, particles+num_active_particles, 
-        [&](const peParticle &a, const peParticle &b) { return a.params.hash < b.params.hash; } );
+        [&](const mpParticle &a, const mpParticle &b) { return a.params.hash < b.params.hash; } );
 
     // パーティクルがどの grid に入っているかを算出
     tbb::parallel_for(tbb::blocked_range<int>(0, (int32)num_active_particles, 1024),
@@ -237,7 +237,7 @@ void peWorld::update(float32 dt)
             for(int i=r.begin(); i!=r.end(); ++i) {
                 int32 n = ce[i].end - ce[i].begin;
                 if(n == 0) { continue; }
-                peParticle *p = &particles[ce[i].begin];
+                mpParticle *p = &particles[ce[i].begin];
                 ispc::Particle_SOA8 *t = &particles_soa[ce[i].soai];
                 SoAnize(n, p, t);
             }
@@ -335,7 +335,7 @@ void peWorld::update(float32 dt)
             for(int i=r.begin(); i!=r.end(); ++i) {
                 int32 n = ce[i].end - ce[i].begin;
                 if(n > 0) {
-                    peParticle *p = &particles[ce[i].begin];
+                    mpParticle *p = &particles[ce[i].begin];
                     ispc::Particle_SOA8 *t = &particles_soa[ce[i].soai];
                     AoSnize(n, t, p);
                 }

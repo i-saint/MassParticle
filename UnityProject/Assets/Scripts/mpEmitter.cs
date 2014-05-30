@@ -4,7 +4,7 @@ using System.Collections;
 using System.Runtime.InteropServices;
 
 [StructLayout(LayoutKind.Explicit)]
-public struct peParticle
+public struct mpParticle
 {
     [FieldOffset( 0)] Vector4 position;
     [FieldOffset(16)] Vector4 velocity;
@@ -21,56 +21,46 @@ public class mpEmitter : MonoBehaviour {
 	// one function in some active script.
 	// For this example, we'll call into plugin's SetTimeFromUnity
 	// function and pass the current time so the plugin can animate.
-	[DllImport ("RenderingPlugin")]
+	[DllImport ("MassParticle")]
 	private static extern void SetTimeFromUnity (float t);
 
 
 	// We'll also pass native pointer to a texture in Unity.
 	// The plugin will fill texture data from native code.
-	[DllImport ("RenderingPlugin")]
+	[DllImport ("MassParticle")]
 	private static extern void SetTextureFromUnity (IntPtr texture);
 	
-	[DllImport ("RenderingPlugin")]
-	private static extern void peSetViewProjectionMatrix(Matrix4x4 view, Matrix4x4 proj);
+	[DllImport ("MassParticle")]
+	private static extern void mpSetViewProjectionMatrix(Matrix4x4 view, Matrix4x4 proj);
 
-    [DllImport("RenderingPlugin")]
-    private static extern void peSetRenderTargets(IntPtr renderTexture, IntPtr depthTexture);
+    [DllImport("MassParticle")]
+    private static extern void mpSetRenderTargets(IntPtr renderTexture, IntPtr depthTexture);
 
-    [DllImport("RenderingPlugin")]
-    private static extern void peClearParticles();
+    [DllImport("MassParticle")]
+    private static extern void mpClearParticles();
 
-    //[DllImport ("RenderingPlugin")] private static extern IntPtr            peCreateContext(uint max_particles);
-    //[DllImport ("RenderingPlugin")] private static extern void              peDeleteContext(IntPtr ctx);
-    //[DllImport ("RenderingPlugin")] private static extern void              peResetState(IntPtr ctx);
-    //[DllImport ("RenderingPlugin")] private static extern void              peResetStateAll();
+    [DllImport ("MassParticle")] private static extern uint mpGetNumParticles(IntPtr ctx);
+    [DllImport ("MassParticle")] private static extern uint mpAddBoxCollider(IntPtr ctx, Matrix4x4 transform, Vector3 size);
+    [DllImport ("MassParticle")] private static extern uint mpAddSphereCollider(IntPtr ctx, Vector3 center, float radius);
+    [DllImport ("MassParticle")] private static extern bool mpRemoveCollider(IntPtr ctx, uint handle);
 
-    //[DllImport ("RenderingPlugin")] private static extern uint              peGetNumParticles(IntPtr ctx);
-    //[DllImport ("RenderingPlugin")] private static extern ref peParticle    peGetParticles(IntPtr ctx);
-    //[DllImport ("RenderingPlugin")] private static extern uint              pePutParticles(IntPtr ctx, ref peParticle particles, uint num_particles);
-    //[DllImport ("RenderingPlugin")] private static extern void              peUpdateParticle(IntPtr ctx, uint index, peParticle particle);
-
-    [DllImport ("RenderingPlugin")] private static extern uint              peGetNumParticles(IntPtr ctx);
-    [DllImport ("RenderingPlugin")] private static extern uint              peAddBoxCollider(IntPtr ctx, Matrix4x4 transform, Vector3 size);
-    [DllImport ("RenderingPlugin")] private static extern uint              peAddSphereCollider(IntPtr ctx, Vector3 center, float radius);
-    [DllImport ("RenderingPlugin")] private static extern bool              peRemoveCollider(IntPtr ctx, uint handle);
-
-	[DllImport ("RenderingPlugin")] private static extern uint peScatterParticlesSphererical(IntPtr ctx, Vector3 center, float radius, uint num);
-	[DllImport ("RenderingPlugin")] private static extern uint peAddDirectionalForce (IntPtr ctx, Vector3 direction, float strength);
-	[DllImport ("RenderingPlugin")] private static extern void peUpdate (float dt);
+	[DllImport ("MassParticle")] private static extern uint mpScatterParticlesSphererical(IntPtr ctx, Vector3 center, float radius, uint num);
+	[DllImport ("MassParticle")] private static extern uint mpAddDirectionalForce (IntPtr ctx, Vector3 direction, float strength);
+	[DllImport ("MassParticle")] private static extern void mpUpdate (float dt);
 
 
 	public RenderTexture renderTarget;
 
 
 	void Start () {
-        peClearParticles();
+        mpClearParticles();
 	}
 
 	void Update()
 	{
-		peScatterParticlesSphererical (IntPtr.Zero, transform.position, 0.5f, 32);
-		peAddDirectionalForce (IntPtr.Zero, new Vector3(0.0f,-1.0f,0.0f), 10.0f);
-		peUpdate (Time.timeSinceLevelLoad);
+		mpScatterParticlesSphererical (IntPtr.Zero, transform.position, 0.5f, 32);
+		mpAddDirectionalForce (IntPtr.Zero, new Vector3(0.0f,-1.0f,0.0f), 10.0f);
+		mpUpdate (Time.timeSinceLevelLoad);
 	}
 
 	private void CreateTextureAndPassToPlugin()
@@ -98,7 +88,7 @@ public class mpEmitter : MonoBehaviour {
 			
 			UnityEngine.Camera cam = UnityEngine.Camera.current;
 			if (cam) {
-				peSetViewProjectionMatrix(cam.worldToCameraMatrix, cam.projectionMatrix);
+				mpSetViewProjectionMatrix(cam.worldToCameraMatrix, cam.projectionMatrix);
                 //peSetRenderTargets(
                 //    cam.targetTexture.colorBuffer,
                 //    cam.depthTextureMode.);
@@ -111,13 +101,13 @@ public class mpEmitter : MonoBehaviour {
                     SphereCollider sphere = col as SphereCollider;
                     BoxCollider box = col as BoxCollider;
                     if(sphere) {
-                        peAddSphereCollider(IntPtr.Zero,
+                        mpAddSphereCollider(IntPtr.Zero,
                             sphere.transform.position,
                             sphere.radius);
                     }
                     else if (box)
                     {
-                        peAddBoxCollider(IntPtr.Zero,
+                        mpAddBoxCollider(IntPtr.Zero,
                             box.transform.localToWorldMatrix,
                             box.size);
                     }

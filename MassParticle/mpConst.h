@@ -1,5 +1,5 @@
-#ifndef _SPH_const_h_
-#define _SPH_const_h_
+#ifndef mpConst_h
+#define mpConst_h
 
 #define SPH_PARTICLE_SIZE 0.08f
 
@@ -24,4 +24,4 @@
 //#define SPH_enable_neighbor_density_estimation
 
 
-#endif // _SPH_const_h_
+#endif // mpConst_h

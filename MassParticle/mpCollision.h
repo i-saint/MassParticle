@@ -1,8 +1,8 @@
-#ifndef __SPH_collision_h__
-#define __SPH_collision_h__
+#ifndef mpCollision_h
+#define mpCollision_h
 
 #include "ispc_vectormath.h"
-#include "SPH_const.h"
+#include "mpConst.h"
 typedef unsigned int32 id_type;
 
 
@@ -106,4 +106,4 @@ struct GridData
 #define set_accel(p, v) p.ax=v.x; p.ay=v.y; p.az=v.z;
 
 
-#endif // __SPH_collision_h__
+#endif // mpCollision_h

@@ -2,10 +2,9 @@
 #define _SPH_types_h_
 
 #include <vector>
-#include "SPH_const.h"
-#include "SPH_core_ispc.h"
+#include "mpConst.h"
+#include "mpCore_ispc.h"
 #include "SoA.h"
-#include "UnityPluginInterface.h"
 #include <xnamath.h>
 #include <mutex>
 
@@ -29,7 +28,7 @@ typedef ispc::GridData sphGridData;
 #define set_vxyz(v, _x, _y, _z) v.vx=_x; v.vy=_y; v.vz=_z;
 
 
-struct peParticle
+struct mpParticle
 {
     simdvec4 position;
     simdvec4 velocity;
@@ -43,14 +42,14 @@ struct peParticle
         simdvec4 paramsv;
     };
 };
-struct peParticleRaw
+struct mpParticleRaw
 {
-    char data[sizeof(peParticle)];
+    char data[sizeof(mpParticle)];
 };
 
-struct peWorld
+struct mpWorld
 {
-    peParticle particles[SPH_MAX_PARTICLE_NUM];
+    mpParticle particles[SPH_MAX_PARTICLE_NUM];
     sphParticleSOA8 particles_soa[SPH_MAX_PARTICLE_NUM];
     sphGridData cell[SPH_GRID_DIV][SPH_GRID_DIV];
     uint32_t num_active_particles;
@@ -66,32 +65,11 @@ struct peWorld
 
     std::mutex m_mutex;
 
-    peWorld();
+    mpWorld();
     void clearParticles();
     void clearCollidersAndForces();
-    void addParticles(peParticle *p, uint32_t num_particles);
+    void addParticles(mpParticle *p, uint32_t num_particles);
     void update(float32 dt);
 };
-
-// external
-extern "C" EXPORT_API peWorld*      peCreateContext(uint32_t max_particles);
-extern "C" EXPORT_API void          peDeleteContext(peWorld *ctx);
-extern "C" EXPORT_API void          peResetState(peWorld *ctx);
-extern "C" EXPORT_API void          peClearParticles();
-extern "C" EXPORT_API void          peUpdate(float dt);
-
-extern "C" EXPORT_API void          peSetViewProjectionMatrix(XMFLOAT4X4 view, XMFLOAT4X4 proj);
-
-extern "C" EXPORT_API uint32_t      peGetNumParticles(peWorld *ctx);
-extern "C" EXPORT_API peParticle*   peGetParticles(peWorld *ctx);
-extern "C" EXPORT_API uint32_t      pePutParticles(peWorld *ctx, peParticle *particles, uint32_t num_particles);
-extern "C" EXPORT_API void          peUpdateParticle(peWorld *ctx, uint32_t index, peParticleRaw particle);
-extern "C" EXPORT_API uint32_t      peScatterParticlesSphererical(peWorld *ctx, XMFLOAT3 center, float radius, uint32 num);
-
-extern "C" EXPORT_API uint32_t      peAddBoxCollider(peWorld *ctx, XMFLOAT4X4 transform, XMFLOAT3 size);
-extern "C" EXPORT_API uint32_t      peAddSphereCollider(peWorld *ctx, XMFLOAT3 center, float radius);
-extern "C" EXPORT_API uint32_t      peAddDirectionalForce(peWorld *ctx, XMFLOAT3 direction, float strength);
-
-
 
 #endif // _SPH_types_h_

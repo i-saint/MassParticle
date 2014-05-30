@@ -12,7 +12,7 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{F7CFEF5A-54BD-42E8-A59E-54ABAEB4EA9C}</ProjectGuid>
-    <RootNamespace>RenderingPlugin</RootNamespace>
+    <RootNamespace>MassParticle</RootNamespace>
     <Keyword>Win32Proj</Keyword>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -57,7 +57,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;RENDERINGPLUGIN_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;MassParticle_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -79,7 +79,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;RENDERINGPLUGIN_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;MassParticle_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <PrecompiledHeader />
@@ -99,22 +99,22 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\SPH_types.cpp" />
-    <ClCompile Include="..\collision.cpp" />
-    <ClCompile Include="..\ispcSPH.cpp" />
-    <ClCompile Include="..\RenderingPlugin.cpp" />
+    <ClCompile Include="..\mpRender.cpp" />
+    <ClCompile Include="..\mpTypes.cpp" />
+    <ClCompile Include="..\MassParticle.cpp" />
     <ClCompile Include="..\tasksys.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\ispc_vectormath.h" />
+    <ClInclude Include="..\MassParticle.h" />
     <ClInclude Include="..\SoA.h" />
-    <ClInclude Include="..\SPH_collision.h" />
-    <ClInclude Include="..\SPH_const.h" />
-    <ClInclude Include="..\SPH_types.h" />
+    <ClInclude Include="..\mpCollision.h" />
+    <ClInclude Include="..\mpConst.h" />
+    <ClInclude Include="..\mpTypes.h" />
     <ClInclude Include="..\UnityPluginInterface.h" />
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="..\SPH_core.ispc">
+    <CustomBuild Include="..\mpCore.ispc">
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">ispc %(FullPath) -o $(TargetDir)%(Filename).obj -h $(TargetDir)%(Filename)_ispc.h --target=sse2,sse4,avx --arch=x86 --opt=fast-masked-vload --opt=fast-math</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(TargetDir)%(Filename).obj;$(TargetDir)%(Filename)_sse2.obj;$(TargetDir)%(Filename)_sse4.obj;$(TargetDir)%(Filename)_avx.obj;$(TargetDir)%(Filename)_ispc.h</Outputs>
