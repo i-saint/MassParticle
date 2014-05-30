@@ -13,16 +13,13 @@
 #include "mpCore_ispc.h"
 #include "MassParticle.h"
 
-//--------------------------------------------------------------------------------------
-// Structures
-//--------------------------------------------------------------------------------------
-struct SimpleVertex
+struct mpVertex
 {
     XMFLOAT3 Pos;
     XMFLOAT3 Normal;
 };
 
-struct CBChangesEveryFrame
+struct mpCBCData
 {
     XMMATRIX ViewProjection;
     XMFLOAT4 CameraPos;
@@ -248,7 +245,7 @@ bool mpRendererD3D11::initializeDevice(void *_dev)
 
     // Create vertex buffer
     {
-        SimpleVertex vertices[] =
+        mpVertex vertices[] =
         {
             { XMFLOAT3(-1.0f, 1.0f,-1.0f),  XMFLOAT3( 0.0f, 1.0f, 0.0f) },
             { XMFLOAT3( 1.0f, 1.0f,-1.0f),  XMFLOAT3( 0.0f, 1.0f, 0.0f) },
@@ -280,10 +277,10 @@ bool mpRendererD3D11::initializeDevice(void *_dev)
             { XMFLOAT3( 1.0f, 1.0f, 1.0f),  XMFLOAT3( 0.0f, 0.0f, 1.0f ) },
             { XMFLOAT3(-1.0f, 1.0f, 1.0f),  XMFLOAT3( 0.0f, 0.0f, 1.0f ) },
         };
-        g_pCubeVertexBuffer = CreateVertexBuffer(vertices, sizeof(SimpleVertex)*ARRAYSIZE(vertices));
+        g_pCubeVertexBuffer = CreateVertexBuffer(vertices, sizeof(mpVertex)*ARRAYSIZE(vertices));
     }
     {
-        g_pCubeInstanceBuffer = CreateVertexBuffer(m_world->particles, sizeof(mpParticle) * SPH_MAX_PARTICLE_NUM);
+        g_pCubeInstanceBuffer = CreateVertexBuffer(m_world->particles, sizeof(mpParticle) * mpMaxParticleNum);
     }
 
     // Create index buffer
@@ -319,7 +316,7 @@ bool mpRendererD3D11::initializeDevice(void *_dev)
         D3D11_BUFFER_DESC bd;
         ZeroMemory( &bd, sizeof(bd) );
         bd.Usage = D3D11_USAGE_DEFAULT;
-        bd.ByteWidth = sizeof(CBChangesEveryFrame);
+        bd.ByteWidth = sizeof(mpCBCData);
         bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
         bd.CPUAccessFlags = 0;
         hr = g_pd3dDevice->CreateBuffer( &bd, NULL, &g_pCBChangesEveryFrame );
@@ -362,7 +359,7 @@ void mpRendererD3D11::render()
         std::unique_lock<std::mutex> lock(m_world->m_mutex);
 
         mpCamera &camera = m_world->m_camera;
-        CBChangesEveryFrame cb;
+        mpCBCData cb;
         XMVECTOR eye = camera.getEye();
         XMMATRIX vp = camera.getViewProjectionMatrix();
 
@@ -376,7 +373,7 @@ void mpRendererD3D11::render()
     }
     {
         ID3D11Buffer *buffers[] = {g_pCubeVertexBuffer, g_pCubeInstanceBuffer};
-        UINT strides[] = {sizeof(SimpleVertex), sizeof(mpParticle), };
+        UINT strides[] = {sizeof(mpVertex), sizeof(mpParticle), };
         UINT offsets[] = {0, 0};
         g_pImmediateContext->IASetVertexBuffers( 0, ARRAYSIZE(buffers), buffers, strides, offsets );
     }

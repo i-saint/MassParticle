@@ -14,22 +14,15 @@ public struct mpParticle
     [FieldOffset(44)] float lifetime;
 }
 
+public enum mpSolverType
+{
+	Impulse = 0,
+	SPH = 1,
+	SPHEstimate = 2,
+}
+
 public class mpEmitter : MonoBehaviour {
-	
-	// Native plugin rendering events are only called if a plugin is used
-	// by some script. This means we have to DllImport at least
-	// one function in some active script.
-	// For this example, we'll call into plugin's SetTimeFromUnity
-	// function and pass the current time so the plugin can animate.
-	[DllImport ("MassParticle")]
-	private static extern void SetTimeFromUnity (float t);
 
-
-	// We'll also pass native pointer to a texture in Unity.
-	// The plugin will fill texture data from native code.
-	[DllImport ("MassParticle")]
-	private static extern void SetTextureFromUnity (IntPtr texture);
-	
 	[DllImport ("MassParticle")]
 	private static extern void mpSetViewProjectionMatrix(Matrix4x4 view, Matrix4x4 proj);
 
@@ -39,35 +32,39 @@ public class mpEmitter : MonoBehaviour {
     [DllImport("MassParticle")]
     private static extern void mpClearParticles();
 	
-	[DllImport ("MassParticle")] private static extern float mpGetParticleLifeTime(IntPtr ctx);
-	[DllImport ("MassParticle")] private static extern void mpSetParticleLifeTime(IntPtr ctx, float lifetime);
-	[DllImport ("MassParticle")] private static extern uint mpGetNumParticles(IntPtr ctx);
+	[DllImport ("MassParticle")] private static extern void mpSetSolverType(mpSolverType t);
+	[DllImport ("MassParticle")] private static extern float mpGetParticleLifeTime();
+	[DllImport ("MassParticle")] private static extern void mpSetParticleLifeTime(float lifetime);
+	[DllImport ("MassParticle")] private static extern uint mpGetNumParticles();
 
-	[DllImport ("MassParticle")] private static extern uint mpAddBoxCollider(IntPtr ctx, Matrix4x4 transform, Vector3 size);
-    [DllImport ("MassParticle")] private static extern uint mpAddSphereCollider(IntPtr ctx, Vector3 center, float radius);
-    [DllImport ("MassParticle")] private static extern bool mpRemoveCollider(IntPtr ctx, uint handle);
+	[DllImport ("MassParticle")] private static extern uint mpAddBoxCollider(Matrix4x4 transform, Vector3 size);
+    [DllImport ("MassParticle")] private static extern uint mpAddSphereCollider(Vector3 center, float radius);
+    [DllImport ("MassParticle")] private static extern bool mpRemoveCollider(uint handle);
 
-	[DllImport ("MassParticle")] private static extern uint mpScatterParticlesSphererical(IntPtr ctx, Vector3 center, float radius, uint num);
-	[DllImport ("MassParticle")] private static extern uint mpAddDirectionalForce (IntPtr ctx, Vector3 direction, float strength);
+	[DllImport ("MassParticle")] private static extern uint mpScatterParticlesSphererical(Vector3 center, float radius, uint num);
+	[DllImport ("MassParticle")] private static extern uint mpAddDirectionalForce (Vector3 direction, float strength);
 	[DllImport ("MassParticle")] private static extern void mpUpdate (float dt);
 
+	public float particleRadius;
+	public float particleLifeTime;
+	public mpSolverType solverType;
 
-	public RenderTexture renderTarget;
-	public float particleLifeTime
-	{
-		get { return mpGetParticleLifeTime(IntPtr.Zero); }
-		set { mpSetParticleLifeTime(IntPtr.Zero, value); }
-	}
+	public float gravityStrength = 10.0f;
+	public Vector3 gravityDirection = new Vector3(0.0f,-1.0f,0.0f);
 
 
 	void Start () {
         mpClearParticles();
+		particleLifeTime = mpGetParticleLifeTime();
 	}
 
 	void Update()
 	{
-		mpScatterParticlesSphererical (IntPtr.Zero, transform.position, 0.5f, 32);
-		mpAddDirectionalForce (IntPtr.Zero, new Vector3(0.0f,-1.0f,0.0f), 10.0f);
+		mpScatterParticlesSphererical (transform.position, 0.5f, 32);
+		mpAddDirectionalForce (gravityDirection, gravityStrength);
+
+		mpSetSolverType(solverType);
+		mpSetParticleLifeTime(particleLifeTime);
 		mpUpdate (Time.timeSinceLevelLoad);
 	}
 	
@@ -85,15 +82,11 @@ public class mpEmitter : MonoBehaviour {
             SphereCollider sphere = col as SphereCollider;
             BoxCollider box = col as BoxCollider;
             if(sphere) {
-                mpAddSphereCollider(IntPtr.Zero,
-                    sphere.transform.position,
-                    sphere.radius);
+                mpAddSphereCollider(sphere.transform.position, sphere.radius);
             }
             else if (box)
             {
-                mpAddBoxCollider(IntPtr.Zero,
-                    box.transform.localToWorldMatrix,
-                    box.size);
+                mpAddBoxCollider(box.transform.localToWorldMatrix, box.size);
             }
         }
 
@@ -101,10 +94,6 @@ public class mpEmitter : MonoBehaviour {
 		// The plugin can distinguish between different
 		// things it needs to do based on this ID.
 		// For our simple plugin, it does not matter which ID we pass here.
-		if(renderTarget) {
-			Graphics.SetRenderTarget(renderTarget);
-		}
-
 		GL.IssuePluginEvent (1);
 	}
 }

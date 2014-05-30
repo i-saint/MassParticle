@@ -162,22 +162,27 @@ extern "C" EXPORT_API void mpSetViewProjectionMatrix(XMFLOAT4X4 view, XMFLOAT4X4
     g_mpWorld.m_camera.forceSetMatrix(view, proj);
 }
 
-extern "C" EXPORT_API float mpGetParticleLifeTime(mpWorld *ctx)
+extern "C" EXPORT_API void mpSetSolverType(mpSolverType st)
+{
+    g_mpWorld.m_solver = st;
+}
+
+extern "C" EXPORT_API float mpGetParticleLifeTime()
 {
     return g_mpWorld.particle_lifetime;
 ;}
 
-extern "C" EXPORT_API void mpSetParticleLifeTime(mpWorld *ctx, float lifetime)
+extern "C" EXPORT_API void mpSetParticleLifeTime(float lifetime)
 {
     g_mpWorld.particle_lifetime = lifetime;
 }
 
-extern "C" EXPORT_API uint32_t mpGetNumParticles(mpWorld *ctx)
+extern "C" EXPORT_API uint32_t mpGetNumParticles()
 {
     return g_mpWorld.num_active_particles;
 }
 
-extern "C" EXPORT_API uint32_t mpScatterParticlesSphererical(mpWorld *ctx, XMFLOAT3 center, float radius, uint32 num)
+extern "C" EXPORT_API uint32_t mpScatterParticlesSphererical(XMFLOAT3 center, float radius, uint32 num)
 {
     std::vector<mpParticle> particles(num);
     for (size_t i = 0; i < particles.size(); ++i) {
@@ -189,11 +194,11 @@ extern "C" EXPORT_API uint32_t mpScatterParticlesSphererical(mpWorld *ctx, XMFLO
     return num;
 }
 
-extern "C" EXPORT_API uint32_t mpAddBoxCollider(mpWorld *ctx, XMFLOAT4X4 transform, XMFLOAT3 size)
+extern "C" EXPORT_API uint32_t mpAddBoxCollider(XMFLOAT4X4 transform, XMFLOAT3 size)
 {
-    size.x *= 0.5f;
-    size.y *= 0.5f;
-    size.z *= 0.5f;
+    size.x = size.x * 0.5f;
+    size.y = size.y * 0.5f;
+    size.z = size.z * 0.5f;
 
     XMMATRIX st = XMMATRIX((float*)&transform);
     XMVECTOR vertices[] = {
@@ -219,12 +224,12 @@ extern "C" EXPORT_API uint32_t mpAddBoxCollider(mpWorld *ctx, XMFLOAT4X4 transfo
         XMVector3Normalize(XMVector3Cross(XMVectorSubtract(vertices[7], vertices[4]), XMVectorSubtract(vertices[5], vertices[4]))),
     };
     float32 distances[6] = {
-        -XMVector3Dot(vertices[0], normals[0]).m128_f32[0],
-        -XMVector3Dot(vertices[1], normals[1]).m128_f32[0],
-        -XMVector3Dot(vertices[0], normals[2]).m128_f32[0],
-        -XMVector3Dot(vertices[3], normals[3]).m128_f32[0],
-        -XMVector3Dot(vertices[0], normals[4]).m128_f32[0],
-        -XMVector3Dot(vertices[4], normals[5]).m128_f32[0],
+        -(XMVector3Dot(vertices[0], normals[0]).m128_f32[0] + mpParticleSize),
+        -(XMVector3Dot(vertices[1], normals[1]).m128_f32[0] + mpParticleSize),
+        -(XMVector3Dot(vertices[0], normals[2]).m128_f32[0] + mpParticleSize),
+        -(XMVector3Dot(vertices[3], normals[3]).m128_f32[0] + mpParticleSize),
+        -(XMVector3Dot(vertices[0], normals[4]).m128_f32[0] + mpParticleSize),
+        -(XMVector3Dot(vertices[4], normals[5]).m128_f32[0] + mpParticleSize),
     };
 
     ispc::BoxCollider box = {
@@ -244,18 +249,18 @@ extern "C" EXPORT_API uint32_t mpAddBoxCollider(mpWorld *ctx, XMFLOAT4X4 transfo
     return 0;
 }
 
-extern "C" EXPORT_API uint32_t mpAddSphereCollider(mpWorld *ctx, XMFLOAT3 center, float radius)
+extern "C" EXPORT_API uint32_t mpAddSphereCollider(XMFLOAT3 center, float radius)
 {
     ispc::SphereCollider sphere = {
         0,
         { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f },
-        center.x, center.y, center.z, radius
+        center.x, center.y, center.z, radius + mpParticleSize
     };
     g_mpWorld.collision_spheres.push_back(sphere);
     return 0;
 }
 
-extern "C" EXPORT_API uint32_t mpAddDirectionalForce(mpWorld *ctx, XMFLOAT3 direction, float strength)
+extern "C" EXPORT_API uint32_t mpAddDirectionalForce(XMFLOAT3 direction, float strength)
 {
     ispc::DirectionalForce force;
     set_nxyz(force, direction.x, direction.y, direction.z);

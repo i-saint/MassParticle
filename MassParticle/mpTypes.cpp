@@ -24,7 +24,7 @@ inline void simd_store(void *address, T v)
     _mm_store_ps((float*)address, (const simdvec4&)v);
 }
 
-void SoAnize( int32 num, const mpParticle *particles, ispc::Particle_SOA8 *out )
+void mpSoAnize( int32 num, const mpParticle *particles, ispc::Particle_SOA8 *out )
 {
     int32 blocks = soa_blocks(num);
     for(int32 bi=0; bi<blocks; ++bi) {
@@ -59,7 +59,7 @@ void SoAnize( int32 num, const mpParticle *particles, ispc::Particle_SOA8 *out )
     }
 }
 
-void AoSnize( int32 num, const ispc::Particle_SOA8 *particles, mpParticle *out )
+void mpAoSnize( int32 num, const ispc::Particle_SOA8 *particles, mpParticle *out )
 {
     int32 blocks = soa_blocks(num);
     for(int32 bi=0; bi<blocks; ++bi) {
@@ -99,26 +99,28 @@ void AoSnize( int32 num, const ispc::Particle_SOA8 *particles, mpParticle *out )
     }
 }
 
-inline uint32 GenHash(const mpParticle &particle)
+inline uint32 mpGenHash(const mpParticle &particle)
 {
-    static const float32 rcpcellsize = 1.0f/SPH_GRID_CELL_SIZE;
+    static const float32 rcpcellsize = 1.0f/mpWorldCellSize;
 
     const float *pos4 = (const float*)&particle.position;
-    uint32 r=(clamp<int32>(int32((pos4[0]-SPH_GRID_POS)*rcpcellsize), 0, (SPH_GRID_DIV-1)) << (SPH_GRID_DIV_BITS*0)) |
-             (clamp<int32>(int32((pos4[2]-SPH_GRID_POS)*rcpcellsize), 0, (SPH_GRID_DIV-1)) << (SPH_GRID_DIV_BITS*1));
+    uint32 r=(clamp<int32>(int32((pos4[0]-mpWorldPosition)*rcpcellsize), 0, (mpWorldDivNum-1)) << (mpWorldDivNumBits*0)) |
+             (clamp<int32>(int32((pos4[2]-mpWorldPosition)*rcpcellsize), 0, (mpWorldDivNum-1)) << (mpWorldDivNumBits*1));
     if(particle.params.lifetime==0.0f) { r |= 0x80000000; }
     return r;
 }
 
-inline void GenIndex(uint32 hash, int32 &xi, int32 &zi)
+inline void mpGenIndex(uint32 hash, int32 &xi, int32 &zi)
 {
-    xi = (hash >> (SPH_GRID_DIV_BITS*0)) & (SPH_GRID_DIV-1);
-    zi = (hash >> (SPH_GRID_DIV_BITS*1)) & (SPH_GRID_DIV-1);
+    xi = (hash >> (mpWorldDivNumBits*0)) & (mpWorldDivNum-1);
+    zi = (hash >> (mpWorldDivNumBits*1)) & (mpWorldDivNum-1);
 }
+
 
 mpWorld::mpWorld()
     : num_active_particles(0)
     , particle_lifetime(3600.0f)
+    , m_solver(mpSolver_Impulse)
     , m_renderer(nullptr)
 {
     collision_spheres.reserve(64);
@@ -145,7 +147,7 @@ void mpWorld::clearCollidersAndForces()
 
 void mpWorld::addParticles(mpParticle *p, uint32_t num)
 {
-    num = std::min<uint32_t>(num, SPH_MAX_PARTICLE_NUM - num_active_particles);
+    num = std::min<uint32_t>(num, mpMaxParticleNum - num_active_particles);
     for (uint32_t i = 0; i<num; ++i) {
         particles[num_active_particles+i] = p[i];
         particles[num_active_particles+i].params.lifetime = particle_lifetime;
@@ -167,7 +169,7 @@ void mpWorld::update(float32 dt)
     ispc::sphInitializeConstants();
 
     // clear grid
-    tbb::parallel_for(tbb::blocked_range<int>(0, SPH_GRID_CELL_NUM, 128),
+    tbb::parallel_for(tbb::blocked_range<int>(0, mpWorldCellNum, 128),
         [&](const tbb::blocked_range<int> &r) {
             for(int i=r.begin(); i!=r.end(); ++i) {
                 ce[i].begin = ce[i].end = 0;
@@ -179,7 +181,7 @@ void mpWorld::update(float32 dt)
         [&](const tbb::blocked_range<int> &r) {
             for(int i=r.begin(); i!=r.end(); ++i) {
                 particles[i].params.lifetime = std::max<float32>(particles[i].params.lifetime-dt, 0.0f);
-                particles[i].params.hash = GenHash(particles[i]);
+                particles[i].params.hash = mpGenHash(particles[i]);
             }
         });
 
@@ -197,7 +199,7 @@ void mpWorld::update(float32 dt)
 
                 uint32 cell = particles[G_ID].params.hash;
                 uint32 cell_prev = (G_ID_PREV==-1) ? -1 : particles[G_ID_PREV].params.hash;
-                uint32 cell_next = (G_ID_NEXT==SPH_MAX_PARTICLE_NUM) ? -2 : particles[G_ID_NEXT].params.hash;
+                uint32 cell_next = (G_ID_NEXT==mpMaxParticleNum) ? -2 : particles[G_ID_NEXT].params.hash;
                 if((cell & 0x80000000) != 0) { // ÅãˆÊ bit ‚ª—§‚Á‚Ä‚¢‚½‚çŽ€‚ñ‚Å‚¢‚éˆµ‚¢
                     if((cell_prev & 0x80000000) == 0) { // 
                         num_active_particles = G_ID;
@@ -217,126 +219,142 @@ void mpWorld::update(float32 dt)
         if( (particles[0].params.hash & 0x80000000) != 0 ) {
             num_active_particles = 0;
         }
-        else if( (particles[SPH_MAX_PARTICLE_NUM-1].params.hash & 0x80000000) == 0 ) {
-            num_active_particles = SPH_MAX_PARTICLE_NUM;
+        else if( (particles[mpMaxParticleNum-1].params.hash & 0x80000000) == 0 ) {
+            num_active_particles = mpMaxParticleNum;
         }
     }
 
     {
         int32 soai = 0;
-        for(int i=0; i!=SPH_GRID_CELL_NUM; ++i) {
+        for(int i=0; i!=mpWorldCellNum; ++i) {
             ce[i].soai = soai;
             soai += soa_blocks(ce[i].end-ce[i].begin);
         }
     }
 
     // AoS -> SoA
-    tbb::parallel_for(tbb::blocked_range<int>(0, SPH_GRID_CELL_NUM, 128),
+    tbb::parallel_for(tbb::blocked_range<int>(0, mpWorldCellNum, 128),
         [&](const tbb::blocked_range<int> &r) {
             for(int i=r.begin(); i!=r.end(); ++i) {
                 int32 n = ce[i].end - ce[i].begin;
                 if(n == 0) { continue; }
                 mpParticle *p = &particles[ce[i].begin];
                 ispc::Particle_SOA8 *t = &particles_soa[ce[i].soai];
-                SoAnize(n, p, t);
+                mpSoAnize(n, p, t);
             }
     });
 
-//    // SPH
-//    tbb::parallel_for(tbb::blocked_range<int>(0, SPH_GRID_CELL_NUM, 128),
-//        [&](const tbb::blocked_range<int> &r) {
-//            for(int i=r.begin(); i!=r.end(); ++i) {
-//                int32 n = ce[i].end - ce[i].begin;
-//                if(n == 0) { continue; }
-//                int xi, zi;
-//                GenIndex(i, xi, zi);
-//                sphUpdateDensityDOL((ispc::Particle*)particles_soa, ce, xi, zi);
-//            }
-//    });
-//#ifdef SPH_enable_neighbor_density_estimation
-//    tbb::parallel_for(tbb::blocked_range<int>(0, SPH_GRID_CELL_NUM, 128),
-//        [&](const tbb::blocked_range<int> &r) {
-//            for(int i=r.begin(); i!=r.end(); ++i) {
-//                int32 n = ce[i].end - ce[i].begin;
-//                if(n == 0) { continue; }
-//                int xi, zi;
-//                GenIndex(i, xi, zi);
-//                sphUpdateDensity2DOL((ispc::Particle*)particles_soa, ce, xi, zi);
-//            }
-//    });
-//#endif // SPH_enable_neighbor_density_estimation
-//    tbb::parallel_for(tbb::blocked_range<int>(0, SPH_GRID_CELL_NUM, 128),
-//        [&](const tbb::blocked_range<int> &r) {
-//            for(int i=r.begin(); i!=r.end(); ++i) {
-//                int32 n = ce[i].end - ce[i].begin;
-//                if(n == 0) { continue; }
-//                int xi, zi;
-//                GenIndex(i, xi, zi);
-//                sphUpdateForceDOL((ispc::Particle*)particles_soa, ce, xi, zi);
-//            }
-//    });
-//    tbb::parallel_for(tbb::blocked_range<int>(0, SPH_GRID_CELL_NUM, 128),
-//        [&](const tbb::blocked_range<int> &r) {
-//            for(int i=r.begin(); i!=r.end(); ++i) {
-//                int32 n = ce[i].end - ce[i].begin;
-//                if(n == 0) { continue; }
-//                int xi, zi;
-//                GenIndex(i, xi, zi);
-//                sphProcessExternalForceDOL(
-//                    (ispc::Particle*)particles_soa, ce, xi, zi,
-//                    &force_point[0],        (int32)force_point.size(),
-//                    &force_directional[0],  (int32)force_directional.size(),
-//                    &force_box[0],          (int32)force_box.size() );
-//                sphProcessCollisionDOL(
-//                    (ispc::Particle*)particles_soa, ce, xi, zi,
-//                    &collision_spheres[0],  (int32)collision_spheres.size(),
-//                    &collision_planes[0],   (int32)collision_planes.size(),
-//                    &collision_boxes[0],    (int32)collision_boxes.size() );
-//                sphIntegrateDOL((ispc::Particle*)particles_soa, ce, xi, zi);
-//            }
-//    });
-
-    // impulse
-    tbb::parallel_for(tbb::blocked_range<int>(0, SPH_GRID_CELL_NUM, 128),
-        [&](const tbb::blocked_range<int> &r) {
-            for(int i=r.begin(); i!=r.end(); ++i) {
+    if (m_solver == mpSolver_Impulse) {
+        // impulse
+        tbb::parallel_for(tbb::blocked_range<int>(0, mpWorldCellNum, 128),
+            [&](const tbb::blocked_range<int> &r) {
+            for (int i = r.begin(); i != r.end(); ++i) {
                 int32 n = ce[i].end - ce[i].begin;
-                if(n == 0) { continue; }
+                if (n == 0) { continue; }
                 int xi, zi;
-                GenIndex(i, xi, zi);
+                mpGenIndex(i, xi, zi);
                 ispc::impUpdateVelocity((ispc::Particle*)particles_soa, ce, xi, zi);
             }
-    });
-    tbb::parallel_for(tbb::blocked_range<int>(0, SPH_GRID_CELL_NUM, 128),
-        [&](const tbb::blocked_range<int> &r) {
-            for(int i=r.begin(); i!=r.end(); ++i) {
+        });
+        tbb::parallel_for(tbb::blocked_range<int>(0, mpWorldCellNum, 128),
+            [&](const tbb::blocked_range<int> &r) {
+            for (int i = r.begin(); i != r.end(); ++i) {
                 int32 n = ce[i].end - ce[i].begin;
-                if(n == 0) { continue; }
+                if (n == 0) { continue; }
                 int xi, zi;
-                GenIndex(i, xi, zi);
+                mpGenIndex(i, xi, zi);
                 ispc::sphProcessExternalForce(
                     (ispc::Particle*)particles_soa, ce, xi, zi,
                     point_f, (int32)force_point.size(),
-                    dir_f,   (int32)force_directional.size(),
-                    box_f,   (int32)force_box.size() );
+                    dir_f, (int32)force_directional.size(),
+                    box_f, (int32)force_box.size());
                 ispc::sphProcessCollision(
                     (ispc::Particle*)particles_soa, ce, xi, zi,
                     point_c, (int32)collision_spheres.size(),
                     plane_c, (int32)collision_planes.size(),
-                    box_c,   (int32)collision_boxes.size() );
+                    box_c, (int32)collision_boxes.size());
                 ispc::impIntegrate((ispc::Particle*)particles_soa, ce, xi, zi);
             }
-    });
+        });
+    }
+    else if (m_solver == mpSolver_SPH || m_solver == mpSolver_SPHEst) {
+        if (m_solver == mpSolver_SPH) {
+            tbb::parallel_for(tbb::blocked_range<int>(0, mpWorldCellNum, 128),
+                [&](const tbb::blocked_range<int> &r) {
+                for (int i = r.begin(); i != r.end(); ++i) {
+                    int32 n = ce[i].end - ce[i].begin;
+                    if (n == 0) { continue; }
+                    int xi, zi;
+                    mpGenIndex(i, xi, zi);
+                    ispc::sphUpdateDensity((ispc::Particle*)particles_soa, ce, xi, zi);
+                }
+            });
+        }
+        else if (m_solver == mpSolver_SPHEst) {
+            tbb::parallel_for(tbb::blocked_range<int>(0, mpWorldCellNum, 128),
+                [&](const tbb::blocked_range<int> &r) {
+                for (int i = r.begin(); i != r.end(); ++i) {
+                    int32 n = ce[i].end - ce[i].begin;
+                    if (n == 0) { continue; }
+                    int xi, zi;
+                    mpGenIndex(i, xi, zi);
+                    ispc::sphUpdateDensityEst1((ispc::Particle*)particles_soa, ce, xi, zi);
+                }
+            });
+            tbb::parallel_for(tbb::blocked_range<int>(0, mpWorldCellNum, 128),
+                [&](const tbb::blocked_range<int> &r) {
+                for (int i = r.begin(); i != r.end(); ++i) {
+                    int32 n = ce[i].end - ce[i].begin;
+                    if (n == 0) { continue; }
+                    int xi, zi;
+                    mpGenIndex(i, xi, zi);
+                    ispc::sphUpdateDensityEst2((ispc::Particle*)particles_soa, ce, xi, zi);
+                }
+            });
+        }
+
+        tbb::parallel_for(tbb::blocked_range<int>(0, mpWorldCellNum, 128),
+            [&](const tbb::blocked_range<int> &r) {
+            for (int i = r.begin(); i != r.end(); ++i) {
+                int32 n = ce[i].end - ce[i].begin;
+                if (n == 0) { continue; }
+                int xi, zi;
+                mpGenIndex(i, xi, zi);
+                ispc::sphUpdateForce((ispc::Particle*)particles_soa, ce, xi, zi);
+            }
+        });
+        tbb::parallel_for(tbb::blocked_range<int>(0, mpWorldCellNum, 128),
+            [&](const tbb::blocked_range<int> &r) {
+            for (int i = r.begin(); i != r.end(); ++i) {
+                int32 n = ce[i].end - ce[i].begin;
+                if (n == 0) { continue; }
+                int xi, zi;
+                mpGenIndex(i, xi, zi);
+                ispc::sphProcessExternalForce(
+                    (ispc::Particle*)particles_soa, ce, xi, zi,
+                    &force_point[0], (int32)force_point.size(),
+                    &force_directional[0], (int32)force_directional.size(),
+                    &force_box[0], (int32)force_box.size());
+                ispc::sphProcessCollision(
+                    (ispc::Particle*)particles_soa, ce, xi, zi,
+                    &collision_spheres[0], (int32)collision_spheres.size(),
+                    &collision_planes[0], (int32)collision_planes.size(),
+                    &collision_boxes[0], (int32)collision_boxes.size());
+                ispc::sphIntegrate((ispc::Particle*)particles_soa, ce, xi, zi);
+            }
+        });
+    }
+
 
     // SoA -> AoS
-    tbb::parallel_for(tbb::blocked_range<int>(0, SPH_GRID_CELL_NUM, 128),
+    tbb::parallel_for(tbb::blocked_range<int>(0, mpWorldCellNum, 128),
         [&](const tbb::blocked_range<int> &r) {
             for(int i=r.begin(); i!=r.end(); ++i) {
                 int32 n = ce[i].end - ce[i].begin;
                 if(n > 0) {
                     mpParticle *p = &particles[ce[i].begin];
                     ispc::Particle_SOA8 *t = &particles_soa[ce[i].soai];
-                    AoSnize(n, t, p);
+                    mpAoSnize(n, t, p);
                 }
             }
     });

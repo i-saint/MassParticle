@@ -27,6 +27,12 @@ typedef ispc::GridData sphGridData;
 #define set_nxyz(v, _x, _y, _z) v.nx=_x; v.ny=_y; v.nz=_z;
 #define set_vxyz(v, _x, _y, _z) v.vx=_x; v.vy=_y; v.vz=_z;
 
+enum mpSolverType
+{
+    mpSolver_Impulse,
+    mpSolver_SPH,
+    mpSolver_SPHEst,
+};
 
 struct mpParticle
 {
@@ -156,14 +162,18 @@ public:
     virtual ~mpRenderer() {}
     virtual void render() = 0;
 };
+class mpWorld;
+mpRenderer* mpCreateRendererD3D9(void *dev, mpWorld &world);
+mpRenderer* mpCreateRendererD3D11(void *dev, mpWorld &world);
+mpRenderer* mpCreateRendererOpenGL(void *dev, mpWorld &world);
 
 class mpWorld
 {
 public:
     // todo: refactoring
-    mpParticle particles[SPH_MAX_PARTICLE_NUM];
-    sphParticleSOA8 particles_soa[SPH_MAX_PARTICLE_NUM];
-    sphGridData cell[SPH_GRID_DIV][SPH_GRID_DIV];
+    mpParticle particles[mpMaxParticleNum];
+    sphParticleSOA8 particles_soa[mpMaxParticleNum];
+    sphGridData cell[mpWorldDivNum][mpWorldDivNum];
     uint32_t num_active_particles;
     float32 particle_lifetime;
 
@@ -176,9 +186,11 @@ public:
     std::vector<ispc::BoxForce>         force_box;
 
     std::mutex m_mutex;
+    mpSolverType m_solver;
     mpCamera m_camera;
     mpRenderer *m_renderer;
 
+public:
     mpWorld();
     void clearParticles();
     void clearCollidersAndForces();

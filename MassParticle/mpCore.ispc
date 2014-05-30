@@ -11,26 +11,31 @@
 typedef unsigned int32 uint32;
 
 
-#define mpPressureStiffnessSPH 200.0f
-#define mpRestDensity 1000.0f
-#define mpParticleMass 0.002f
-#define mpParticleViscosity 0.1f
+static uniform float mpSPHPressureStiffness;
+static uniform float mpSPHRestDensity;
+static uniform float mpSPHParticleMass;
+static uniform float mpSPHViscosity;
+static uniform float mpSPHDensityCoef;
+static uniform float mpSPHGradPressureCoef;
+static uniform float mpSPHLapViscosityCoef;
 
-#define mpPressureStiffnessImp 100.0f
-
-static uniform float mpDensityCoef;
-static uniform float mpGradPressureCoef;
-static uniform float mpLapViscosityCoef;
+static uniform float mpImpPressureStiffness;
 
 
 export void sphInitializeConstants()
 {
-    mpDensityCoef = mpParticleMass * 315.0f / (64.0f * PI * pow(SPH_PARTICLE_SIZE, 9));
-    mpGradPressureCoef = mpParticleMass * -45.0f / (PI * pow(SPH_PARTICLE_SIZE, 6));
-    mpLapViscosityCoef = mpParticleMass * mpParticleViscosity * 45.0f / (PI * pow(SPH_PARTICLE_SIZE, 6));
+    mpSPHPressureStiffness = 200.0f;
+    mpSPHRestDensity = 1000.0f;
+    mpSPHParticleMass = 0.002f;
+    mpSPHViscosity = 0.1f;
+    mpSPHDensityCoef = mpSPHParticleMass * 315.0f / (64.0f * PI * pow(mpParticleSize, 9));
+    mpSPHGradPressureCoef = mpSPHParticleMass * -45.0f / (PI * pow(mpParticleSize, 6));
+    mpSPHLapViscosityCoef = mpSPHParticleMass * mpSPHViscosity * 45.0f / (PI * pow(mpParticleSize, 6));
+
+    mpImpPressureStiffness = 100.0f;
 }
 
-static soa<8> Force g_forces[SPH_MAX_PARTICLE_NUM];
+static soa<8> Force g_forces[mpMaxParticleNum];
 
 
 
@@ -38,7 +43,7 @@ static soa<8> Force g_forces[SPH_MAX_PARTICLE_NUM];
     {\
         p.hit++;\
         vec3 accel = get_accel(f);\
-        accel += n * (-d * SPH_WALL_STIFFNESS);\
+        accel += n * (-d * mpWallStiffness);\
         set_accel(f, accel);\
     }
 
@@ -50,12 +55,12 @@ export void sphProcessCollision(
     uniform PlaneCollider planes[], uniform int32 num_planes,
     uniform BoxCollider boxes[], uniform int32 num_boxes )
 {
-    uniform const GridData &gd = grid[yi*SPH_GRID_DIV + xi];
+    uniform const GridData &gd = grid[yi*mpWorldDivNum + xi];
     uniform const int32 particle_num = gd.end - gd.begin;
     soa<8> Particle * uniform particles = &all_particles[gd.soai*8];
     soa<8> Force * uniform forces = &g_forces[gd.soai*8];
 
-    uniform float particle_radius = SPH_PARTICLE_SIZE;
+    uniform float particle_radius = mpParticleSize;
 
     // 適切に関数に分けたかったが、struct の参照渡しができないとか謎のコンパイラクラッシュとかで断念。
     // 全部 inline で書きます。
@@ -129,12 +134,12 @@ export void sphProcessExternalForce(
     uniform DirectionalForce dforce[], uniform int32 num_dforce,
     uniform BoxForce bforce[], uniform int32 num_bforce )
 {
-    uniform const GridData &gd = grid[yi*SPH_GRID_DIV + xi];
+    uniform const GridData &gd = grid[yi*mpWorldDivNum + xi];
     uniform const int32 particle_num = gd.end - gd.begin;
     soa<8> Particle * uniform particles = &all_particles[gd.soai*8];
     soa<8> Force * uniform forces = &g_forces[gd.soai*8];
 
-    uniform float particle_radius = SPH_PARTICLE_SIZE;
+    uniform float particle_radius = mpParticleSize;
 
     // Point
     for(uniform int32 s=0; s<num_pforce; ++s) {
@@ -177,14 +182,14 @@ static inline float sphComputeDensity(
     vec3 pos1,
     vec3 pos2 )
 {
-    static uniform const float h_sq = SPH_PARTICLE_SIZE * SPH_PARTICLE_SIZE;
+    static uniform const float h_sq = mpParticleSize * mpParticleSize;
     vec3 diff = pos2 - pos1;
     float r_sq = dot3(diff, diff);
     if(r_sq < h_sq) {
         // Implements this equation:
         // W_poly6(r, h) = 315 / (64 * pi * h^9) * (h^2 - r^2)^3
         // g_fDensityCoef = fParticleMass * 315.0f / (64.0f * PI * fSmoothlen^9)
-        return mpDensityCoef * (h_sq - r_sq) * (h_sq - r_sq) * (h_sq - r_sq);
+        return mpSPHDensityCoef * (h_sq - r_sq) * (h_sq - r_sq) * (h_sq - r_sq);
     }
     return 0.0f;
 }
@@ -194,11 +199,43 @@ export void sphUpdateDensity(
     GridData uniform grid[],
     uniform int32 xi, uniform int32 yi )
 {
-    uniform GridData &gd = grid[yi*SPH_GRID_DIV + xi];
+    uniform GridData &gd = grid[yi*mpWorldDivNum + xi];
     uniform const int32 particle_num = gd.end - gd.begin;
     soa<8> Particle * uniform particles = &all_particles[gd.soai*8];
 
-#ifdef SPH_enable_neighbor_density_estimation
+    uniform const int32 nx_beg = max(xi-1, 0);
+    uniform const int32 nx_end = min(xi+1, mpWorldDivNum-1);
+    uniform const int32 ny_beg = max(yi-1, 0);
+    uniform const int32 ny_end = min(yi+1, mpWorldDivNum-1);
+
+    for(uniform int32 i=0; i<particle_num; ++i) {
+        uniform vec3 pos1 = get_pos(particles[i]);
+        float density = 0.0f;
+        for(uniform int32 nyi=ny_beg; nyi<=ny_end; ++nyi) {
+            for(uniform int32 nxi=nx_beg; nxi<=nx_end; ++nxi) {
+                uniform const GridData &ngd = grid[nyi*mpWorldDivNum + nxi];
+                uniform const int32 neighbor_num = ngd.end - ngd.begin;
+                soa<8> Particle * uniform neighbors = &all_particles[ngd.soai*8];
+                foreach(t=0 ... neighbor_num) {
+                    vec3 pos2 = get_pos(neighbors[t]);
+                    density += sphComputeDensity(pos1, pos2);
+                }
+            }
+        }
+        particles[i].density = reduce_add(density);
+    }
+}
+
+
+export void sphUpdateDensityEst1(
+    soa<8> Particle all_particles[],
+    GridData uniform grid[],
+    uniform int32 xi, uniform int32 yi )
+{
+    uniform GridData &gd = grid[yi*mpWorldDivNum + xi];
+    uniform const int32 particle_num = gd.end - gd.begin;
+    soa<8> Particle * uniform particles = &all_particles[gd.soai*8];
+
     for(uniform int32 i=0; i<particle_num; ++i) {
         uniform vec3 pos1 = get_pos(particles[i]);
         float density = 0.0f;
@@ -220,98 +257,74 @@ export void sphUpdateDensity(
         }
         gd.density = reduce_add(total_density) / particle_num;
     }
-#else
-    uniform const int32 nx_beg = max(xi-1, 0);
-    uniform const int32 nx_end = min(xi+1, SPH_GRID_DIV-1);
-    uniform const int32 ny_beg = max(yi-1, 0);
-    uniform const int32 ny_end = min(yi+1, SPH_GRID_DIV-1);
-
-    for(uniform int32 i=0; i<particle_num; ++i) {
-        uniform vec3 pos1 = get_pos(particles[i]);
-        float density = 0.0f;
-        for(uniform int32 nyi=ny_beg; nyi<=ny_end; ++nyi) {
-            for(uniform int32 nxi=nx_beg; nxi<=nx_end; ++nxi) {
-                uniform const GridData &ngd = grid[nyi*SPH_GRID_DIV + nxi];
-                uniform const int32 neighbor_num = ngd.end - ngd.begin;
-                soa<8> Particle * uniform neighbors = &all_particles[ngd.soai*8];
-                foreach(t=0 ... neighbor_num) {
-                    vec3 pos2 = get_pos(neighbors[t]);
-                    density += sphComputeDensity(pos1, pos2);
-                }
-            }
-        }
-        particles[i].density = reduce_add(density);
-    }
-#endif // SPH_enable_neighbor_density_estimation
 }
 
-#ifdef SPH_enable_neighbor_density_estimation
-export void sphUpdateDensity2(
+export void sphUpdateDensityEst2(
     soa<8> Particle all_particles[],
     GridData uniform grid[],
     uniform int32 xi, uniform int32 yi )
 {
-    uniform GridData &gd = grid[yi*SPH_GRID_DIV + xi];
+    uniform GridData &gd = grid[yi*mpWorldDivNum + xi];
     uniform const int32 particle_num = gd.end - gd.begin;
     soa<8> Particle * uniform particles = &all_particles[gd.soai*8];
 
     uniform const int32 nx_beg = max(xi-1, 0);
-    uniform const int32 nx_end = min(xi+1, SPH_GRID_DIV-1);
+    uniform const int32 nx_end = min(xi+1, mpWorldDivNum-1);
     uniform const int32 ny_beg = max(yi-1, 0);
-    uniform const int32 ny_end = min(yi+1, SPH_GRID_DIV-1);
+    uniform const int32 ny_end = min(yi+1, mpWorldDivNum-1);
 
     for(uniform int32 nyi=ny_beg; nyi<=ny_end; ++nyi) {
         for(uniform int32 nxi=nx_beg; nxi<=nx_end; ++nxi) {
-            uniform const GridData &ngd = grid[nyi*SPH_GRID_DIV + nxi];
+            uniform const GridData &ngd = grid[nyi*mpWorldDivNum + nxi];
             foreach(i=0 ... particle_num) {
                 particles[i].density += ngd.density*0.05f;
             }
         }
     }
 }
-#endif // SPH_enable_neighbor_density_estimation
+
 
 static inline float sphCalculatePressure(float density)
 {
     // Implements this equation:
     // Pressure = B * ((rho / rho_0)^y  - 1)
-    return mpPressureStiffnessSPH * max(pow(density / mpRestDensity, 3) - 1.0f, 0.0f);
+    return mpSPHPressureStiffness * max(pow(density / mpSPHRestDensity, 3) - 1.0f, 0.0f);
 }
 static inline uniform float sphCalculatePressure(uniform float density)
 {
-    return mpPressureStiffnessSPH * max(pow(density / mpRestDensity, 3) - 1.0f, 0.0f);
+    return mpSPHPressureStiffness * max(pow(density / mpSPHRestDensity, 3) - 1.0f, 0.0f);
 }
 
 
 static inline vec3 sphCalculateGradPressure(float r, float P_pressure, float N_pressure, float N_density, vec3 diff)
 {
-    const float h = SPH_PARTICLE_SIZE;
+    const float h = mpParticleSize;
     float avg_pressure = 0.5f * (N_pressure + P_pressure);
     // Implements this equation:
     // W_spkiey(r, h) = 15 / (pi * h^6) * (h - r)^3
     // GRAD( W_spikey(r, h) ) = -45 / (pi * h^6) * (h - r)^2
     // g_fGradPressureCoef = fParticleMass * -45.0f / (PI * fSmoothlen^6)
-    return (mpGradPressureCoef * avg_pressure / N_density * (h - r) * (h - r) / r) * diff;
+    return (mpSPHGradPressureCoef * avg_pressure / N_density * (h - r) * (h - r) / r) * diff;
 }
 
 static inline vec3 sphCalculateLapVelocity(float r, vec3 P_velocity, vec3 N_velocity, float N_density)
 {
-    const float h = SPH_PARTICLE_SIZE;
+    const float h = mpParticleSize;
     vec3 vel_diff = N_velocity - P_velocity;
     // Implements this equation:
     // W_viscosity(r, h) = 15 / (2 * pi * h^3) * (-r^3 / (2 * h^3) + r^2 / h^2 + h / (2 * r) - 1)
     // LAPLACIAN( W_viscosity(r, h) ) = 45 / (pi * h^6) * (h - r)
     // g_fLapViscosityCoef = fParticleMass * fViscosity * 45.0f / (PI * fSmoothlen^6)
-    return  (mpLapViscosityCoef / N_density * (h - r)) * vel_diff;
+    return  (mpSPHLapViscosityCoef / N_density * (h - r)) * vel_diff;
 }
 
 static inline float sphCalculateDensity(float r_sq)
 {
-    const float h_sq = SPH_PARTICLE_SIZE * SPH_PARTICLE_SIZE;
+    const float h_sq = mpParticleSize * mpParticleSize;
     // Implements this equation:
     // W_poly6(r, h) = 315 / (64 * pi * h^9) * (h^2 - r^2)^3
     // g_fDensityCoef = fParticleMass * 315.0f / (64.0f * PI * fSmoothlen^9)
-    return mpDensityCoef * (h_sq - r_sq) * (h_sq - r_sq) * (h_sq - r_sq);
+    return mpSPHDensityCoef * (h_sq - r_sq) * (h_sq - r_sq) * (h_sq - r_sq);
 }
 
 static inline vec3 sphComputeAccel(
@@ -322,7 +335,7 @@ static inline vec3 sphComputeAccel(
     float pressure1,
     float density2 )
 {
-    static uniform const float h_sq = SPH_PARTICLE_SIZE * SPH_PARTICLE_SIZE;
+    static uniform const float h_sq = mpParticleSize * mpParticleSize;
     vec3 accel = {0.0f, 0.0f, 0.0f};
     vec3 diff = pos2 - pos1;
     float r_sq = dot3(diff, diff);
@@ -344,15 +357,15 @@ export void sphUpdateForce(
     GridData uniform grid[],
     uniform int32 xi, uniform int32 yi )
 {
-    uniform const GridData &gd = grid[yi*SPH_GRID_DIV + xi];
+    uniform const GridData &gd = grid[yi*mpWorldDivNum + xi];
     uniform const int32 particle_num = gd.end - gd.begin;
     soa<8> Particle * uniform particles = &all_particles[gd.soai*8];
     soa<8> Force * uniform forces = &g_forces[gd.soai*8];
 
     uniform const int32 nx_beg = max(xi-1, 0);
-    uniform const int32 nx_end = min(xi+1, SPH_GRID_DIV-1);
+    uniform const int32 nx_end = min(xi+1, mpWorldDivNum-1);
     uniform const int32 ny_beg = max(yi-1, 0);
-    uniform const int32 ny_end = min(yi+1, SPH_GRID_DIV-1);
+    uniform const int32 ny_end = min(yi+1, mpWorldDivNum-1);
 
     for(uniform int32 i=0; i<particle_num; ++i) {
         uniform vec3 pos1 = get_pos(particles[i]);
@@ -363,7 +376,7 @@ export void sphUpdateForce(
         vec3 accel = {0.0f, 0.0f, 0.0f};
         for(uniform int32 nyi=ny_beg; nyi<=ny_end; ++nyi) {
             for(uniform int32 nxi=nx_beg; nxi<=nx_end; ++nxi) {
-                uniform const GridData &ngd = grid[nyi*SPH_GRID_DIV + nxi];
+                uniform const GridData &ngd = grid[nyi*mpWorldDivNum + nxi];
                 uniform const int32 neighbor_num = ngd.end - ngd.begin;
                 soa<8> Particle * uniform neighbors = &all_particles[ngd.soai*8];
                 foreach(t=0 ... neighbor_num) {
@@ -387,7 +400,7 @@ export void sphIntegrate(
     GridData uniform grid[],
     uniform int32 xi, uniform int32 yi )
 {
-    uniform const GridData &gd = grid[yi*SPH_GRID_DIV + xi];
+    uniform const GridData &gd = grid[yi*mpWorldDivNum + xi];
     uniform const int32 particle_num = gd.end - gd.begin;
     soa<8> Particle * uniform particles = &all_particles[gd.soai*8];
     soa<8> Force * uniform forces = &g_forces[gd.soai*8];
@@ -419,12 +432,12 @@ static inline void impComputeParticleInteraction(
     vec3 pos2,
     vec3 &accel )
 {
-    const uniform float SPH_RCP_PARTICLE_SIZE2 = 1.0f/(SPH_PARTICLE_SIZE*2.0f);
+    const uniform float SPH_RCP_PARTICLE_SIZE2 = 1.0f/(mpParticleSize*2.0f);
     vec3 diff = pos2 - pos1;    
     float d = length3(diff); // float d = length3est(diff); // 何故か est の方が遅くなる
     if(d > 0.0f) { // d==0: 衝突元＆衝突相手が同一
         vec3 dir = diff * SPH_RCP_PARTICLE_SIZE2; // vec3 dir = diff / d;
-        accel += dir * (min(0.0f, d-(SPH_PARTICLE_SIZE*2.0f)) * mpPressureStiffnessImp);
+        accel += dir * (min(0.0f, d-(mpParticleSize*2.0f)) * mpImpPressureStiffness);
     }
 }
 
@@ -433,22 +446,22 @@ export void impUpdateVelocity(
     GridData uniform grid[],
     uniform int32 xi, uniform int32 yi )
 {
-    uniform const GridData &gd = grid[yi*SPH_GRID_DIV + xi];
+    uniform const GridData &gd = grid[yi*mpWorldDivNum + xi];
     uniform const int32 particle_num = gd.end - gd.begin;
     soa<8> Particle * uniform particles = &all_particles[gd.soai*8];
     soa<8> Force * uniform forces = &g_forces[gd.soai*8];
 
     uniform const int32 nx_beg = max(xi-1, 0);
-    uniform const int32 nx_end = min(xi+1, SPH_GRID_DIV-1);
+    uniform const int32 nx_end = min(xi+1, mpWorldDivNum-1);
     uniform const int32 ny_beg = max(yi-1, 0);
-    uniform const int32 ny_end = min(yi+1, SPH_GRID_DIV-1);
+    uniform const int32 ny_end = min(yi+1, mpWorldDivNum-1);
 
     for(uniform int32 i=0; i<particle_num; ++i) {
         uniform vec3 pos1 = get_pos(particles[i]);
         vec3 accel = {0.0f, 0.0f, 0.0f};
         for(uniform int32 nyi=ny_beg; nyi<=ny_end; ++nyi) {
             for(uniform int32 nxi=nx_beg; nxi<=nx_end; ++nxi) {
-                uniform const GridData &ngd = grid[nyi*SPH_GRID_DIV + nxi];
+                uniform const GridData &ngd = grid[nyi*mpWorldDivNum + nxi];
                 soa<8> Particle * uniform neighbors = &all_particles[ngd.soai*8];
                 uniform const int32 neighbor_num = ngd.end - ngd.begin;
                 foreach(t=0 ... neighbor_num) {
@@ -469,7 +482,7 @@ export void impIntegrate(
     GridData uniform grid[],
     uniform int32 xi, uniform int32 yi )
 {
-    uniform const GridData &gd = grid[yi*SPH_GRID_DIV + xi];
+    uniform const GridData &gd = grid[yi*mpWorldDivNum + xi];
     uniform const int32 particle_num = gd.end - gd.begin;
     soa<8> Particle * uniform particles = &all_particles[gd.soai*8];
     soa<8> Force * uniform forces = &g_forces[gd.soai*8];

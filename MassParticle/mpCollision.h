@@ -6,6 +6,12 @@
 typedef unsigned int32 id_type;
 
 
+struct Plane
+{
+    float nx, ny, nz;
+    float distance;
+};
+
 struct BoundingBox
 {
     float bl_x, bl_y, bl_z;
@@ -18,12 +24,6 @@ struct Sphere
     float radius;
 };
 
-struct Plane
-{
-    float nx, ny, nz;
-    float distance;
-};
-
 struct Box
 {
     Plane planes[6];
@@ -34,6 +34,15 @@ struct SphereCollider
     id_type id;
     BoundingBox bb;
     float x, y, z;
+    float radius;
+};
+
+struct CapsuleCollider
+{
+    id_type id;
+    BoundingBox bb;
+    float x1, y1, z1;
+    float x2, y2, z2;
     float radius;
 };
 
