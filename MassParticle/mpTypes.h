@@ -47,8 +47,109 @@ struct mpParticleRaw
     char data[sizeof(mpParticle)];
 };
 
-struct mpWorld
+
+class mpCamera
 {
+private:
+    XMMATRIX m_viewproj;
+    XMMATRIX m_view;
+    XMMATRIX m_proj;
+    XMVECTOR m_eye;
+    XMVECTOR m_focus;
+    XMVECTOR m_up;
+    FLOAT m_fovy;
+    FLOAT m_aspect;
+    FLOAT m_near;
+    FLOAT m_far;
+
+public:
+    mpCamera() {}
+
+    const XMMATRIX& getViewProjectionMatrix() const { return m_viewproj; }
+    const XMMATRIX& getViewMatrix() const           { return m_view; }
+    const XMMATRIX& getProjectionMatrix() const     { return m_proj; }
+    XMVECTOR getEye() const     { return m_eye; }
+    XMVECTOR getFocus() const   { return m_focus; }
+    XMVECTOR getUp() const      { return m_up; }
+    FLOAT getFovy() const       { return m_fovy; }
+    FLOAT getAspect() const     { return m_aspect; }
+    FLOAT getNear() const       { return m_near; }
+    FLOAT getFar() const        { return m_far; }
+
+    void setEye(XMVECTOR v) { m_eye = v; }
+
+    void setView(XMVECTOR eye, XMVECTOR focus, XMVECTOR up)
+    {
+        m_eye = eye;
+        m_focus = focus;
+        m_up = up;
+    }
+
+    void setProjection(FLOAT fovy, FLOAT aspect, FLOAT _near, FLOAT _far)
+    {
+        m_fovy = fovy;
+        m_aspect = aspect;
+        m_near = _near;
+        m_far = _far;
+    }
+
+    void updateMatrix()
+    {
+        m_view = XMMatrixLookAtLH(m_eye, m_focus, m_up);
+        m_proj = XMMatrixPerspectiveFovLH(m_fovy, m_aspect, m_near, m_far);
+        m_viewproj = XMMatrixMultiply(m_view, m_proj);
+    }
+
+    void forceSetMatrix(const XMFLOAT4X4 &view, const XMFLOAT4X4 &proj)
+    {
+        m_view = (FLOAT*)&view;
+        m_proj = (FLOAT*)&proj;
+        m_viewproj = XMMatrixMultiply(m_view, m_proj);
+        m_eye = m_view.r[3];
+    }
+};
+
+class mpPerformanceCounter
+{
+private:
+    LARGE_INTEGER m_start;
+    LARGE_INTEGER m_end;
+
+public:
+    mpPerformanceCounter()
+    {
+        reset();
+    }
+
+    void reset()
+    {
+        ::QueryPerformanceCounter(&m_start);
+    }
+
+    float getElapsedSecond()
+    {
+        LARGE_INTEGER freq;
+        ::QueryPerformanceCounter(&m_end);
+        ::QueryPerformanceFrequency(&freq);
+        return ((float)(m_end.QuadPart - m_start.QuadPart) / (float)freq.QuadPart);
+    }
+
+    float getElapsedMillisecond()
+    {
+        return getElapsedSecond()*1000.0f;
+    }
+};
+
+class mpRenderer
+{
+public:
+    virtual ~mpRenderer() {}
+    virtual void render() = 0;
+};
+
+class mpWorld
+{
+public:
     mpParticle particles[SPH_MAX_PARTICLE_NUM];
     sphParticleSOA8 particles_soa[SPH_MAX_PARTICLE_NUM];
     sphGridData cell[SPH_GRID_DIV][SPH_GRID_DIV];
@@ -64,6 +165,8 @@ struct mpWorld
     std::vector<ispc::BoxForce>         force_box;
 
     std::mutex m_mutex;
+    mpCamera m_camera;
+    mpRenderer *m_renderer;
 
     mpWorld();
     void clearParticles();
@@ -71,5 +174,6 @@ struct mpWorld
     void addParticles(mpParticle *p, uint32_t num_particles);
     void update(float32 dt);
 };
+
 
 #endif // _SPH_types_h_

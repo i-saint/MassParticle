@@ -119,6 +119,7 @@ inline void GenIndex(uint32 hash, int32 &xi, int32 &zi)
 mpWorld::mpWorld()
     : num_active_particles(0)
     , particle_lifetime(3600.0f)
+    , m_renderer(nullptr)
 {
     collision_spheres.reserve(64);
     clearParticles();
@@ -154,8 +155,6 @@ void mpWorld::addParticles(mpParticle *p, uint32_t num)
 
 void mpWorld::update(float32 dt)
 {
-    std::unique_lock<std::mutex> lock(m_mutex);
-
     sphGridData *ce = &cell[0][0];          // 
     ispc::PointForce       *point_f = force_point.empty() ? nullptr : &force_point[0];
     ispc::DirectionalForce *dir_f   = force_directional.empty() ? nullptr : &force_directional[0];

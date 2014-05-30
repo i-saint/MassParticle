@@ -36,37 +36,49 @@ struct CBChangesEveryFrame
 };
 
 
+class mpRendererD3D11 : public mpRenderer
+{
+public:
+    mpRendererD3D11(void *dev, mpWorld &world);
+    virtual ~mpRendererD3D11();
+    virtual void render();
 
+private:
+    bool initializeDevice(void *dev);
+    void finalizeDevice();
+    HRESULT CompileShaderFromFile(WCHAR* szFileName, LPCSTR szEntryPoint, LPCSTR szShaderModel, ID3DBlob** ppBlobOut);
+    ID3D11Buffer* CreateVertexBuffer(const void *data, UINT size);
 
-//--------------------------------------------------------------------------------------
-// Global Variables
-//--------------------------------------------------------------------------------------
-const int NUM_CUBE_INSTANCES = 512;
+private:
+    ID3D11Device            *g_pd3dDevice;
+    ID3D11DeviceContext     *g_pImmediateContext;
+    ID3D11DepthStencilState *g_pDepthStencilState;
+    ID3D11RasterizerState   *g_pRasterState;
+    ID3D11BlendState        *g_pBlendState;
 
-ID3D11Device*                       g_pd3dDevice = NULL;
-ID3D11DeviceContext*                g_pImmediateContext = NULL;
-ID3D11DepthStencilState             *g_pDepthStencilState = NULL;
+    ID3D11VertexShader      *g_pCubeVertexShader;
+    ID3D11InputLayout       *g_pCubeVertexLayout;
+    ID3D11PixelShader       *g_pCubePixelShader;
+    ID3D11Buffer            *g_pCubeVertexBuffer;
+    ID3D11Buffer            *g_pCubeInstanceBuffer;
+    ID3D11Buffer            *g_pCubeIndexBuffer;
+    ID3D11Buffer            *g_pCBChangesEveryFrame;
+    XMFLOAT4                g_MeshColor;
 
-ID3D11VertexShader*                 g_pCubeVertexShader = NULL;
-ID3D11InputLayout*                  g_pCubeVertexLayout = NULL;
-ID3D11PixelShader*                  g_pCubePixelShader = NULL;
-ID3D11Buffer*                       g_pCubeVertexBuffer = NULL;
-ID3D11Buffer*                       g_pCubeInstanceBuffer = NULL;
-ID3D11Buffer*                       g_pCubeIndexBuffer = NULL;
-ID3D11Buffer*                       g_pCBChangesEveryFrame = NULL;
-XMFLOAT4                            g_vMeshColor( 0.7f, 0.7f, 0.7f, 1.0f );
+    mpWorld *m_world;
+};
 
-extern mpPerspectiveCamera g_camera;
-extern mpWorld g_mpWorld;
-
-
+mpRenderer* mpCreateRendererD3D11(void *device, mpWorld &world)
+{
+    return new mpRendererD3D11(device, world);
+}
 
 
 
 //--------------------------------------------------------------------------------------
 // Helper for compiling shaders with D3DX11
 //--------------------------------------------------------------------------------------
-HRESULT CompileShaderFromFile( WCHAR* szFileName, LPCSTR szEntryPoint, LPCSTR szShaderModel, ID3DBlob** ppBlobOut )
+HRESULT mpRendererD3D11::CompileShaderFromFile(WCHAR* szFileName, LPCSTR szEntryPoint, LPCSTR szShaderModel, ID3DBlob** ppBlobOut)
 {
     HRESULT hr = S_OK;
 
@@ -95,7 +107,7 @@ HRESULT CompileShaderFromFile( WCHAR* szFileName, LPCSTR szEntryPoint, LPCSTR sz
 }
 
 
-ID3D11Buffer* CreateVertexBuffer(const void *data, UINT size)
+ID3D11Buffer* mpRendererD3D11::CreateVertexBuffer(const void *data, UINT size)
 {
     D3D11_BUFFER_DESC bd;
     ZeroMemory( &bd, sizeof(bd) );
@@ -117,17 +129,64 @@ ID3D11Buffer* CreateVertexBuffer(const void *data, UINT size)
 }
 
 
+mpRendererD3D11::mpRendererD3D11(void *_dev, mpWorld &world)
+: g_pd3dDevice(nullptr)
+, g_pImmediateContext(nullptr)
+, g_pDepthStencilState(nullptr)
+, g_pRasterState(nullptr)
+, g_pBlendState(nullptr)
+
+, g_pCubeVertexShader(nullptr)
+, g_pCubeVertexLayout(nullptr)
+, g_pCubePixelShader(nullptr)
+, g_pCubeVertexBuffer(nullptr)
+, g_pCubeInstanceBuffer(nullptr)
+, g_pCubeIndexBuffer(nullptr)
+, g_pCBChangesEveryFrame(nullptr)
+, g_MeshColor(0.7f, 0.7f, 0.7f, 1.0f)
+, m_world(&world)
+{
+    initializeDevice(_dev);
+}
+
+mpRendererD3D11::~mpRendererD3D11()
+{
+    finalizeDevice();
+}
+
 
 //--------------------------------------------------------------------------------------
 // Create Direct3D device and swap chain
 //--------------------------------------------------------------------------------------
-bool mpInitializeDevice(void *_dev)
+bool mpRendererD3D11::initializeDevice(void *_dev)
 {
     ID3D11Device *dev = (ID3D11Device*)_dev;
     HRESULT hr = S_OK;
 
     g_pd3dDevice = dev;
     g_pd3dDevice->GetImmediateContext(&g_pImmediateContext);
+
+    {
+        D3D11_RASTERIZER_DESC rsdesc;
+        memset(&rsdesc, 0, sizeof(rsdesc));
+        rsdesc.FillMode = D3D11_FILL_SOLID;
+        rsdesc.CullMode = D3D11_CULL_NONE;
+        //rsdesc.FrontCounterClockwise = TRUE;
+        g_pd3dDevice->CreateRasterizerState(&rsdesc, &g_pRasterState);
+
+        D3D11_DEPTH_STENCIL_DESC dsdesc;
+        memset(&dsdesc, 0, sizeof(dsdesc));
+        dsdesc.DepthEnable = TRUE;
+        dsdesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+        dsdesc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
+        g_pd3dDevice->CreateDepthStencilState(&dsdesc, &g_pDepthStencilState);
+
+        D3D11_BLEND_DESC bdesc;
+        memset(&bdesc, 0, sizeof(bdesc));
+        bdesc.RenderTarget[0].BlendEnable = FALSE;
+        bdesc.RenderTarget[0].RenderTargetWriteMask = 0xF;
+        g_pd3dDevice->CreateBlendState(&bdesc, &g_pBlendState);
+    }
 
     {
         // Compile the vertex shader
@@ -223,7 +282,7 @@ bool mpInitializeDevice(void *_dev)
         g_pCubeVertexBuffer = CreateVertexBuffer(vertices, sizeof(SimpleVertex)*ARRAYSIZE(vertices));
     }
     {
-        g_pCubeInstanceBuffer = CreateVertexBuffer(g_mpWorld.particles, sizeof(mpParticle) * SPH_MAX_PARTICLE_NUM);
+        g_pCubeInstanceBuffer = CreateVertexBuffer(m_world->particles, sizeof(mpParticle) * SPH_MAX_PARTICLE_NUM);
     }
 
     // Create index buffer
@@ -268,8 +327,9 @@ bool mpInitializeDevice(void *_dev)
         }
     }
 
-    g_camera.setProjection(XMConvertToRadians(45.0f), 1.0f, 0.1f, 100.0f);
-    g_camera.setView(XMVectorSet(0.0f, 10.0f, -12.5f, 0.0f), XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f), XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f));
+    mpCamera &camera = m_world->m_camera;
+    camera.setProjection(XMConvertToRadians(45.0f), 1.0f, 0.1f, 100.0f);
+    camera.setView(XMVectorSet(0.0f, 10.0f, -12.5f, 0.0f), XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f), XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f));
 
     return true;
 }
@@ -278,7 +338,7 @@ bool mpInitializeDevice(void *_dev)
 //--------------------------------------------------------------------------------------
 // Clean up the objects we've created
 //--------------------------------------------------------------------------------------
-void mpCleanupDevice()
+void mpRendererD3D11::finalizeDevice()
 {
     if( g_pCBChangesEveryFrame ) g_pCBChangesEveryFrame->Release();
     if( g_pCubeInstanceBuffer ) g_pCubeInstanceBuffer->Release();
@@ -287,78 +347,32 @@ void mpCleanupDevice()
     if( g_pCubeVertexLayout ) g_pCubeVertexLayout->Release();
     if( g_pCubeVertexShader ) g_pCubeVertexShader->Release();
     if( g_pCubePixelShader ) g_pCubePixelShader->Release();
+
     if (g_pDepthStencilState) g_pDepthStencilState->Release();
+    if (g_pRasterState) g_pRasterState->Release();
+    if (g_pBlendState) g_pBlendState->Release();
 
     if( g_pImmediateContext ) g_pImmediateContext->Release();
 }
 
-
-
-
-extern "C" EXPORT_API void mpUpdate(float dt)
-{
-
-    //{
-    //    ispc::SphereCollider sphere = { 0, { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f }, 0.0f, 0.0f, 0.0f, 0.0f };
-    //    g_peworld.collision_spheres.push_back(sphere);
-    //    ispc::BoxCollider box = {
-    //        0, {0.0f,0.0f,0.0f, 0.0f,0.0f,0.0f},
-    //        0.0f, 0.0f, 0.0f, 
-    //        {
-    //            { 0.0f, 0.0f, 0.0f, 0.0f },
-    //            { 0.0f, 0.0f, 0.0f, 0.0f },
-    //            { 0.0f, 0.0f, 0.0f, 0.0f },
-    //            { 0.0f, 0.0f, 0.0f, 0.0f },
-    //            { 0.0f, 0.0f, 0.0f, 0.0f },
-    //            { 0.0f, 0.0f, 0.0f, 0.0f },
-    //        }
-    //    };
-    //    g_peworld.collision_boxes.push_back(box);
-
-    //    ispc::PointForce force;
-    //    set_xyz(force, 0.0f, 0.0f, 0.0f); force.strength = -0.001f;
-    //    g_peworld.force_point.push_back(force);
-    //}
-    {
-        static PerformanceCounter s_timer;
-        static float s_prev = 0.0f;
-        PerformanceCounter timer;
-
-        g_mpWorld.update(1.0f);
-        g_mpWorld.clearCollidersAndForces();
-
-        if (s_timer.getElapsedMillisecond() - s_prev > 1000.0f) {
-            char buf[128];
-            _snprintf(buf, _countof(buf), "  SPH update: %d particles %.3fms\n", g_mpWorld.num_active_particles, timer.getElapsedMillisecond());
-            OutputDebugStringA(buf);
-            s_prev = s_timer.getElapsedMillisecond();
-        }
-    }
-}
-
-
-//--------------------------------------------------------------------------------------
-// Render a frame
-//--------------------------------------------------------------------------------------
-void mpRender()
+void mpRendererD3D11::render()
 {
     {
-        std::unique_lock<std::mutex> lock(g_mpWorld.m_mutex);
+        std::unique_lock<std::mutex> lock(m_world->m_mutex);
 
+        mpCamera &camera = m_world->m_camera;
         CBChangesEveryFrame cb;
-        XMVECTOR eye = g_camera.getEye();
-        XMMATRIX vp = g_camera.getViewProjectionMatrix();
+        XMVECTOR eye = camera.getEye();
+        XMMATRIX vp = camera.getViewProjectionMatrix();
 
-        cb.ViewProjection   = XMMatrixTranspose( vp );
-        cb.CameraPos        = (FLOAT*)&eye;
-        cb.LightPos         = XMFLOAT4(10.0f, 10.0f, -10.0f, 1.0f);
-        cb.LightColor       = XMFLOAT4(0.9f, 0.9f, 0.9f, 1.0f);
-        cb.MeshShininess    = 200.0f;
-        g_pImmediateContext->UpdateSubresource( g_pCBChangesEveryFrame, 0, NULL, &cb, 0, 0 );
-        g_pImmediateContext->UpdateSubresource(g_pCubeInstanceBuffer, 0, NULL, &g_mpWorld.particles, 0, 0);
+        cb.ViewProjection = XMMatrixTranspose(vp);
+        cb.CameraPos = (FLOAT*)&eye;
+        cb.LightPos = XMFLOAT4(10.0f, 10.0f, -10.0f, 1.0f);
+        cb.LightColor = XMFLOAT4(0.9f, 0.9f, 0.9f, 1.0f);
+        cb.MeshShininess = 200.0f;
+        g_pImmediateContext->UpdateSubresource(g_pCBChangesEveryFrame, 0, NULL, &cb, 0, 0);
+        g_pImmediateContext->UpdateSubresource(g_pCubeInstanceBuffer, 0, NULL, &m_world->particles, 0, 0);
     }
-
-
     {
         ID3D11Buffer *buffers[] = {g_pCubeVertexBuffer, g_pCubeInstanceBuffer};
         UINT strides[] = {sizeof(SimpleVertex), sizeof(mpParticle), };
@@ -381,20 +395,12 @@ void mpRender()
     g_pImmediateContext->RSGetState(&rs_old);
     g_pImmediateContext->OMGetDepthStencilState(&ds_old, &ds_stencil_ref);
 
-    {
-        CD3D11_DEFAULT d;
-        if (g_pDepthStencilState==nullptr) {
-            CD3D11_DEPTH_STENCIL_DESC dsdesc(d);
-            HRESULT hr = g_pd3dDevice->CreateDepthStencilState((D3D11_DEPTH_STENCIL_DESC*)&dsdesc, &g_pDepthStencilState);
-            printf("%x\n", hr);
-        }
-        if (g_pDepthStencilState) {
-            g_pImmediateContext->OMSetDepthStencilState(g_pDepthStencilState, ds_stencil_ref);
-        }
-    }
+    g_pImmediateContext->OMSetDepthStencilState(g_pDepthStencilState, ds_stencil_ref);
+    g_pImmediateContext->OMSetBlendState(g_pBlendState, NULL, 0xFFFFFFFF);
+    g_pImmediateContext->RSSetState(g_pRasterState);
 
     // Render cubes
-    g_pImmediateContext->DrawIndexedInstanced( 36, (UINT)g_mpWorld.num_active_particles, 0, 0, 0 );
+    g_pImmediateContext->DrawIndexedInstanced( 36, (UINT)m_world->num_active_particles, 0, 0, 0 );
 
     g_pImmediateContext->OMSetDepthStencilState(ds_old, ds_stencil_ref);
     g_pImmediateContext->RSSetState(rs_old);
