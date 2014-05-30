@@ -46,7 +46,7 @@ struct PS_OUT
 PS_INPUT VS( VS_INPUT input )
 {
     PS_INPUT output = (PS_INPUT)0;
-    output.LsPos    = (float4(input.Pos, 0.0f) * float4(0.05f, 0.05f, 0.05f, 0.0f)) + input.InstancePos;
+    output.LsPos    = float4(input.Pos, 0.0f) * 0.05f + input.InstancePos;
     output.Pos      = mul(float4(output.LsPos.xyz, 1.0), g_ViewProjection);
     output.Color    = float4(0.8f, 0.8f, 0.8f, 1.0f);
     output.Normal   = input.Normal;

@@ -13,6 +13,8 @@ extern "C" EXPORT_API void          mpUpdate(float dt);
 
 extern "C" EXPORT_API void          mpSetViewProjectionMatrix(XMFLOAT4X4 view, XMFLOAT4X4 proj);
 
+extern "C" EXPORT_API float         mpGetParticleLifeTime(mpWorld *ctx);
+extern "C" EXPORT_API void          mpSetParticleLifeTime(mpWorld *ctx, float lifetime);
 extern "C" EXPORT_API uint32_t      mpGetNumParticles(mpWorld *ctx);
 extern "C" EXPORT_API mpParticle*   mpGetParticles(mpWorld *ctx);
 extern "C" EXPORT_API uint32_t      mpPutParticles(mpWorld *ctx, mpParticle *particles, uint32_t num_particles);

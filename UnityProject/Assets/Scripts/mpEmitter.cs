@@ -38,9 +38,12 @@ public class mpEmitter : MonoBehaviour {
 
     [DllImport("MassParticle")]
     private static extern void mpClearParticles();
+	
+	[DllImport ("MassParticle")] private static extern float mpGetParticleLifeTime(IntPtr ctx);
+	[DllImport ("MassParticle")] private static extern void mpSetParticleLifeTime(IntPtr ctx, float lifetime);
+	[DllImport ("MassParticle")] private static extern uint mpGetNumParticles(IntPtr ctx);
 
-    [DllImport ("MassParticle")] private static extern uint mpGetNumParticles(IntPtr ctx);
-    [DllImport ("MassParticle")] private static extern uint mpAddBoxCollider(IntPtr ctx, Matrix4x4 transform, Vector3 size);
+	[DllImport ("MassParticle")] private static extern uint mpAddBoxCollider(IntPtr ctx, Matrix4x4 transform, Vector3 size);
     [DllImport ("MassParticle")] private static extern uint mpAddSphereCollider(IntPtr ctx, Vector3 center, float radius);
     [DllImport ("MassParticle")] private static extern bool mpRemoveCollider(IntPtr ctx, uint handle);
 
@@ -50,6 +53,11 @@ public class mpEmitter : MonoBehaviour {
 
 
 	public RenderTexture renderTarget;
+	public float particleLifeTime
+	{
+		get { return mpGetParticleLifeTime(IntPtr.Zero); }
+		set { mpSetParticleLifeTime(IntPtr.Zero, value); }
+	}
 
 
 	void Start () {

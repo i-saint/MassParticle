@@ -162,6 +162,16 @@ extern "C" EXPORT_API void mpSetViewProjectionMatrix(XMFLOAT4X4 view, XMFLOAT4X4
     g_mpWorld.m_camera.forceSetMatrix(view, proj);
 }
 
+extern "C" EXPORT_API float mpGetParticleLifeTime(mpWorld *ctx)
+{
+    return g_mpWorld.particle_lifetime;
+;}
+
+extern "C" EXPORT_API void mpSetParticleLifeTime(mpWorld *ctx, float lifetime)
+{
+    g_mpWorld.particle_lifetime = lifetime;
+}
+
 extern "C" EXPORT_API uint32_t mpGetNumParticles(mpWorld *ctx)
 {
     return g_mpWorld.num_active_particles;

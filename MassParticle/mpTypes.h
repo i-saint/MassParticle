@@ -150,6 +150,7 @@ public:
 class mpWorld
 {
 public:
+    // todo: refactoring
     mpParticle particles[SPH_MAX_PARTICLE_NUM];
     sphParticleSOA8 particles_soa[SPH_MAX_PARTICLE_NUM];
     sphGridData cell[SPH_GRID_DIV][SPH_GRID_DIV];

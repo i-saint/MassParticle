@@ -170,8 +170,8 @@ bool mpRendererD3D11::initializeDevice(void *_dev)
         D3D11_RASTERIZER_DESC rsdesc;
         memset(&rsdesc, 0, sizeof(rsdesc));
         rsdesc.FillMode = D3D11_FILL_SOLID;
-        rsdesc.CullMode = D3D11_CULL_NONE;
-        //rsdesc.FrontCounterClockwise = TRUE;
+        rsdesc.CullMode = D3D11_CULL_BACK;
+        rsdesc.DepthClipEnable = TRUE;
         g_pd3dDevice->CreateRasterizerState(&rsdesc, &g_pRasterState);
 
         D3D11_DEPTH_STENCIL_DESC dsdesc;
