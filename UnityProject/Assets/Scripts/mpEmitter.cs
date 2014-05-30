@@ -70,66 +70,41 @@ public class mpEmitter : MonoBehaviour {
 		mpAddDirectionalForce (IntPtr.Zero, new Vector3(0.0f,-1.0f,0.0f), 10.0f);
 		mpUpdate (Time.timeSinceLevelLoad);
 	}
-
-	private void CreateTextureAndPassToPlugin()
-	{
-		// Create a texture
-		Texture2D tex = new Texture2D(256,256,TextureFormat.ARGB32,false);
-		// Set point filtering just so we can see the pixels clearly
-		tex.filterMode = FilterMode.Point;
-		// Call Apply() so it's actually uploaded to the GPU
-		tex.Apply();
-
-		// Set texture onto our matrial
-		renderer.material.mainTexture = tex;
-
-		// Pass texture pointer to the plugin
-		SetTextureFromUnity (tex.GetNativeTexturePtr());
-	}
 	
 	void OnRenderObject()
-	{
-			
-			// Set time for the plugin
-			SetTimeFromUnity (Time.timeSinceLevelLoad);
+	{		
+		UnityEngine.Camera cam = UnityEngine.Camera.current;
+		if (cam) {
+			mpSetViewProjectionMatrix(cam.worldToCameraMatrix, cam.projectionMatrix);
+		}
 
-			
-			UnityEngine.Camera cam = UnityEngine.Camera.current;
-			if (cam) {
-				mpSetViewProjectionMatrix(cam.worldToCameraMatrix, cam.projectionMatrix);
-                //peSetRenderTargets(
-                //    cam.targetTexture.colorBuffer,
-                //    cam.depthTextureMode.);
- 			}
-            {
-                Collider[] colliders = Physics.OverlapSphere( transform.position, 10.0f );
-                for (int i = 0; i < colliders.Length; ++i )
-                {
-                    Collider col = colliders[i];
-                    SphereCollider sphere = col as SphereCollider;
-                    BoxCollider box = col as BoxCollider;
-                    if(sphere) {
-                        mpAddSphereCollider(IntPtr.Zero,
-                            sphere.transform.position,
-                            sphere.radius);
-                    }
-                    else if (box)
-                    {
-                        mpAddBoxCollider(IntPtr.Zero,
-                            box.transform.localToWorldMatrix,
-                            box.size);
-                    }
-                }
+        Collider[] colliders = Physics.OverlapSphere( transform.position, 10.0f );
+        for (int i = 0; i < colliders.Length; ++i )
+        {
+            Collider col = colliders[i];
+            SphereCollider sphere = col as SphereCollider;
+            BoxCollider box = col as BoxCollider;
+            if(sphere) {
+                mpAddSphereCollider(IntPtr.Zero,
+                    sphere.transform.position,
+                    sphere.radius);
             }
+            else if (box)
+            {
+                mpAddBoxCollider(IntPtr.Zero,
+                    box.transform.localToWorldMatrix,
+                    box.size);
+            }
+        }
 
-			// Issue a plugin event with arbitrary integer identifier.
-			// The plugin can distinguish between different
-			// things it needs to do based on this ID.
-			// For our simple plugin, it does not matter which ID we pass here.
-			if(renderTarget) {
-				Graphics.SetRenderTarget(renderTarget);
-			}
+		// Issue a plugin event with arbitrary integer identifier.
+		// The plugin can distinguish between different
+		// things it needs to do based on this ID.
+		// For our simple plugin, it does not matter which ID we pass here.
+		if(renderTarget) {
+			Graphics.SetRenderTarget(renderTarget);
+		}
 
-			GL.IssuePluginEvent (1);
+		GL.IssuePluginEvent (1);
 	}
 }

@@ -104,6 +104,16 @@ public:
     {
         m_view = (FLOAT*)&view;
         m_proj = (FLOAT*)&proj;
+
+        {
+            // see CalculateDeviceProjectionMatrix()
+            float *v = (float*)&m_proj;
+            v[4*0 + 2] = v[4*0 + 2] * 0.5f + v[4*0+3] * 0.5f;
+            v[4*1 + 2] = v[4*1 + 2] * 0.5f + v[4*1+3] * 0.5f;
+            v[4*2 + 2] = v[4*2 + 2] * 0.5f + v[4*2+3] * 0.5f;
+            v[4*3 + 2] = v[4*3 + 2] * 0.5f + v[4*3+3] * 0.5f;
+        }
+
         m_viewproj = XMMatrixMultiply(m_view, m_proj);
         m_eye = m_view.r[3];
     }

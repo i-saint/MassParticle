@@ -1,9 +1,3 @@
-//--------------------------------------------------------------------------------------
-// File: Tutorial07.fx
-//
-// Copyright (c) Microsoft Corporation. All rights reserved.
-//--------------------------------------------------------------------------------------
-
 cbuffer cbChangesEveryFrame : register( b0 )
 {
     matrix g_ViewProjection;
@@ -16,8 +10,6 @@ cbuffer cbChangesEveryFrame : register( b0 )
     float g_MeshShininess;
 };
 
-
-//--------------------------------------------------------------------------------------
 struct VS_INPUT
 {
     float3 Pos : POSITION;
@@ -30,19 +22,15 @@ struct PS_INPUT
     float4 Pos : SV_POSITION;
     float4 LsPos : TEXCOORD0;
     float4 Color : TEXCOORD1;
-    //float2 Depth : TEXCOORD2;
     float3 Normal : NORMAL;
 };
 
 struct PS_OUT
 {
     float4 Color : SV_Target0;
-    //float Depth : SV_Depth;  
 };
 
-//--------------------------------------------------------------------------------------
-// Vertex Shader
-//--------------------------------------------------------------------------------------
+
 PS_INPUT VS( VS_INPUT input )
 {
     PS_INPUT output = (PS_INPUT)0;
@@ -50,15 +38,10 @@ PS_INPUT VS( VS_INPUT input )
     output.Pos      = mul(float4(output.LsPos.xyz, 1.0), g_ViewProjection);
     output.Color    = float4(0.8f, 0.8f, 0.8f, 1.0f);
     output.Normal   = input.Normal;
-    //output.Depth = output.Pos.zw;
 
     return output;
 }
 
-
-//--------------------------------------------------------------------------------------
-// Pixel Shader
-//--------------------------------------------------------------------------------------
 PS_OUT PS( PS_INPUT input)
 {
     float3 FragPos      = input.LsPos.xyz;
@@ -87,6 +70,5 @@ PS_OUT PS( PS_INPUT input)
 
     PS_OUT output;
     output.Color = Result;
-    //output.Depth = input.Depth.x/input.Depth.y;
     return output;
 }

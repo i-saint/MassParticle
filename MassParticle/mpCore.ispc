@@ -16,7 +16,7 @@ typedef unsigned int32 uint32;
 #define mpParticleMass 0.002f
 #define mpParticleViscosity 0.1f
 
-#define mpPressureStiffnessImp 50.0f
+#define mpPressureStiffnessImp 100.0f
 
 static uniform float mpDensityCoef;
 static uniform float mpGradPressureCoef;
