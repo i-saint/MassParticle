@@ -69,9 +69,11 @@ public class mpWorld : MonoBehaviour {
 	private Collider[] colliders;
 
 
-	mpWorld()
+	void Reset()
 	{
 		mpKernelParams p = mpGetKernelParams();
+		transform.position = p.WorldCenter;
+		transform.localScale = p.WorldSize;
 		solverType 			= (mpSolverType)p.SolverType;
 		particleLifeTime 	= p.LifeTime;
 		timeStep 			= p.Timestep;
@@ -89,6 +91,8 @@ public class mpWorld : MonoBehaviour {
 	{
 		{
 			mpKernelParams p = mpGetKernelParams();
+			p.WorldCenter 		= transform.position;
+			p.WorldSize 		= transform.localScale;
 			p.SolverType		= (int)solverType;
 			p.LifeTime			= particleLifeTime;
 			p.Timestep			= timeStep;
@@ -127,6 +131,12 @@ public class mpWorld : MonoBehaviour {
 			mpSetViewProjectionMatrix(cam.worldToCameraMatrix, cam.projectionMatrix);
 		}
 		GL.IssuePluginEvent (1);
+	}
+
+	void OnDrawGizmos()
+	{
+		Gizmos.color = Color.yellow;
+		Gizmos.DrawWireCube(transform.position, transform.localScale*2.0f);
 	}
 
 
