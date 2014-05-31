@@ -175,6 +175,10 @@ extern "C" EXPORT_API uint32_t mpGetNumParticles()
 {
     return g_mpWorld.m_num_active_particles;
 }
+extern "C" EXPORT_API mpParticle* mpGetParticles()
+{
+    return g_mpWorld.particles;
+}
 
 extern "C" EXPORT_API uint32_t mpScatterParticlesSphererical(XMFLOAT3 center, float radius, uint32 num)
 {
@@ -188,7 +192,13 @@ extern "C" EXPORT_API uint32_t mpScatterParticlesSphererical(XMFLOAT3 center, fl
     return num;
 }
 
-extern "C" EXPORT_API uint32_t mpAddBoxCollider(XMFLOAT4X4 transform, XMFLOAT3 size)
+
+inline float sign(float v)
+{
+    return v < 0.0f ? -1.0f : 1.0f;
+}
+
+extern "C" EXPORT_API uint32_t mpAddBoxCollider(int32_t owner, XMFLOAT4X4 transform, XMFLOAT3 size)
 {
     size.x = size.x * 0.5f;
     size.y = size.y * 0.5f;
@@ -226,8 +236,8 @@ extern "C" EXPORT_API uint32_t mpAddBoxCollider(XMFLOAT4X4 transform, XMFLOAT3 s
         -(XMVector3Dot(vertices[4], normals[5]).m128_f32[0] + mpParticleSize),
     };
 
-    ispc::BoxCollider box = {
-        0,
+    ispc::BoxCollider o = {
+        uint32_t(owner),
         { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f },
         transform.m[3][0], transform.m[3][1], transform.m[3][2],
         {
@@ -239,15 +249,35 @@ extern "C" EXPORT_API uint32_t mpAddBoxCollider(XMFLOAT4X4 transform, XMFLOAT3 s
             { normals[5].m128_f32[0], normals[5].m128_f32[1], normals[5].m128_f32[2], distances[5] },
         }
     };
-    g_mpWorld.collision_boxes.push_back(box);
+
+    for (int32 i = 0; i < _countof(vertices); ++i) {
+        float x = o.x + vertices[i].m128_f32[0];
+        float y = o.y + vertices[i].m128_f32[1];
+        float z = o.z + vertices[i].m128_f32[2];
+        if (i==0) {
+            o.bb.bl_x = o.bb.ur_x = x;
+            o.bb.bl_y = o.bb.ur_y = y;
+            o.bb.bl_z = o.bb.ur_z = z;
+        }
+        o.bb.bl_x = std::min<float>(o.bb.bl_x, x-mpParticleSize);
+        o.bb.bl_y = std::min<float>(o.bb.bl_y, y-mpParticleSize);
+        o.bb.bl_z = std::min<float>(o.bb.bl_z, z-mpParticleSize);
+        o.bb.ur_x = std::max<float>(o.bb.ur_x, x+mpParticleSize);
+        o.bb.ur_y = std::max<float>(o.bb.ur_y, y+mpParticleSize);
+        o.bb.ur_z = std::max<float>(o.bb.ur_z, z+mpParticleSize);
+    }
+
+    g_mpWorld.collision_boxes.push_back(o);
     return 0;
 }
 
-extern "C" EXPORT_API uint32_t mpAddSphereCollider(XMFLOAT3 center, float radius)
+extern "C" EXPORT_API uint32_t mpAddSphereCollider(int32_t owner, XMFLOAT3 center, float radius)
 {
+    float er = radius + mpParticleSize;
     ispc::SphereCollider sphere = {
-        0,
-        { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f },
+        owner,
+        { center.x-er, center.y-er, center.z-er,
+          center.x+er, center.y+er, center.z+er },
         center.x, center.y, center.z, radius + mpParticleSize
     };
     g_mpWorld.collision_spheres.push_back(sphere);

@@ -4,7 +4,7 @@
 #define mpParticleSize 0.08f
 #define mpMaxParticleNum 131072
 
-#define mpWorldSize 10.24f
+#define mpWorldSize 20.48f
 #define mpWorldPosition -10.24f
 #define mpWorldCellSize 0.08f
 #define mpWorldDivNum 256

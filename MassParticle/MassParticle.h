@@ -22,8 +22,8 @@ extern "C" EXPORT_API uint32_t      mpPutParticles(mpParticle *particles, uint32
 extern "C" EXPORT_API void          mpUpdateParticle(uint32_t index, mpParticleRaw particle);
 extern "C" EXPORT_API uint32_t      mpScatterParticlesSphererical(XMFLOAT3 center, float radius, uint32 num);
 
-extern "C" EXPORT_API uint32_t      mpAddBoxCollider(XMFLOAT4X4 transform, XMFLOAT3 size);
-extern "C" EXPORT_API uint32_t      mpAddSphereCollider(XMFLOAT3 center, float radius);
+extern "C" EXPORT_API uint32_t      mpAddBoxCollider(int32_t owner, XMFLOAT4X4 transform, XMFLOAT3 size);
+extern "C" EXPORT_API uint32_t      mpAddSphereCollider(int32_t owner, XMFLOAT3 center, float radius);
 extern "C" EXPORT_API uint32_t      mpAddDirectionalForce(XMFLOAT3 direction, float strength);
 
 

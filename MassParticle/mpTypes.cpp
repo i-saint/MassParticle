@@ -48,8 +48,8 @@ void mpSoAnize( int32 num, const mpParticle *particles, ispc::Particle_SOA8 *out
         simd_store(out[bi].vy+4, soav.y());
         simd_store(out[bi].vz+4, soav.z());
 
-        simd_store(out[bi].hit+0, _mm_set1_epi32(0));
-        simd_store(out[bi].hit+4, _mm_set1_epi32(0));
+        simd_store(out[bi].hit+0, _mm_set1_epi32(-1));
+        simd_store(out[bi].hit+4, _mm_set1_epi32(-1));
 
         //// •s—v
         //soas = ist::simdvec4_set(particles[i+0].params.density, particles[i+1].params.density, particles[i+2].params.density, particles[i+3].params.density);
@@ -101,7 +101,7 @@ void mpAoSnize( int32 num, const ispc::Particle_SOA8 *particles, mpParticle *out
 
 inline uint32 mpGenHash(const mpParticle &particle)
 {
-    static const float32 rcpcellsize = 1.0f/mpWorldCellSize;
+    static const float32 rcpcellsize = 1.0f / (mpWorldSize / mpWorldDivNum);
 
     const float *pos4 = (const float*)&particle.position;
     uint32 r=(clamp<int32>(int32((pos4[0]-mpWorldPosition)*rcpcellsize), 0, (mpWorldDivNum-1)) << (mpWorldDivNumBits*0)) |
