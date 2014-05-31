@@ -27,6 +27,13 @@ typedef ispc::GridData sphGridData;
 #define set_nxyz(v, _x, _y, _z) v.nx=_x; v.ny=_y; v.nz=_z;
 #define set_vxyz(v, _x, _y, _z) v.vx=_x; v.vy=_y; v.vz=_z;
 
+inline XMFLOAT3 operator+(const XMFLOAT3 &l, const XMFLOAT3 &r) { return XMFLOAT3(l.x+r.x, l.y+r.y, l.z+r.z); }
+inline XMFLOAT3 operator-(const XMFLOAT3 &l, const XMFLOAT3 &r) { return XMFLOAT3(l.x-r.x, l.y-r.y, l.z-r.z); }
+inline XMFLOAT3 operator*(const XMFLOAT3 &l, const XMFLOAT3 &r) { return XMFLOAT3(l.x*r.x, l.y*r.y, l.z*r.z); }
+inline XMFLOAT3 operator*(const XMFLOAT3 &l, float r) { return XMFLOAT3(l.x*r, l.y*r, l.z*r); }
+inline XMFLOAT3 operator/(const XMFLOAT3 &l, const XMFLOAT3 &r) { return XMFLOAT3(l.x/r.x, l.y/r.y, l.z/r.z); }
+inline XMFLOAT3 operator/(const XMFLOAT3 &l, float r) { return XMFLOAT3(l.x / r, l.y / r, l.z / r); }
+
 enum mpSolverType
 {
     mpSolver_Impulse,
@@ -38,20 +45,28 @@ struct mpKernelParams : ispc::KernelParams
 {
     mpKernelParams()
     {
+        (XMFLOAT3&)WorldCenter = XMFLOAT3(0.0f, 0.0f, 0.0f);
+        (XMFLOAT3&)WorldSize = XMFLOAT3(10.24f, 10.24f, 10.24f);
+        (XMFLOAT3&)Scale = XMFLOAT3(1.0f, 1.0f, 1.0f);
+
         SolverType = mpSolver_Impulse;
         LifeTime = 3600.0f;
         Timestep = 0.01f;
         Decelerate = 0.995f;
         PressureStiffness = 500.0f;
         WallStiffness = 1500.0f;
-        XScaler = 1.0f;
-        YScaler = 1.0f;
-        ZScaler = 1.0f;
 
         SPHRestDensity = 1000.0f;
         SPHParticleMass = 0.002f;
         SPHViscosity = 0.1f;
     }
+};
+
+struct mpTempParams
+{
+    XMFLOAT3 RcpCellSize;
+    XMFLOAT3 WorldBBBL;
+    XMFLOAT3 WorldBBUR;
 };
 
 
@@ -209,6 +224,7 @@ public:
 
     std::mutex m_mutex;
     mpKernelParams m_params;
+    mpTempParams m_tmp;
     mpCamera m_camera;
     mpRenderer *m_renderer;
 

@@ -17,19 +17,18 @@ public struct mpParticle
 
 [StructLayout(LayoutKind.Explicit)]
 struct mpKernelParams {
-	[FieldOffset( 0)] public int SolverType;
-	[FieldOffset( 4)] public float LifeTime;
-	[FieldOffset( 8)] public float Timestep;
-	[FieldOffset(12)] public float Decelerate;
-	[FieldOffset(16)] public float PressureStiffness;
-	[FieldOffset(20)] public float WallStiffness;
-	[FieldOffset(24)] public float XScaler;
-	[FieldOffset(28)] public float YScaler;
-	[FieldOffset(32)] public float ZScaler;
-
-	[FieldOffset(36)] public float SPHRestDensity;
-	[FieldOffset(40)] public float SPHParticleMass;
-	[FieldOffset(44)] public float SPHViscosity;
+	[FieldOffset( 0)] public Vector3  WorldCenter;
+	[FieldOffset(16)] public Vector3  WorldSize;
+	[FieldOffset(32)] public Vector3  Scaler;
+	[FieldOffset(48)] public int SolverType;
+	[FieldOffset(52)] public float LifeTime;
+	[FieldOffset(56)] public float Timestep;
+	[FieldOffset(60)] public float Decelerate;
+	[FieldOffset(64)] public float PressureStiffness;
+	[FieldOffset(68)] public float WallStiffness;
+	[FieldOffset(72)] public float SPHRestDensity;
+	[FieldOffset(76)] public float SPHParticleMass;
+	[FieldOffset(80)] public float SPHViscosity;
 };
 
 public enum mpSolverType
@@ -65,9 +64,7 @@ public class mpWorld : MonoBehaviour {
 	public float deceleration;
 	public float pressureStiffness;
 	public float wallStiffness;
-	public float xScaler;
-	public float yScaler;
-	public float zScaler;
+	public Vector3 coordScale;
 
 	private Collider[] colliders;
 
@@ -81,9 +78,7 @@ public class mpWorld : MonoBehaviour {
 		deceleration 		= p.Decelerate;
 		pressureStiffness 	= p.PressureStiffness;
 		wallStiffness 		= p.WallStiffness;
-		xScaler 			= p.XScaler;
-		yScaler 			= p.YScaler;
-		zScaler 			= p.ZScaler;
+		coordScale 			= p.Scaler;
 	}
 
 	void Start () {
@@ -100,9 +95,7 @@ public class mpWorld : MonoBehaviour {
 			p.Decelerate		= deceleration;
 			p.PressureStiffness	= pressureStiffness;
 			p.WallStiffness		= wallStiffness;
-			p.XScaler			= xScaler;
-			p.YScaler			= yScaler;
-			p.ZScaler			= zScaler;
+			p.Scaler			= coordScale;
 			mpSetKernelParams(ref p);
 		}
 		{

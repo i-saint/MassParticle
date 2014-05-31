@@ -10,12 +10,14 @@
 #include "mpCollision.h"
 typedef unsigned int32 uint32;
 
+static uniform vec3  mpWorldCenter;
+static uniform vec3  mpWorldSize;
+static uniform vec3  mpCoordScale;
 
 static uniform float mpTimestep;
 static uniform float mpDecelerate;
 static uniform float mpPressureStiffness;
 static uniform float mpWallStiffness;
-static uniform vec3  mpCoordScaler;;
 
 static uniform float mpSPHRestDensity;
 static uniform float mpSPHParticleMass;
@@ -25,27 +27,39 @@ static uniform float mpSPHGradPressureCoef;
 static uniform float mpSPHLapViscosityCoef;
 
 
-export void sphInitializeConstants(uniform KernelParams &params)
+export void sphUpdateConstants(uniform KernelParams &params)
 {
-    mpTimestep = params.Timestep;
-    mpDecelerate = params.Decelerate;
-    mpPressureStiffness = params.PressureStiffness;
-    mpWallStiffness = params.WallStiffness;
-    mpCoordScaler.x = params.XScaler;
-    mpCoordScaler.y = params.YScaler;
-    mpCoordScaler.z = params.ZScaler;
+    mpWorldCenter       = params.WorldCenter;
+    mpWorldSize         = params.WorldSize;
+    mpCoordScale        = params.Scale;
 
-    mpSPHRestDensity = params.SPHRestDensity;
-    mpSPHParticleMass = params.SPHParticleMass;
-    mpSPHViscosity = params.SPHViscosity;
-    mpSPHDensityCoef = mpSPHParticleMass * 315.0f / (64.0f * PI * pow(mpParticleSize, 9));
-    mpSPHGradPressureCoef = mpSPHParticleMass * -45.0f / (PI * pow(mpParticleSize, 6));
-    mpSPHLapViscosityCoef = mpSPHParticleMass * mpSPHViscosity * 45.0f / (PI * pow(mpParticleSize, 6));
+    mpTimestep          = params.Timestep;
+    mpDecelerate        = params.Decelerate;
+    mpPressureStiffness = params.PressureStiffness;
+    mpWallStiffness     = params.WallStiffness;
+
+    mpSPHRestDensity    = params.SPHRestDensity;
+    mpSPHParticleMass   = params.SPHParticleMass;
+    mpSPHViscosity      = params.SPHViscosity;
+
+    mpSPHDensityCoef        = mpSPHParticleMass * 315.0f / (64.0f * PI * pow(mpParticleSize, 9));
+    mpSPHGradPressureCoef   = mpSPHParticleMass * -45.0f / (PI * pow(mpParticleSize, 6));
+    mpSPHLapViscosityCoef   = mpSPHParticleMass * mpSPHViscosity * 45.0f / (PI * pow(mpParticleSize, 6));
 }
 
 static soa<8> Force g_forces[mpMaxParticleNum];
 
 
+vec3 ComputeGridBox(uniform int32 xi, uniform int32 yi, uniform int32 zi, uniform vec3 &o_bl, uniform vec3 &o_ur)
+{
+    uniform vec3 cell_size = mpWorldSize*2.0f / mpWorldDivNum;
+    o_bl.x = mpWorldCenter.x - mpWorldSize.x + cell_size.x*xi;
+    o_bl.y = mpWorldCenter.y - mpWorldSize.y + cell_size.y*yi;
+    o_bl.z = mpWorldCenter.z - mpWorldSize.z + cell_size.z*zi;
+    o_ur.x = mpWorldCenter.x - mpWorldSize.x + cell_size.x*(xi+1);
+    o_ur.y = mpWorldCenter.y - mpWorldSize.y + cell_size.y*(yi+1);
+    o_ur.z = mpWorldCenter.z - mpWorldSize.z + cell_size.z*(zi+1);
+}
 
 #define repulse(p, f, n, d, shape)\
     {\
@@ -69,9 +83,9 @@ export void sphProcessCollision(
     soa<8> Force * uniform forces = &g_forces[gd.soai*8];
 
     uniform float particle_radius = mpParticleSize;
-    uniform float cell_size = mpWorldSize / mpWorldDivNum;
-    uniform vec3 grid_bl = {mpWorldPosition + cell_size*xi, 0.0f, mpWorldPosition + cell_size*zi };
-    uniform vec3 grid_ur = {mpWorldPosition + cell_size*(xi+1), 0.0f, mpWorldPosition + cell_size*(zi+1) };
+    uniform vec3 grid_bl;
+    uniform vec3 grid_ur;
+    ComputeGridBox(xi,0,zi, grid_bl, grid_ur);
 
     // 適切に関数に分けたかったが、struct の参照渡しができないとか謎のコンパイラクラッシュとかで断念。
     // 全部 inline で書きます。
@@ -431,10 +445,10 @@ export void sphIntegrate(
 
         vel += accel * mpTimestep;
         vel *= mpDecelerate;
-        vel *= mpCoordScaler;
+        vel *= mpCoordScale;
 
         pos += vel * mpTimestep;
-        pos *= mpCoordScaler;
+        pos *= mpCoordScale;
 
         set_vel(particles[i], vel);
         set_pos(particles[i], pos);
@@ -512,10 +526,10 @@ export void impIntegrate(
         vel += accel * mpTimestep;
         // 自然減速
         vel *= mpDecelerate;
-        vel *= mpCoordScaler;
+        vel *= mpCoordScale;
 
         pos += vel * mpTimestep;
-        pos *= mpCoordScaler;
+        pos *= mpCoordScale;
 
         set_pos(particles[i], pos);
         set_vel(particles[i], vel);

@@ -3,6 +3,7 @@
 #include <algorithm>
 #include "mpTypes.h"
 
+mpWorld g_mpWorld;
 
 
 const int32 SIMD_LANES = 8;
@@ -101,13 +102,13 @@ void mpAoSnize( int32 num, const ispc::Particle_SOA8 *particles, mpParticle *out
 
 inline uint32 mpGenHash(const mpParticle &particle)
 {
-    static const float32 rcpcellsize = 1.0f / (mpWorldSize / mpWorldDivNum);
+    XMFLOAT3 &bl = (XMFLOAT3&)g_mpWorld.m_tmp.WorldBBBL;
+    XMFLOAT3 &rcpCell = (XMFLOAT3&)g_mpWorld.m_tmp.RcpCellSize;
+    XMFLOAT3 &ppos = (XMFLOAT3&)particle.position;
 
-    const float *pos4 = (const float*)&particle.position;
-    uint32 r=(clamp<int32>(int32((pos4[0]-mpWorldPosition)*rcpcellsize), 0, (mpWorldDivNum-1)) << (mpWorldDivNumBits*0)) |
-             (clamp<int32>(int32((pos4[2]-mpWorldPosition)*rcpcellsize), 0, (mpWorldDivNum-1)) << (mpWorldDivNumBits*1));
+    uint32 r = (clamp<int32>(int32((ppos.x-bl.x)*rcpCell.x), 0, (mpWorldDivNum - 1)) << (mpWorldDivNumBits * 0)) |
+               (clamp<int32>(int32((ppos.z-bl.z)*rcpCell.z), 0, (mpWorldDivNum - 1)) << (mpWorldDivNumBits * 1));
 
-    //if (pos4[0] - mpWorldPosition) { r |= 0x80000000; }
     if(particle.params.lifetime<=0.0f) { r |= 0x80000000; }
     return r;
 }
@@ -157,6 +158,17 @@ void mpWorld::addParticles(mpParticle *p, uint32_t num)
 
 void mpWorld::update(float32 dt)
 {
+    {
+        XMFLOAT3 &wpos = (XMFLOAT3&)g_mpWorld.m_params.WorldCenter;
+        XMFLOAT3 &wsize = (XMFLOAT3&)g_mpWorld.m_params.WorldSize;
+        XMFLOAT3 &rcpCell = (XMFLOAT3&)g_mpWorld.m_tmp.RcpCellSize;
+        XMFLOAT3 &bl = (XMFLOAT3&)g_mpWorld.m_tmp.WorldBBBL;
+        XMFLOAT3 &ur = (XMFLOAT3&)g_mpWorld.m_tmp.WorldBBUR;
+        rcpCell = XMFLOAT3(1.0f, 1.0f, 1.0f) / (wsize*2.0f / mpWorldDivNum);
+        bl = wpos - wsize;
+        ur = wpos + wsize;
+    }
+
     sphGridData *ce = &cell[0][0];          // 
     ispc::PointForce       *point_f = force_point.empty() ? nullptr : &force_point[0];
     ispc::DirectionalForce *dir_f   = force_directional.empty() ? nullptr : &force_directional[0];
@@ -166,7 +178,7 @@ void mpWorld::update(float32 dt)
     ispc::PlaneCollider   *plane_c = collision_planes.empty() ? nullptr : &collision_planes[0];
     ispc::BoxCollider     *box_c = collision_boxes.empty() ? nullptr : &collision_boxes[0];
 
-    ispc::sphInitializeConstants(m_params);
+    ispc::sphUpdateConstants(m_params);
 
     // clear grid
     tbb::parallel_for(tbb::blocked_range<int>(0, mpWorldCellNum, 128),
@@ -180,7 +192,15 @@ void mpWorld::update(float32 dt)
     tbb::parallel_for(tbb::blocked_range<int>(0, (int32)m_num_active_particles, 1024),
         [&](const tbb::blocked_range<int> &r) {
             for(int i=r.begin(); i!=r.end(); ++i) {
-                particles[i].params.lifetime = std::max<float32>(particles[i].params.lifetime-dt, 0.0f);
+                XMFLOAT3 &ppos = (XMFLOAT3&)particles[i].position;
+                XMFLOAT3 &bl = g_mpWorld.m_tmp.WorldBBBL;
+                XMFLOAT3 &ur = g_mpWorld.m_tmp.WorldBBUR;
+                if (ppos.x<bl.x || ppos.y<bl.y || ppos.z<bl.z ||
+                    ppos.x>ur.x || ppos.y>ur.y || ppos.z>ur.z)
+                {
+                    particles[i].params.lifetime = std::min<float>(particles[i].params.lifetime, 20.0f);
+                }
+                particles[i].params.lifetime = std::max<float32>(particles[i].params.lifetime - dt, 0.0f);
                 particles[i].params.hash = mpGenHash(particles[i]);
             }
         });

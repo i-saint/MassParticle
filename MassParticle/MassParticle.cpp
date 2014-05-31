@@ -9,7 +9,7 @@
 #include "mpTypes.h"
 #include "MassParticle.h"
 
-mpWorld g_mpWorld;
+extern mpWorld g_mpWorld;
 
 
 // --------------------------------------------------------------------------

@@ -3,7 +3,7 @@
 
 #include "ispc_vectormath.h"
 #include "mpConst.h"
-typedef int32 id_type;
+typedef int id_type;
 
 
 struct Plane
@@ -88,7 +88,7 @@ struct Particle
     float   x, y, z;
     float   vx, vy, vz;
     float   density;
-    int32   hit;
+    int   hit;
 };
 
 struct Force
@@ -98,23 +98,23 @@ struct Force
 
 struct GridData
 {
-    int32 begin, end;
-    int32 soai;
+    int begin, end;
+    int soai;
     float density;
 };
 
-
 struct KernelParams
 {
+    vec3 WorldCenter;
+    vec3 WorldSize;
+    vec3 Scale;
+
     int SolverType;
     float LifeTime;
     float Timestep;
     float Decelerate;
     float PressureStiffness;
     float WallStiffness;
-    float XScaler;
-    float YScaler;
-    float ZScaler;
 
     float SPHRestDensity;
     float SPHParticleMass;
