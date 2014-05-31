@@ -21,11 +21,15 @@ struct mpKernelParams {
 	[FieldOffset( 4)] public float LifeTime;
 	[FieldOffset( 8)] public float Timestep;
 	[FieldOffset(12)] public float Decelerate;
-	[FieldOffset(16)] public float SPHPressureStiffness;
-	[FieldOffset(20)] public float SPHRestDensity;
-	[FieldOffset(24)] public float SPHParticleMass;
-	[FieldOffset(28)] public float SPHViscosity;
-	[FieldOffset(32)] public float ImpPressureStiffness;
+	[FieldOffset(16)] public float PressureStiffness;
+	[FieldOffset(20)] public float WallStiffness;
+	[FieldOffset(24)] public float XScaler;
+	[FieldOffset(28)] public float YScaler;
+	[FieldOffset(32)] public float ZScaler;
+
+	[FieldOffset(36)] public float SPHRestDensity;
+	[FieldOffset(40)] public float SPHParticleMass;
+	[FieldOffset(44)] public float SPHViscosity;
 };
 
 public enum mpSolverType
@@ -54,11 +58,16 @@ public class mpWorld : MonoBehaviour {
 	[DllImport ("MassParticle")] private static extern void mpUpdate (float dt);
 
 
-	public float particleRadius;
+	//public float particleRadius;
+	public mpSolverType solverType;
 	public float particleLifeTime;
 	public float timeStep;
 	public float deceleration;
-	public mpSolverType solverType;
+	public float pressureStiffness;
+	public float wallStiffness;
+	public float xScaler;
+	public float yScaler;
+	public float zScaler;
 
 	private Collider[] colliders;
 
@@ -66,10 +75,15 @@ public class mpWorld : MonoBehaviour {
 	mpWorld()
 	{
 		mpKernelParams p = mpGetKernelParams();
-		particleLifeTime = p.LifeTime;
-		timeStep = p.Timestep;
-		deceleration = p.Decelerate;
-		solverType = (mpSolverType)p.SolverType;
+		solverType 			= (mpSolverType)p.SolverType;
+		particleLifeTime 	= p.LifeTime;
+		timeStep 			= p.Timestep;
+		deceleration 		= p.Decelerate;
+		pressureStiffness 	= p.PressureStiffness;
+		wallStiffness 		= p.WallStiffness;
+		xScaler 			= p.XScaler;
+		yScaler 			= p.YScaler;
+		zScaler 			= p.ZScaler;
 	}
 
 	void Start () {
@@ -80,10 +94,15 @@ public class mpWorld : MonoBehaviour {
 	{
 		{
 			mpKernelParams p = mpGetKernelParams();
-			p.LifeTime = particleLifeTime;
-			p.Timestep = timeStep;
-			p.Decelerate = deceleration;
-			p.SolverType = (int)solverType;
+			p.SolverType		= (int)solverType;
+			p.LifeTime			= particleLifeTime;
+			p.Timestep			= timeStep;
+			p.Decelerate		= deceleration;
+			p.PressureStiffness	= pressureStiffness;
+			p.WallStiffness		= wallStiffness;
+			p.XScaler			= xScaler;
+			p.YScaler			= yScaler;
+			p.ZScaler			= zScaler;
 			mpSetKernelParams(ref p);
 		}
 		{

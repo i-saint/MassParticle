@@ -9,6 +9,7 @@ public class mpEmitter : MonoBehaviour {
 	[DllImport ("MassParticle")] private static extern uint mpScatterParticlesSphererical(Vector3 center, float radius, uint num);
 
 	public int emitCount = 8;
+	public float radius = 0.5f;
 
 
 	void Start () {
@@ -16,7 +17,7 @@ public class mpEmitter : MonoBehaviour {
 
 	void Update()
 	{
-		mpScatterParticlesSphererical (transform.position, 0.5f, (uint)emitCount);
+		mpScatterParticlesSphererical (transform.position, radius, (uint)emitCount);
 	}
 
 }

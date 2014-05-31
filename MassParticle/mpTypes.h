@@ -42,13 +42,15 @@ struct mpKernelParams : ispc::KernelParams
         LifeTime = 3600.0f;
         Timestep = 0.01f;
         Decelerate = 0.995f;
+        PressureStiffness = 500.0f;
+        WallStiffness = 1500.0f;
+        XScaler = 1.0f;
+        YScaler = 1.0f;
+        ZScaler = 1.0f;
 
-        SPHPressureStiffness = 200.0f;
         SPHRestDensity = 1000.0f;
         SPHParticleMass = 0.002f;
         SPHViscosity = 0.1f;
-
-        ImpPressureStiffness = 100.0f;
     }
 };
 
@@ -180,6 +182,7 @@ class mpRenderer
 public:
     virtual ~mpRenderer() {}
     virtual void render() = 0;
+    virtual void reloadShader() = 0;
 };
 class mpWorld;
 mpRenderer* mpCreateRendererD3D9(void *dev, mpWorld &world);

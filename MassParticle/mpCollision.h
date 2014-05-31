@@ -110,13 +110,15 @@ struct KernelParams
     float LifeTime;
     float Timestep;
     float Decelerate;
+    float PressureStiffness;
+    float WallStiffness;
+    float XScaler;
+    float YScaler;
+    float ZScaler;
 
-    float SPHPressureStiffness;
     float SPHRestDensity;
     float SPHParticleMass;
     float SPHViscosity;
-
-    float ImpPressureStiffness;
 };
 
 // struct ‚ÌQÆ“n‚µ‚ª‚Å‚«‚È‚¢‚Á‚Û‚¢‚Ì‚Å macro ‚Å...

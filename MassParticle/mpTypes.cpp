@@ -106,7 +106,9 @@ inline uint32 mpGenHash(const mpParticle &particle)
     const float *pos4 = (const float*)&particle.position;
     uint32 r=(clamp<int32>(int32((pos4[0]-mpWorldPosition)*rcpcellsize), 0, (mpWorldDivNum-1)) << (mpWorldDivNumBits*0)) |
              (clamp<int32>(int32((pos4[2]-mpWorldPosition)*rcpcellsize), 0, (mpWorldDivNum-1)) << (mpWorldDivNumBits*1));
-    if(particle.params.lifetime==0.0f) { r |= 0x80000000; }
+
+    //if (pos4[0] - mpWorldPosition) { r |= 0x80000000; }
+    if(particle.params.lifetime<=0.0f) { r |= 0x80000000; }
     return r;
 }
 

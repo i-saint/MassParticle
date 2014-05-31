@@ -156,6 +156,14 @@ void mpClearParticles()
     g_mpWorld.clearParticles();
 }
 
+extern "C" EXPORT_API void mpReloadShader()
+{
+    if (g_mpWorld.m_renderer) {
+        g_mpWorld.m_renderer->reloadShader();
+    }
+}
+
+
 extern "C" EXPORT_API ispc::KernelParams mpGetKernelParams()
 {
     return g_mpWorld.m_params;
@@ -180,8 +188,10 @@ extern "C" EXPORT_API mpParticle* mpGetParticles()
     return g_mpWorld.particles;
 }
 
-extern "C" EXPORT_API uint32_t mpScatterParticlesSphererical(XMFLOAT3 center, float radius, uint32 num)
+extern "C" EXPORT_API int32_t mpScatterParticlesSphererical(XMFLOAT3 center, float radius, int32_t num)
 {
+    if (num <= 0) { return 0; }
+
     std::vector<mpParticle> particles(num);
     for (size_t i = 0; i < particles.size(); ++i) {
         particles[i].position = ist::simdvec4_set(

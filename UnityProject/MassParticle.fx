@@ -15,6 +15,8 @@ struct VS_INPUT
     float3 Pos : POSITION;
     float3 Normal : NORMAL;
     float4 InstancePos : INSTANCE_POSITION;
+    float4 InstanceVel : INSTANCE_VELOCITY;
+    float4 InstanceParams : INSTANCE_PARAMS;
 };
 
 struct PS_INPUT
@@ -22,6 +24,7 @@ struct PS_INPUT
     float4 Pos : SV_POSITION;
     float4 LsPos : TEXCOORD0;
     float4 Color : TEXCOORD1;
+    float4 Emission : TEXCOORD2;
     float3 Normal : NORMAL;
 };
 
@@ -33,10 +36,14 @@ struct PS_OUT
 
 PS_INPUT VS( VS_INPUT input )
 {
+    float scaleByLifetime = min(input.InstanceParams.w*0.05, 1.0);
+    float ei = max(length(input.InstanceVel.xyz)-1.5, 0.0);
+
     PS_INPUT output = (PS_INPUT)0;
-    output.LsPos    = float4(input.Pos, 0.0f) * 0.05f + input.InstancePos;
+    output.LsPos    = float4(input.Pos, 0.0f) * 0.05f * scaleByLifetime + input.InstancePos;
     output.Pos      = mul(float4(output.LsPos.xyz, 1.0), g_ViewProjection);
     output.Color    = float4(0.8f, 0.8f, 0.8f, 1.0f);
+    output.Emission = float4(ei,ei,ei,ei) * float4(0.2, 0.05, 0.025, 0.0);
     output.Normal   = input.Normal;
 
     return output;
@@ -66,6 +73,7 @@ PS_OUT PS( PS_INPUT input)
     float4 Result = float4(0.0, 0.0, 0.0, 1.0);
     Result.rgb += LightColor * (Albedo * Intensity);
     Result.rgb += LightColor * Specular;
+    Result.rgb += input.Emission;
 
 
     PS_OUT output;

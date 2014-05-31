@@ -13,6 +13,9 @@
 #include "mpCore_ispc.h"
 #include "MassParticle.h"
 
+#define mpSafeRelease(obj) if(obj) { obj->Release(); obj=nullptr; }
+
+
 struct mpVertex
 {
     XMFLOAT3 Pos;
@@ -39,6 +42,7 @@ public:
     mpRendererD3D11(void *dev, mpWorld &world);
     virtual ~mpRendererD3D11();
     virtual void render();
+    virtual void reloadShader();
 
 private:
     bool initializeDevice(void *dev);
@@ -185,63 +189,8 @@ bool mpRendererD3D11::initializeDevice(void *_dev)
         bdesc.RenderTarget[0].RenderTargetWriteMask = 0xF;
         g_pd3dDevice->CreateBlendState(&bdesc, &g_pBlendState);
     }
+    reloadShader();
 
-    {
-        // Compile the vertex shader
-        ID3DBlob* pVSBlob = NULL;
-        hr = CompileShaderFromFile( L"MassParticle.fx", "VS", "vs_4_0", &pVSBlob );
-        if( FAILED( hr ) )
-        {
-            MessageBox( NULL,
-                        L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK );
-            return false;
-        }
-
-        // Create the vertex shader
-        hr = g_pd3dDevice->CreateVertexShader( pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), NULL, &g_pCubeVertexShader );
-        if( FAILED( hr ) )
-        {    
-            pVSBlob->Release();
-            return false;
-        }
-
-        // Create the input layout
-        D3D11_INPUT_ELEMENT_DESC layout[] =
-        {
-            { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,  0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-            { "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-            { "INSTANCE_POSITION",  0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1,  0, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
-            { "INSTANCE_SCALE",     0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 16, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
-            { "INSTANCE_COLOR",     0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 32, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
-        };
-        UINT numElements = ARRAYSIZE( layout );
-
-        hr = g_pd3dDevice->CreateInputLayout( layout, numElements, pVSBlob->GetBufferPointer(),
-            pVSBlob->GetBufferSize(), &g_pCubeVertexLayout );
-        pVSBlob->Release();
-        if (FAILED(hr)) {
-            return false;
-        }
-    }
-
-    {
-        // Compile the pixel shader
-        ID3DBlob* pPSBlob = NULL;
-        hr = CompileShaderFromFile( L"MassParticle.fx", "PS", "ps_4_0", &pPSBlob );
-        if( FAILED( hr ) )
-        {
-            MessageBox( NULL,
-                L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK );
-            return false;
-        }
-
-        // Create the pixel shader
-        hr = g_pd3dDevice->CreatePixelShader( pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), NULL, &g_pCubePixelShader );
-        pPSBlob->Release();
-        if (FAILED(hr)) {
-            return false;
-        }
-    }
 
     // Create vertex buffer
     {
@@ -332,25 +281,103 @@ bool mpRendererD3D11::initializeDevice(void *_dev)
     return true;
 }
 
-
 //--------------------------------------------------------------------------------------
 // Clean up the objects we've created
 //--------------------------------------------------------------------------------------
 void mpRendererD3D11::finalizeDevice()
 {
-    if( g_pCBChangesEveryFrame ) g_pCBChangesEveryFrame->Release();
-    if( g_pCubeInstanceBuffer ) g_pCubeInstanceBuffer->Release();
-    if( g_pCubeVertexBuffer ) g_pCubeVertexBuffer->Release();
-    if( g_pCubeIndexBuffer ) g_pCubeIndexBuffer->Release();
-    if( g_pCubeVertexLayout ) g_pCubeVertexLayout->Release();
-    if( g_pCubeVertexShader ) g_pCubeVertexShader->Release();
-    if( g_pCubePixelShader ) g_pCubePixelShader->Release();
+    mpSafeRelease(g_pCBChangesEveryFrame);
+    mpSafeRelease(g_pCubeInstanceBuffer);
+    mpSafeRelease(g_pCubeVertexBuffer);
+    mpSafeRelease(g_pCubeIndexBuffer);
+    mpSafeRelease(g_pCubeVertexLayout);
+    mpSafeRelease(g_pCubeVertexShader);
+    mpSafeRelease(g_pCubePixelShader);
 
-    if (g_pDepthStencilState) g_pDepthStencilState->Release();
-    if (g_pRasterState) g_pRasterState->Release();
-    if (g_pBlendState) g_pBlendState->Release();
+    mpSafeRelease(g_pDepthStencilState);
+    mpSafeRelease(g_pRasterState);
+    mpSafeRelease(g_pBlendState);
 
-    if( g_pImmediateContext ) g_pImmediateContext->Release();
+    mpSafeRelease(g_pImmediateContext);
+}
+
+void mpRendererD3D11::reloadShader()
+{
+    HRESULT hr;
+    ID3D11VertexShader *pCubeVertexShader = nullptr;
+    ID3D11InputLayout  *pCubeVertexLayout = nullptr;
+    ID3D11PixelShader  *pCubePixelShader = nullptr;
+
+    {
+        // Compile the vertex shader
+        ID3DBlob* pVSBlob = NULL;
+        hr = CompileShaderFromFile(L"MassParticle.fx", "VS", "vs_4_0", &pVSBlob);
+        if (FAILED(hr))
+        {
+            MessageBox(NULL,
+                L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK);
+            goto on_failed;
+        }
+
+        // Create the vertex shader
+        hr = g_pd3dDevice->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), NULL, &pCubeVertexShader);
+        if (FAILED(hr))
+        {
+            pVSBlob->Release();
+            goto on_failed;
+        }
+
+        // Create the input layout
+        D3D11_INPUT_ELEMENT_DESC layout[] =
+        {
+            { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+            { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+            { "INSTANCE_POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 0, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+            { "INSTANCE_VELOCITY", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 16, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+            { "INSTANCE_PARAMS", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 32, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+        };
+        UINT numElements = ARRAYSIZE(layout);
+
+        hr = g_pd3dDevice->CreateInputLayout(layout, numElements, pVSBlob->GetBufferPointer(),
+            pVSBlob->GetBufferSize(), &pCubeVertexLayout);
+        pVSBlob->Release();
+        if (FAILED(hr)) {
+            goto on_failed;
+        }
+    }
+
+    {
+        // Compile the pixel shader
+        ID3DBlob* pPSBlob = NULL;
+        hr = CompileShaderFromFile(L"MassParticle.fx", "PS", "ps_4_0", &pPSBlob);
+        if (FAILED(hr))
+        {
+            MessageBox(NULL,
+                L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK);
+            goto on_failed;
+        }
+
+        // Create the pixel shader
+        hr = g_pd3dDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), NULL, &pCubePixelShader);
+        pPSBlob->Release();
+        if (FAILED(hr)) {
+            goto on_failed;
+        }
+    }
+
+    mpSafeRelease(g_pCubeVertexLayout);
+    mpSafeRelease(g_pCubeVertexShader);
+    mpSafeRelease(g_pCubePixelShader);
+    g_pCubeVertexLayout = pCubeVertexLayout;
+    g_pCubeVertexShader = pCubeVertexShader;
+    g_pCubePixelShader = pCubePixelShader;
+    return;
+
+on_failed:
+    mpSafeRelease(pCubeVertexLayout);
+    mpSafeRelease(pCubeVertexShader);
+    mpSafeRelease(pCubePixelShader);
+    return;
 }
 
 void mpRendererD3D11::render()

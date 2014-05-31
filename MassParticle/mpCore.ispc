@@ -13,8 +13,10 @@ typedef unsigned int32 uint32;
 
 static uniform float mpTimestep;
 static uniform float mpDecelerate;
+static uniform float mpPressureStiffness;
+static uniform float mpWallStiffness;
+static uniform vec3  mpCoordScaler;;
 
-static uniform float mpSPHPressureStiffness;
 static uniform float mpSPHRestDensity;
 static uniform float mpSPHParticleMass;
 static uniform float mpSPHViscosity;
@@ -22,23 +24,23 @@ static uniform float mpSPHDensityCoef;
 static uniform float mpSPHGradPressureCoef;
 static uniform float mpSPHLapViscosityCoef;
 
-static uniform float mpImpPressureStiffness;
-
 
 export void sphInitializeConstants(uniform KernelParams &params)
 {
     mpTimestep = params.Timestep;
     mpDecelerate = params.Decelerate;
+    mpPressureStiffness = params.PressureStiffness;
+    mpWallStiffness = params.WallStiffness;
+    mpCoordScaler.x = params.XScaler;
+    mpCoordScaler.y = params.YScaler;
+    mpCoordScaler.z = params.ZScaler;
 
-    mpSPHPressureStiffness = params.SPHPressureStiffness;
     mpSPHRestDensity = params.SPHRestDensity;
     mpSPHParticleMass = params.SPHParticleMass;
     mpSPHViscosity = params.SPHViscosity;
     mpSPHDensityCoef = mpSPHParticleMass * 315.0f / (64.0f * PI * pow(mpParticleSize, 9));
     mpSPHGradPressureCoef = mpSPHParticleMass * -45.0f / (PI * pow(mpParticleSize, 6));
     mpSPHLapViscosityCoef = mpSPHParticleMass * mpSPHViscosity * 45.0f / (PI * pow(mpParticleSize, 6));
-
-    mpImpPressureStiffness = params.ImpPressureStiffness;
 }
 
 static soa<8> Force g_forces[mpMaxParticleNum];
@@ -305,11 +307,11 @@ static inline float sphCalculatePressure(float density)
 {
     // Implements this equation:
     // Pressure = B * ((rho / rho_0)^y  - 1)
-    return mpSPHPressureStiffness * max(pow(density / mpSPHRestDensity, 3) - 1.0f, 0.0f);
+    return mpPressureStiffness * max(pow(density / mpSPHRestDensity, 3) - 1.0f, 0.0f);
 }
 static inline uniform float sphCalculatePressure(uniform float density)
 {
-    return mpSPHPressureStiffness * max(pow(density / mpSPHRestDensity, 3) - 1.0f, 0.0f);
+    return mpPressureStiffness * max(pow(density / mpSPHRestDensity, 3) - 1.0f, 0.0f);
 }
 
 
@@ -428,10 +430,11 @@ export void sphIntegrate(
         vec3 pos = get_pos(particles[i]);
 
         vel += accel * mpTimestep;
-        // é©ëRå∏ë¨
         vel *= mpDecelerate;
+        vel *= mpCoordScaler;
 
         pos += vel * mpTimestep;
+        pos *= mpCoordScaler;
 
         set_vel(particles[i], vel);
         set_pos(particles[i], pos);
@@ -451,7 +454,7 @@ static inline void impComputeParticleInteraction(
     float d = length3(diff); // float d = length3est(diff); // âΩåÃÇ© est ÇÃï˚Ç™íxÇ≠Ç»ÇÈ
     if(d > 0.0f) { // d==0: è’ìÀå≥Åïè’ìÀëäéËÇ™ìØàÍ
         vec3 dir = diff * SPH_RCP_PARTICLE_SIZE2; // vec3 dir = diff / d;
-        accel += dir * (min(0.0f, d-(mpParticleSize*2.0f)) * mpImpPressureStiffness);
+        accel += dir * (min(0.0f, d-(mpParticleSize*2.0f)) * mpPressureStiffness);
     }
 }
 
@@ -501,7 +504,6 @@ export void impIntegrate(
     soa<8> Particle * uniform particles = &all_particles[gd.soai*8];
     soa<8> Force * uniform forces = &g_forces[gd.soai*8];
 
-
     foreach(i=0 ... particle_num) {
         vec3 pos = get_pos(particles[i]);
         vec3 accel = get_accel(forces[i]);
@@ -510,8 +512,11 @@ export void impIntegrate(
         vel += accel * mpTimestep;
         // é©ëRå∏ë¨
         vel *= mpDecelerate;
+        vel *= mpCoordScaler;
 
         pos += vel * mpTimestep;
+        pos *= mpCoordScaler;
+
         set_pos(particles[i], pos);
         set_vel(particles[i], vel);
     }
