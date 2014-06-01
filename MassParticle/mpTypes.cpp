@@ -159,8 +159,14 @@ void mpWorld::addParticles(mpParticle *p, uint32_t num)
 void mpWorld::update(float32 dt)
 {
     {
-        XMFLOAT3 &wpos = (XMFLOAT3&)g_mpWorld.m_params.WorldCenter;
-        XMFLOAT3 &wsize = (XMFLOAT3&)g_mpWorld.m_params.WorldSize;
+        ispc::KernelParams params;
+        ispc::sphGetConstants(params);
+        printf("%f\n", params.LifeTime);
+    }
+
+    {
+        XMFLOAT3 &wpos = (XMFLOAT3&)g_mpWorld.m_params.WorldCenter_x;
+        XMFLOAT3 &wsize = (XMFLOAT3&)g_mpWorld.m_params.WorldSize_x;
         XMFLOAT3 &rcpCell = (XMFLOAT3&)g_mpWorld.m_tmp.RcpCellSize;
         XMFLOAT3 &bl = (XMFLOAT3&)g_mpWorld.m_tmp.WorldBBBL;
         XMFLOAT3 &ur = (XMFLOAT3&)g_mpWorld.m_tmp.WorldBBUR;

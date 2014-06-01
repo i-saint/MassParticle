@@ -29,9 +29,15 @@ static uniform float mpSPHLapViscosityCoef;
 
 export void sphUpdateConstants(uniform KernelParams &params)
 {
-    mpWorldCenter       = params.WorldCenter;
-    mpWorldSize         = params.WorldSize;
-    mpCoordScale        = params.Scale;
+    mpWorldCenter.x     = params.WorldCenter_x;
+    mpWorldCenter.y     = params.WorldCenter_y;
+    mpWorldCenter.z     = params.WorldCenter_z;
+    mpWorldSize.x		= params.WorldSize_x;
+    mpWorldSize.y		= params.WorldSize_y;
+    mpWorldSize.z		= params.WorldSize_z;
+    mpCoordScale.x		= params.Scale_x;
+    mpCoordScale.y		= params.Scale_y;
+    mpCoordScale.z		= params.Scale_z;
 
     mpTimestep          = params.Timestep;
     mpDecelerate        = params.Decelerate;
@@ -46,6 +52,29 @@ export void sphUpdateConstants(uniform KernelParams &params)
     mpSPHGradPressureCoef   = mpSPHParticleMass * -45.0f / (PI * pow(mpParticleSize, 6));
     mpSPHLapViscosityCoef   = mpSPHParticleMass * mpSPHViscosity * 45.0f / (PI * pow(mpParticleSize, 6));
 }
+
+export void sphGetConstants(uniform KernelParams &params)
+{
+    params.WorldCenter_x    = mpWorldCenter.x;
+    params.WorldCenter_y    = mpWorldCenter.y;
+    params.WorldCenter_z    = mpWorldCenter.z;
+    params.WorldSize_x      = mpWorldSize.x;
+    params.WorldSize_y      = mpWorldSize.y;
+    params.WorldSize_z      = mpWorldSize.z;
+    params.Scale_x          = mpCoordScale.x;
+    params.Scale_y          = mpCoordScale.y;
+    params.Scale_z          = mpCoordScale.z;
+
+    params.Timestep         = mpTimestep;
+    params.Decelerate       = mpDecelerate;
+    params.PressureStiffness= mpPressureStiffness;
+    params.WallStiffness    = mpWallStiffness;
+
+    params.SPHRestDensity   = mpSPHRestDensity;
+    params.SPHParticleMass  = mpSPHParticleMass;
+    params.SPHViscosity     = mpSPHViscosity;
+}
+
 
 static soa<8> Force g_forces[mpMaxParticleNum];
 

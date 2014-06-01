@@ -45,9 +45,9 @@ struct mpKernelParams : ispc::KernelParams
 {
     mpKernelParams()
     {
-        (XMFLOAT3&)WorldCenter = XMFLOAT3(0.0f, 0.0f, 0.0f);
-        (XMFLOAT3&)WorldSize = XMFLOAT3(10.24f, 10.24f, 10.24f);
-        (XMFLOAT3&)Scale = XMFLOAT3(1.0f, 1.0f, 1.0f);
+        (XMFLOAT3&)WorldCenter_x = XMFLOAT3(0.0f, 0.0f, 0.0f);
+        (XMFLOAT3&)WorldSize_x = XMFLOAT3(10.24f, 10.24f, 10.24f);
+        (XMFLOAT3&)Scale_x = XMFLOAT3(1.0f, 1.0f, 1.0f);
 
         SolverType = mpSolver_Impulse;
         LifeTime = 3600.0f;

@@ -105,9 +105,18 @@ struct GridData
 
 struct KernelParams
 {
-    vec3 WorldCenter;
-    vec3 WorldSize;
-    vec3 Scale;
+    float WorldCenter_x;
+    float WorldCenter_y;
+    float WorldCenter_z;
+    float WorldCenter_pad;
+    float WorldSize_x;
+    float WorldSize_y;
+    float WorldSize_z;
+    float WorldSize_pad;
+    float Scale_x;
+    float Scale_y;
+    float Scale_z;
+    float Scale_pad;
 
     int SolverType;
     float LifeTime;
