@@ -5,11 +5,21 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
 public class mpEmitter : MonoBehaviour {
+	
+	[DllImport ("MassParticle")] private static extern uint mpScatterParticlesSphere(Vector3 center, float radius, int num, Vector3 velBase, float velDiffuse);
+	[DllImport ("MassParticle")] private static extern uint mpScatterParticlesBox(Vector3 center, Vector3 size, int num, Vector3 velBase, float velDiffuse);
+	[DllImport ("MassParticle")] private static extern uint mpScatterParticlesSphereTransform(Matrix4x4 trans, int num, Vector3 velBase, float velDiffuse);
+	[DllImport ("MassParticle")] private static extern uint mpScatterParticlesBoxTransform(Matrix4x4 trans, int num, Vector3 velBase, float velDiffuse);
 
-	[DllImport ("MassParticle")] private static extern uint mpScatterParticlesSphererical(Vector3 center, float radius, uint num);
+	public enum Shape {
+		Sphere,
+		Box,
+	}
 
+	public Shape shape = Shape.Sphere;
+	public Vector3 velosityBase = Vector3.zero;
+	public float velosityDiffuse = 0.5f;
 	public int emitCount = 8;
-	public float radius = 0.5f;
 
 
 	void Start () {
@@ -17,7 +27,32 @@ public class mpEmitter : MonoBehaviour {
 
 	void Update()
 	{
-		mpScatterParticlesSphererical (transform.position, radius, (uint)emitCount);
-	}
+		switch (shape) {
+		case Shape.Sphere:
+			mpScatterParticlesSphereTransform (transform.localToWorldMatrix, emitCount, velosityBase, velosityDiffuse);
+			break;
 
+		case Shape.Box:
+			mpScatterParticlesBoxTransform (transform.localToWorldMatrix, emitCount, velosityBase, velosityDiffuse);
+			break;
+		}
+	}
+	
+	
+	void OnDrawGizmos()
+	{
+		Gizmos.color = Color.yellow;
+		Gizmos.matrix = transform.localToWorldMatrix;
+		switch(shape) {
+		case Shape.Sphere:
+			Gizmos.DrawWireSphere(Vector3.zero, 0.5f);
+			break;
+			
+		case Shape.Box:
+			Gizmos.color = Color.yellow;
+			Gizmos.DrawWireCube(Vector3.zero, Vector3.one);
+			break;
+		}
+		Gizmos.matrix = Matrix4x4.identity;
+	}
 }

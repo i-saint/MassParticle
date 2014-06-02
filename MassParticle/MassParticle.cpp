@@ -188,19 +188,90 @@ extern "C" EXPORT_API mpParticle* mpGetParticles()
     return g_mpWorld.particles;
 }
 
-extern "C" EXPORT_API int32_t mpScatterParticlesSphererical(XMFLOAT3 center, float radius, int32_t num)
+
+inline XMVECTOR ComputeVelosity(XMFLOAT3 base, float vel_diffuse)
+{
+    XMVECTOR r = { base.x + mpGenRand()*vel_diffuse, base.y + mpGenRand()*vel_diffuse, base.z + mpGenRand()*vel_diffuse, 0.0f };
+    return r;
+}
+
+extern "C" EXPORT_API int32_t mpScatterParticlesSphere(XMFLOAT3 center, float radius, int32_t num, XMFLOAT3 vel_base, float vel_diffuse)
 {
     if (num <= 0) { return 0; }
 
     std::vector<mpParticle> particles(num);
     for (size_t i = 0; i < particles.size(); ++i) {
-        particles[i].position = ist::simdvec4_set(
-            center.x + mpGenRand()*radius, center.y + mpGenRand()*radius, center.z + mpGenRand()*radius, 1.0f);
-        particles[i].velocity = ist::simdvec4_set(mpGenRand()*0.4f, mpGenRand()*0.4f, mpGenRand()*0.4f, 0.0f);
+        float l = mpGenRand()*radius;
+        XMVECTOR dir = { mpGenRand(), mpGenRand(), mpGenRand(), 0.0f };
+        dir = XMVector3Normalize(dir);
+        XMVECTOR pos = ist::simdvec4_set(center.x, center.y, center.z, 1.0f);
+        pos = XMVectorAdd(pos, XMVectorMultiply(dir, ist::simdvec4_set(l, l, l, 0.0f)));
+        XMVECTOR vel = ComputeVelosity(vel_base, vel_diffuse);
+
+        particles[i].position = pos;
+        particles[i].velocity = vel;
     }
     g_mpWorld.addParticles(&particles[0], particles.size());
     return num;
 }
+
+extern "C" EXPORT_API int32_t mpScatterParticlesBox(XMFLOAT3 center, XMFLOAT3 size, int32_t num, XMFLOAT3 vel_base, float vel_diffuse)
+{
+    if (num <= 0) { return 0; }
+
+    std::vector<mpParticle> particles(num);
+    for (size_t i = 0; i < particles.size(); ++i) {
+        XMVECTOR pos = { center.x + mpGenRand()*size.x, center.y + mpGenRand()*size.y, center.z + mpGenRand()*size.z, 1.0f };
+        XMVECTOR vel = ComputeVelosity(vel_base, vel_diffuse);
+
+        particles[i].position = pos;
+        particles[i].velocity = vel;
+    }
+    g_mpWorld.addParticles(&particles[0], particles.size());
+    return num;
+}
+
+
+extern "C" EXPORT_API int32_t mpScatterParticlesSphereTransform(XMFLOAT4X4 transform, int32_t num, XMFLOAT3 vel_base, float vel_diffuse)
+{
+    if (num <= 0) { return 0; }
+
+    std::vector<mpParticle> particles(num);
+    XMMATRIX mat = XMMATRIX((float*)&transform);
+    for (size_t i = 0; i < particles.size(); ++i) {
+        XMVECTOR dir = { mpGenRand(), mpGenRand(), mpGenRand(), 0.0f };
+        dir = XMVector3Normalize(dir);
+        dir.m128_f32[3] = 1.0f;
+        float l = mpGenRand()*0.5f;
+        XMVECTOR pos = XMVectorMultiply(dir, ist::simdvec4_set(l, l, l, 1.0f));
+        pos = XMVector4Transform(pos, mat);
+        XMVECTOR vel = ComputeVelosity(vel_base, vel_diffuse);
+
+        particles[i].position = pos;
+        particles[i].velocity = vel;
+    }
+    g_mpWorld.addParticles(&particles[0], particles.size());
+    return num;
+}
+
+extern "C" EXPORT_API int32_t mpScatterParticlesBoxTransform(XMFLOAT4X4 transform, int32_t num, XMFLOAT3 vel_base, float vel_diffuse)
+{
+    if (num <= 0) { return 0; }
+
+    std::vector<mpParticle> particles(num);
+    XMMATRIX mat = XMMATRIX((float*)&transform);
+    for (size_t i = 0; i < particles.size(); ++i) {
+        XMVECTOR pos = { mpGenRand()*0.5f, mpGenRand()*0.5f, mpGenRand()*0.5f, 1.0f };
+        pos = XMVector4Transform(pos, mat);
+        XMVECTOR vel = ComputeVelosity(vel_base, vel_diffuse);
+
+        particles[i].position = pos;
+        particles[i].velocity = vel;
+    }
+    g_mpWorld.addParticles(&particles[0], particles.size());
+    return num;
+}
+
 
 
 inline float sign(float v)

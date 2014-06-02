@@ -47,7 +47,9 @@ istForceInline simdvec8& operator-=(simdvec8 &a, simdvec8 b) { return (a = a - b
 istForceInline simdvec8& operator*=(simdvec8 &a, simdvec8 b) { return (a = a * b); }
 istForceInline simdvec8& operator/=(simdvec8 &a, simdvec8 b) { return (a = a / b); }
 
+istForceInline simdvec4 simdvec4_set(float v) { return _mm_set1_ps(v); }
 istForceInline simdvec4 simdvec4_set(float x, float y, float z, float w) { return _mm_set_ps(w, z, y, x); }
+istForceInline simdvec4i simdvec4_seti(int v) { return _mm_set1_epi32(v); }
 istForceInline simdvec4i simdvec4_seti(int x, int y, int z, int w) { return _mm_set_epi32(w, z, y, x); }
 
 istForceInline simdvec4 reduce_add4(simdvec4 v1)

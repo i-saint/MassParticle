@@ -102,21 +102,20 @@ public class mpWorld : MonoBehaviour {
 			p.Scaler			= coordScale;
 			mpSetKernelParams(ref p);
 		}
+
+		colliders = Physics.OverlapSphere( transform.position, transform.localScale.magnitude );
+		for (int i = 0; i < colliders.Length; ++i )
 		{
-			colliders = Physics.OverlapSphere( transform.position, 10.0f );
-			for (int i = 0; i < colliders.Length; ++i )
+			Collider col = colliders[i];
+			SphereCollider sphere = col as SphereCollider;
+			BoxCollider box = col as BoxCollider;
+			int ownerid = col.rigidbody ? i : -1;
+			if(sphere) {
+				mpAddSphereCollider(ownerid, sphere.transform.position, sphere.radius);
+			}
+			else if (box)
 			{
-				Collider col = colliders[i];
-				SphereCollider sphere = col as SphereCollider;
-				BoxCollider box = col as BoxCollider;
-				int ownerid = col.rigidbody ? i : -1;
-				if(sphere) {
-					mpAddSphereCollider(ownerid, sphere.transform.position, sphere.radius);
-				}
-				else if (box)
-				{
-					mpAddBoxCollider(ownerid, box.transform.localToWorldMatrix, box.size);
-				}
+				mpAddBoxCollider(ownerid, box.transform.localToWorldMatrix, box.size);
 			}
 		}
 
