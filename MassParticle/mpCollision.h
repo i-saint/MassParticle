@@ -83,6 +83,61 @@ struct BoxForce
 };
 
 
+enum ForceShape
+{
+    FS_AffectAll,
+    FS_Sphere,
+    FS_Box,
+};
+
+enum ForceDirection
+{
+    FD_Directional,
+    FD_Radial,
+    FD_Vortex,
+    FD_VectorField, // todo:
+};
+
+struct ForceRadial
+{
+    float x, y, z;
+    float strength;
+    float strength_random_diffuse;
+    float attenuation;
+    float attenuation_factor;
+};
+
+struct ForceDirectional
+{
+    float nx, ny, nz;
+    float strength;
+    float strength_random_diffuse;
+    float attenuation;
+    float attenuation_factor;
+};
+
+struct ForceVortex
+{
+    float x, y, z;
+    float strength;
+    float strength_random_diffuse;
+    float attenuation;
+    float attenuation_factor;
+};
+
+struct Force
+{
+    ForceShape shape_type;
+    ForceDirection dir_type;
+
+    // union doesn't exists in ISPC :(
+    Sphere              shape_sphere;
+    Box                 shape_box;
+    ForceRadial         dir_radial;
+    ForceDirectional    dir_directional;
+};
+
+
 struct Particle
 {
     float   x, y, z;

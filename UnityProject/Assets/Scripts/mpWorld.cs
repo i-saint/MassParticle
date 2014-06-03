@@ -146,7 +146,7 @@ public class mpWorld : MonoBehaviour {
 		for(uint i=0; i<numParticles; ++i) {
 			if(particles[i].hit != -1) {
 				Collider col = colliders[particles[i].hit];
-				if(col.rigidbody) {
+				if(col.rigidbody && !col.isTrigger) {
 					Vector3 vel = *(Vector3*)&particles[i].velocity;
 					col.rigidbody.AddForceAtPosition( vel * 0.1f, *(Vector3*)&particles[i].position );
 				}
