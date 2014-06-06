@@ -26,18 +26,20 @@ static uniform float mpSPHDensityCoef;
 static uniform float mpSPHGradPressureCoef;
 static uniform float mpSPHLapViscosityCoef;
 
+static soa<8> ParticleIMData g_imds[mpMaxParticleNum];
+
 
 export void sphUpdateConstants(uniform KernelParams &params)
 {
     mpWorldCenter.x     = params.WorldCenter_x;
     mpWorldCenter.y     = params.WorldCenter_y;
     mpWorldCenter.z     = params.WorldCenter_z;
-    mpWorldSize.x		= params.WorldSize_x;
-    mpWorldSize.y		= params.WorldSize_y;
-    mpWorldSize.z		= params.WorldSize_z;
-    mpCoordScale.x		= params.Scale_x;
-    mpCoordScale.y		= params.Scale_y;
-    mpCoordScale.z		= params.Scale_z;
+    mpWorldSize.x       = params.WorldSize_x;
+    mpWorldSize.y       = params.WorldSize_y;
+    mpWorldSize.z       = params.WorldSize_z;
+    mpCoordScale.x      = params.Scale_x;
+    mpCoordScale.y      = params.Scale_y;
+    mpCoordScale.z      = params.Scale_z;
 
     mpTimestep          = params.Timestep;
     mpDecelerate        = params.Decelerate;
@@ -74,9 +76,6 @@ export void sphGetConstants(uniform KernelParams &params)
     params.SPHParticleMass  = mpSPHParticleMass;
     params.SPHViscosity     = mpSPHViscosity;
 }
-
-
-static soa<8> ParticleIMData g_imds[mpMaxParticleNum];
 
 
 vec3 ComputeGridBox(uniform int32 xi, uniform int32 yi, uniform int32 zi, uniform vec3 &o_bl, uniform vec3 &o_ur)
@@ -197,50 +196,8 @@ export void sphProcessCollision(
 }
 #undef repulse
 
+
 export void sphProcessExternalForce(
-    soa<8> Particle all_particles[],
-    GridData uniform grid[],
-    uniform int32 xi, uniform int32 zi,
-    uniform PointForce pforce[], uniform int32 num_pforce,
-    uniform DirectionalForce dforce[], uniform int32 num_dforce,
-    uniform BoxForce bforce[], uniform int32 num_bforce )
-{
-    uniform const GridData &gd = grid[zi*mpWorldDivNum + xi];
-    uniform const int32 particle_num = gd.end - gd.begin;
-    soa<8> Particle * uniform particles = &all_particles[gd.soai*8];
-    soa<8> ParticleIMData * uniform imd = &g_imds[gd.soai*8];
-
-    uniform float particle_radius = mpParticleSize;
-
-    // Point
-    for(uniform int32 s=0; s<num_pforce; ++s) {
-        uniform const PointForce &f = pforce[s];
-        uniform const vec3 force_pos = get_pos(f);
-        uniform const float strength = f.strength;
-        foreach(i=0 ... particle_num) {
-            vec3 particles_pos = get_pos(particles[i]);
-            vec3 diff = particles_pos - force_pos;
-            vec3 dir = normalize3(diff);
-            vec3 accel = get_accel(imd[i]);
-            accel += dir * strength;
-            set_accel(imd[i], accel);
-        }
-    }
-
-    // Directional
-    for(uniform int32 s=0; s<num_dforce; ++s) {
-        uniform const DirectionalForce &f = dforce[s];
-        uniform const vec3 dir = get_normal(f);
-        uniform const float strength = f.strength;
-        foreach(i=0 ... particle_num) {
-            vec3 accel = get_accel(imd[i]);
-            accel += dir * strength;
-            set_accel(imd[i], accel);
-        }
-    }
-}
-
-export void sphProcessExternalForce2(
     soa<8> Particle all_particles[],
     GridData uniform grid[],
     uniform int32 xi, uniform int32 zi,
@@ -580,6 +537,22 @@ static inline void impComputeParticleInteraction(
     if(d > 0.0f) { // d==0: è’ìÀå≥Åïè’ìÀëäéËÇ™ìØàÍ
         vec3 dir = diff * SPH_RCP_PARTICLE_SIZE2; // vec3 dir = diff / d;
         accel += dir * (min(0.0f, d-(mpParticleSize*2.0f)) * mpPressureStiffness);
+    }
+}
+
+export void impZeroAccel(
+    soa<8> Particle all_particles[],
+    GridData uniform grid[],
+    uniform int32 xi, uniform int32 zi )
+{
+    uniform const GridData &gd = grid[zi*mpWorldDivNum + xi];
+    uniform const int32 particle_num = gd.end - gd.begin;
+    soa<8> Particle * uniform particles = &all_particles[gd.soai*8];
+    soa<8> ParticleIMData * uniform imd = &g_imds[gd.soai*8];
+    foreach(i=0 ... particle_num) {
+        imd[i].ax = 0.0f;
+        imd[i].ay = 0.0f;
+        imd[i].az = 0.0f;
     }
 }
 

@@ -44,6 +44,7 @@ enum mpSolverType
     mpSolver_Impulse,
     mpSolver_SPH,
     mpSolver_SPHEst,
+    mpSolver_NoInteraction,
 };
 
 struct mpKernelParams : ispc::KernelParams
@@ -201,7 +202,7 @@ public:
 };
 
 template<typename T>
-class SIMDAllocator {
+class mpAlignedAllocator {
 public:
     typedef T value_type;
     typedef value_type* pointer;
@@ -211,13 +212,13 @@ public:
     typedef std::size_t size_type;
     typedef std::ptrdiff_t difference_type;
 
-    template<typename U> struct rebind { typedef SIMDAllocator<U> other; };
+    template<typename U> struct rebind { typedef mpAlignedAllocator<U> other; };
 
 public:
-    SIMDAllocator() {}
-    SIMDAllocator(const SIMDAllocator&) {}
-    template<typename U> SIMDAllocator(const SIMDAllocator<U>&) {}
-    ~SIMDAllocator() {}
+    mpAlignedAllocator() {}
+    mpAlignedAllocator(const mpAlignedAllocator&) {}
+    template<typename U> mpAlignedAllocator(const mpAlignedAllocator<U>&) {}
+    ~mpAlignedAllocator() {}
 
     pointer address(reference r) { return &r; }
     const_pointer address(const_reference r) { return &r; }
@@ -230,11 +231,11 @@ public:
     void construct(pointer p, const T& t) { new(p)T(t); }
     void destroy(pointer p) { p; p->~T(); }
 
-    bool operator==(SIMDAllocator const&) { return true; }
-    bool operator!=(SIMDAllocator const& a) { return !operator==(a); }
+    bool operator==(mpAlignedAllocator const&) { return true; }
+    bool operator!=(mpAlignedAllocator const& a) { return !operator==(a); }
 };
-template<class T, typename Alloc> inline bool operator==(const SIMDAllocator<T>& l, const SIMDAllocator<T>& r) { return (l.equals(r)); }
-template<class T, typename Alloc> inline bool operator!=(const SIMDAllocator<T>& l, const SIMDAllocator<T>& r) { return (!(l == r)); }
+template<class T, typename Alloc> inline bool operator==(const mpAlignedAllocator<T>& l, const mpAlignedAllocator<T>& r) { return (l.equals(r)); }
+template<class T, typename Alloc> inline bool operator!=(const mpAlignedAllocator<T>& l, const mpAlignedAllocator<T>& r) { return (!(l == r)); }
 
 
 class mpRenderer
@@ -262,10 +263,6 @@ public:
     std::vector<ispc::SphereCollider>   collision_spheres;
     std::vector<ispc::PlaneCollider>    collision_planes;
     std::vector<ispc::BoxCollider>      collision_boxes;
-
-    std::vector<ispc::PointForce>       force_point;
-    std::vector<ispc::DirectionalForce> force_directional;
-    std::vector<ispc::BoxForce>         force_box;
     std::vector<ispc::Force>            forces;
 
     std::mutex m_mutex;

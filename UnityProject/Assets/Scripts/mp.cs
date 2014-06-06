@@ -38,6 +38,7 @@ public class mp {
 		Impulse = 0,
 		SPH = 1,
 		SPHEstimate = 2,
+		NoInteraction = 3,
 	}
 
 	

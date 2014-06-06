@@ -8,6 +8,8 @@
 #include "mpTypes.h"
 #include "MassParticle.h"
 
+typedef std::vector<mpParticle, mpAlignedAllocator<mpParticle> > mpParticleVector;
+
 extern mpWorld g_mpWorld;
 
 
@@ -73,7 +75,7 @@ extern "C" EXPORT_API int32_t mpScatterParticlesSphere(XMFLOAT3 center, float ra
 {
     if (num <= 0) { return 0; }
 
-    std::vector<mpParticle> particles(num);
+    mpParticleVector particles(num);
     for (size_t i = 0; i < particles.size(); ++i) {
         float l = mpGenRand()*radius;
         XMVECTOR dir = { mpGenRand(), mpGenRand(), mpGenRand(), 0.0f };
@@ -93,7 +95,7 @@ extern "C" EXPORT_API int32_t mpScatterParticlesBox(XMFLOAT3 center, XMFLOAT3 si
 {
     if (num <= 0) { return 0; }
 
-    std::vector<mpParticle, SIMDAllocator<mpParticle> > particles(num);
+    mpParticleVector particles(num);
     for (size_t i = 0; i < particles.size(); ++i) {
         XMVECTOR pos = { center.x + mpGenRand()*size.x, center.y + mpGenRand()*size.y, center.z + mpGenRand()*size.z, 1.0f };
         XMVECTOR vel = ComputeVelosity(vel_base, vel_diffuse);
@@ -110,7 +112,7 @@ extern "C" EXPORT_API int32_t mpScatterParticlesSphereTransform(XMFLOAT4X4 trans
 {
     if (num <= 0) { return 0; }
 
-    std::vector<mpParticle, SIMDAllocator<mpParticle> > particles(num);
+    mpParticleVector particles(num);
     XMMATRIX mat = XMMATRIX((float*)&transform);
     for (size_t i = 0; i < particles.size(); ++i) {
         XMVECTOR dir = { mpGenRand(), mpGenRand(), mpGenRand(), 0.0f };
@@ -132,7 +134,7 @@ extern "C" EXPORT_API int32_t mpScatterParticlesBoxTransform(XMFLOAT4X4 transfor
 {
     if (num <= 0) { return 0; }
 
-    std::vector<mpParticle> particles(num);
+    mpParticleVector particles(num);
     XMMATRIX mat = XMMATRIX((float*)&transform);
     for (size_t i = 0; i < particles.size(); ++i) {
         XMVECTOR pos = { mpGenRand()*0.5f, mpGenRand()*0.5f, mpGenRand()*0.5f, 1.0f };
@@ -245,15 +247,6 @@ extern "C" EXPORT_API uint32_t mpAddSphereCollider(int32_t owner, XMFLOAT3 cente
     ispc::SphereCollider col;
     mpBuildSphereCollider(col, owner, center, radius);
     g_mpWorld.collision_spheres.push_back(col);
-    return 0;
-}
-
-extern "C" EXPORT_API uint32_t mpAddDirectionalForce(XMFLOAT3 direction, float strength)
-{
-    ispc::DirectionalForce force;
-    set_nxyz(force, direction.x, direction.y, direction.z);
-    force.strength = strength;
-    g_mpWorld.force_directional.push_back(force);
     return 0;
 }
 
