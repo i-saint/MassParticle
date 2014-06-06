@@ -93,7 +93,7 @@ extern "C" EXPORT_API int32_t mpScatterParticlesBox(XMFLOAT3 center, XMFLOAT3 si
 {
     if (num <= 0) { return 0; }
 
-    std::vector<mpParticle> particles(num);
+    std::vector<mpParticle, SIMDAllocator<mpParticle> > particles(num);
     for (size_t i = 0; i < particles.size(); ++i) {
         XMVECTOR pos = { center.x + mpGenRand()*size.x, center.y + mpGenRand()*size.y, center.z + mpGenRand()*size.z, 1.0f };
         XMVECTOR vel = ComputeVelosity(vel_base, vel_diffuse);
@@ -110,7 +110,7 @@ extern "C" EXPORT_API int32_t mpScatterParticlesSphereTransform(XMFLOAT4X4 trans
 {
     if (num <= 0) { return 0; }
 
-    std::vector<mpParticle> particles(num);
+    std::vector<mpParticle, SIMDAllocator<mpParticle> > particles(num);
     XMMATRIX mat = XMMATRIX((float*)&transform);
     for (size_t i = 0; i < particles.size(); ++i) {
         XMVECTOR dir = { mpGenRand(), mpGenRand(), mpGenRand(), 0.0f };

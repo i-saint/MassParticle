@@ -8,6 +8,11 @@
 #include <xnamath.h>
 #include <mutex>
 
+#ifdef max
+#undef max
+#undef min
+#endif // max
+
 typedef short           int16;
 typedef unsigned short  uint16;
 typedef int             int32;
@@ -194,6 +199,43 @@ public:
         return getElapsedSecond()*1000.0f;
     }
 };
+
+template<typename T>
+class SIMDAllocator {
+public:
+    typedef T value_type;
+    typedef value_type* pointer;
+    typedef const value_type* const_pointer;
+    typedef value_type& reference;
+    typedef const value_type& const_reference;
+    typedef std::size_t size_type;
+    typedef std::ptrdiff_t difference_type;
+
+    template<typename U> struct rebind { typedef SIMDAllocator<U> other; };
+
+public:
+    SIMDAllocator() {}
+    SIMDAllocator(const SIMDAllocator&) {}
+    template<typename U> SIMDAllocator(const SIMDAllocator<U>&) {}
+    ~SIMDAllocator() {}
+
+    pointer address(reference r) { return &r; }
+    const_pointer address(const_reference r) { return &r; }
+
+    pointer allocate(size_type cnt, const void *p = nullptr) { p; return (pointer)_aligned_malloc(cnt * sizeof(T), 16); }
+    void deallocate(pointer p, size_type) { _aligned_free(p); }
+
+    size_type max_size() const { return std::numeric_limits<size_type>::max() / sizeof(T); }
+
+    void construct(pointer p, const T& t) { new(p)T(t); }
+    void destroy(pointer p) { p; p->~T(); }
+
+    bool operator==(SIMDAllocator const&) { return true; }
+    bool operator!=(SIMDAllocator const& a) { return !operator==(a); }
+};
+template<class T, typename Alloc> inline bool operator==(const SIMDAllocator<T>& l, const SIMDAllocator<T>& r) { return (l.equals(r)); }
+template<class T, typename Alloc> inline bool operator!=(const SIMDAllocator<T>& l, const SIMDAllocator<T>& r) { return (!(l == r)); }
+
 
 class mpRenderer
 {
