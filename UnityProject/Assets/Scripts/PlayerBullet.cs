@@ -4,6 +4,7 @@ using System.Collections;
 public class PlayerBullet : MonoBehaviour {
 
 	public float speed = 10.0f;
+	public float power = 30.0f;
 
 	// Use this for initialization
 	void Start () {
@@ -12,20 +13,10 @@ public class PlayerBullet : MonoBehaviour {
 	
 	// Update is called once per frame
 	void Update () {
-		if(Mathf.Abs (transform.position.x)>10.0f ||
-		   Mathf.Abs (transform.position.z)>10.0f )
+		if(Mathf.Abs (transform.position.x)>20.0f ||
+		   Mathf.Abs (transform.position.z)>20.0f )
 		{
 			Destroy (gameObject);
 		}
-	}
-	
-	
-	void OnCollisionEnter(Collision col)
-	{
-		excDestroyable destroyable = col.collider.GetComponent<excDestroyable>();
-		if(destroyable) {
-			destroyable.Damage(30.0f);
-		}
-		Destroy (gameObject);
 	}
 }

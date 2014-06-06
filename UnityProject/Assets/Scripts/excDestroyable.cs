@@ -12,7 +12,7 @@ public class excDestroyable : MonoBehaviour {
 	
 	// Update is called once per frame
 	void Update () {
-		if(life<=0.0f) {
+		if(IsDead()) {
 			float volume = transform.localScale.x*transform.localScale.y*transform.localScale.z;
 			int numFraction = (int)(volume * 500.0f);
 			mp.mpScatterParticlesBoxTransform(transform.localToWorldMatrix, numFraction, Vector3.zero, 3.0f);

@@ -518,8 +518,9 @@ export void sphIntegrate(
         pos += vel * mpTimestep;
         pos *= mpCoordScale;
 
-        set_vel(particles[i], vel);
         set_pos(particles[i], pos);
+        set_vel(particles[i], vel);
+        particles[i].speed = length3(vel);
     }
 }
 
@@ -617,5 +618,6 @@ export void impIntegrate(
 
         set_pos(particles[i], pos);
         set_vel(particles[i], vel);
+        particles[i].speed = length3(vel);
     }
 }

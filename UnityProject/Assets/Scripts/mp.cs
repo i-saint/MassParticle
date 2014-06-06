@@ -41,13 +41,23 @@ public class mp {
 		NoInteraction = 3,
 	}
 
-	
+
+	public enum mpForceShape {
+		All,
+		Sphere,
+		Box
+	}
+
+	public enum mpForceDirection {
+		Directional,
+		Radial,
+	}
+
 	[StructLayout(LayoutKind.Explicit)]
 	public struct mpForceParams
 	{
-		[FieldOffset( 0)] public float x;
-		[FieldOffset( 4)] public float y;
-		[FieldOffset( 8)] public float z;
+		[FieldOffset( 0)] public Vector3 pos;
+		[FieldOffset( 0)] public Vector3 dir;
 		[FieldOffset(12)] public float strength;
 		[FieldOffset(16)] public float strengthRandomDiffuse;
 	}
@@ -62,7 +72,9 @@ public class mp {
 
 	[DllImport ("MassParticle")] public static extern uint mpGetNumParticles();
 	[DllImport ("MassParticle")] unsafe public static extern mpParticle* mpGetParticles();
-	
+	[DllImport ("MassParticle")] unsafe public static extern void mpCopyParticles (mpParticle *dst);
+	[DllImport ("MassParticle")] unsafe public static extern void mpWriteParticles(mpParticle *from);
+
 	[DllImport ("MassParticle")] public static extern uint mpAddBoxCollider(int owner, Matrix4x4 transform, Vector3 size);
 	[DllImport ("MassParticle")] public static extern uint mpAddSphereCollider(int owner, Vector3 center, float radius);
 	

@@ -7,18 +7,8 @@ using System.Runtime.InteropServices;
 
 public class mpForce : MonoBehaviour {
 
-	public enum Region {
-		All,
-		Sphere,
-		Box
-	}
-	public enum Direction {
-		Directional,
-		Radial,
-	}
-
-	public Region regionType;
-	public Direction directionType; 
+	public mp.mpForceShape regionType;
+	public mp.mpForceDirection directionType; 
 
 	public float strength = 10.0f;
 	public Vector3 direction = new Vector3(0.0f,-1.0f,0.0f);
@@ -33,16 +23,12 @@ public class mpForce : MonoBehaviour {
 		forceParams.strength = strength;
 		
 		switch(directionType) {
-		case Direction.Directional:
-			forceParams.x = direction.x;
-			forceParams.y = direction.y;
-			forceParams.z = direction.z;
+		case mp.mpForceDirection.Directional:
+			forceParams.pos = direction;
 			break;
 			
-		case Direction.Radial:
-			forceParams.x = transform.position.x;
-			forceParams.y = transform.position.y;
-			forceParams.z = transform.position.z;
+		case mp.mpForceDirection.Radial:
+			forceParams.pos = transform.position;
 			break;
 		}
 		mp.mpAddForce ((int)regionType, transform.localToWorldMatrix, (int)directionType, forceParams);
@@ -70,11 +56,11 @@ public class mpForce : MonoBehaviour {
 			Gizmos.color = Color.yellow;
 			Gizmos.matrix = transform.localToWorldMatrix;
 			switch(regionType) {
-			case Region.Sphere:
+			case mp.mpForceShape.Sphere:
 				Gizmos.DrawWireSphere(Vector3.zero, 0.5f);
 				break;
 				
-			case Region.Box:
+			case mp.mpForceShape.Box:
 				Gizmos.color = Color.yellow;
 				Gizmos.DrawWireCube(Vector3.zero, Vector3.one);
 				break;

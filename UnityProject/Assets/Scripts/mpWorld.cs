@@ -15,6 +15,7 @@ public class mpWorld : MonoBehaviour {
 	public float pressureStiffness;
 	public float wallStiffness;
 	public Vector3 coordScale;
+	public float damageThreshold = 3.0f;
 
 	private Collider[] colliders;
 
@@ -98,13 +99,15 @@ public class mpWorld : MonoBehaviour {
 				Collider col = colliders[particles[i].hit];
 				if(col.rigidbody && !col.isTrigger) {
 					Vector3 vel = *(Vector3*)&particles[i].velocity;
-					col.rigidbody.AddForceAtPosition( vel * 0.1f, *(Vector3*)&particles[i].position );
+					col.rigidbody.AddForceAtPosition( vel * 0.02f, *(Vector3*)&particles[i].position );
 
-					excDestroyable dest = col.GetComponent<excDestroyable>();
-					if(dest) {
-						dest.Damage(Math.Abs(vel.z*0.01f));
+					if(particles[i].velocity.w > damageThreshold) {
+						particles[i].lifetime = 0.0f;
+						excDestroyable dest = col.GetComponent<excDestroyable>();
+						if(dest) {
+							dest.Damage(Math.Abs(vel.z*0.01f));
+						}
 					}
-					//particles[i].lifetime = 0.0f;
 				}
 			}
 		}

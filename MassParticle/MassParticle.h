@@ -35,8 +35,9 @@ extern "C" EXPORT_API void          mpSetKernelParams(ispc::KernelParams *params
 
 extern "C" EXPORT_API uint32_t      mpGetNumParticles();
 extern "C" EXPORT_API mpParticle*   mpGetParticles();
+extern "C" EXPORT_API void          mpCopyParticles(mpParticle *dst);
+extern "C" EXPORT_API void          mpWriteParticles(const mpParticle *from);
 extern "C" EXPORT_API int32_t       mpPutParticles(mpParticle *particles, int32_t num_particles);
-extern "C" EXPORT_API void          mpUpdateParticle(uint32_t index, mpParticleRaw particle);
 extern "C" EXPORT_API int32_t       mpScatterParticlesSphere(XMFLOAT3 center, float radius, int32_t num, XMFLOAT3 vel, float vel_diffuse);
 extern "C" EXPORT_API int32_t       mpScatterParticlesBox(XMFLOAT3 center, XMFLOAT3 size, int32_t num, XMFLOAT3 vel, float vel_diffuse);
 extern "C" EXPORT_API int32_t       mpScatterParticlesSphereTransform(XMFLOAT4X4 transform, int32_t num, XMFLOAT3 vel, float vel_diffuse);

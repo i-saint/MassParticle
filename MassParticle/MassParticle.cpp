@@ -64,6 +64,16 @@ extern "C" EXPORT_API mpParticle* mpGetParticles()
     return g_mpWorld.particles;
 }
 
+extern "C" EXPORT_API void mpCopyParticles(mpParticle *dst)
+{
+    memcpy(dst, g_mpWorld.particles, sizeof(mpParticle)*mpGetNumParticles());
+}
+
+extern "C" EXPORT_API void mpWriteParticles(const mpParticle *from)
+{
+    memcpy(g_mpWorld.particles, from, sizeof(mpParticle)*mpGetNumParticles());
+}
+
 
 inline XMVECTOR ComputeVelosity(XMFLOAT3 base, float vel_diffuse)
 {

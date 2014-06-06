@@ -82,12 +82,12 @@ void mpAoSnize( int32 num, const ispc::Particle_SOA8 *particles, mpParticle *out
                 _mm_load_ps(particles[bi].vx + 0),
                 _mm_load_ps(particles[bi].vy + 0),
                 _mm_load_ps(particles[bi].vz + 0),
-                _mm_set1_ps(0.0f) ),
+                _mm_load_ps(particles[bi].speed + 0)),
             ist::soa_transpose44(
                 _mm_load_ps(particles[bi].vx + 4),
                 _mm_load_ps(particles[bi].vy + 4),
                 _mm_load_ps(particles[bi].vz + 4),
-                _mm_set1_ps(0.0f) ),
+                _mm_load_ps(particles[bi].speed + 4)),
         };
 
         int32 e = std::min<int32>(SIMD_LANES, num-i);
@@ -156,12 +156,6 @@ void mpWorld::addParticles(mpParticle *p, uint32_t num)
 
 void mpWorld::update(float32 dt)
 {
-    {
-        ispc::KernelParams params;
-        ispc::sphGetConstants(params);
-        printf("%f\n", params.LifeTime);
-    }
-
     {
         XMFLOAT3 &wpos = (XMFLOAT3&)g_mpWorld.m_params.WorldCenter_x;
         XMFLOAT3 &wsize = (XMFLOAT3&)g_mpWorld.m_params.WorldSize_x;

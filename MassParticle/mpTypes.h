@@ -93,10 +93,6 @@ struct mpParticle
         simdvec4 paramsv;
     };
 };
-struct mpParticleRaw
-{
-    char data[sizeof(mpParticle)];
-};
 
 
 class mpCamera
