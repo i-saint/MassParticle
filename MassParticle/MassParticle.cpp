@@ -2,7 +2,6 @@
 
 
 #include "UnityPluginInterface.h"
-
 #include <math.h>
 #include <stdio.h>
 #include <tbb/tbb.h>
@@ -10,131 +9,6 @@
 #include "MassParticle.h"
 
 extern mpWorld g_mpWorld;
-
-
-// --------------------------------------------------------------------------
-// Include headers for the graphics APIs we support
-
-#if SUPPORT_D3D9
-    #include <d3d9.h>
-#endif
-#if SUPPORT_D3D11
-    #include <d3d11.h>
-#endif
-#if SUPPORT_OPENGL
-    #if UNITY_WIN
-        #include <gl/GL.h>
-    #else
-        #include <OpenGL/OpenGL.h>
-    #endif
-#endif
-
-
-
-// --------------------------------------------------------------------------
-// Helper utilities
-
-
-// Prints a string
-static void DebugLog (const char* str)
-{
-    #if UNITY_WIN
-    OutputDebugStringA (str);
-    #else
-    printf ("%s", str);
-    #endif
-}
-
-// COM-like Release macro
-#ifndef SAFE_RELEASE
-#define SAFE_RELEASE(a) if (a) { a->Release(); a = NULL; }
-#endif
-
-
-
-// --------------------------------------------------------------------------
-// SetTimeFromUnity, an example function we export which is called by one of the scripts.
-
-static float g_Time;
-
-extern "C" void EXPORT_API SetTimeFromUnity (float t) { g_Time = t; }
-
-
-
-// --------------------------------------------------------------------------
-// SetTextureFromUnity, an example function we export which is called by one of the scripts.
-
-static void* g_TexturePointer;
-
-extern "C" void EXPORT_API SetTextureFromUnity (void* texturePtr)
-{
-    // A script calls this at initialization time; just remember the texture pointer here.
-    // Will update texture pixels each frame from the plugin rendering event (texture update
-    // needs to happen on the rendering thread).
-    g_TexturePointer = texturePtr;
-}
-
-
-
-// --------------------------------------------------------------------------
-// UnitySetGraphicsDevice
-
-static int g_DeviceType = -1;
-
-
-// Actual setup/teardown functions defined below
-#if SUPPORT_D3D9
-static void SetGraphicsDeviceD3D9 (IDirect3DDevice9* device, GfxDeviceEventType eventType);
-#endif
-#if SUPPORT_D3D11
-static void SetGraphicsDeviceD3D11 (ID3D11Device* device, GfxDeviceEventType eventType);
-#endif
-
-extern "C" void EXPORT_API UnitySetGraphicsDevice (void* device, int deviceType, int eventType)
-{
-    g_DeviceType = -1;
-    
-    #if SUPPORT_D3D9
-    if (deviceType == kGfxRendererD3D9)
-    {
-        g_DeviceType = deviceType;
-    }
-#endif
-
-    #if SUPPORT_D3D11
-    if (deviceType == kGfxRendererD3D11)
-    {
-        if (eventType == kGfxDeviceEventInitialize) {
-            g_DeviceType = deviceType;
-            g_mpWorld.m_renderer = mpCreateRendererD3D11(device, g_mpWorld);
-        }
-        else if (eventType == kGfxDeviceEventShutdown) {
-            delete g_mpWorld.m_renderer;
-            g_mpWorld.m_renderer = nullptr;
-        }
-        else if (eventType == kGfxDeviceEventBeforeReset) {
-            mpClearParticles();
-        }
-    }
-    #endif
-
-    #if SUPPORT_OPENGL
-    if (deviceType == kGfxRendererOpenGL)
-    {
-        g_DeviceType = deviceType;
-    }
-    #endif
-}
-
-
-
-extern "C" void EXPORT_API UnityRenderEvent (int eventID)
-{
-    if (g_mpWorld.m_renderer) {
-        g_mpWorld.m_renderer->render();
-    }
-}
-
 
 
 bool mpInitialize(ID3D11Device *dev)
@@ -274,12 +148,7 @@ extern "C" EXPORT_API int32_t mpScatterParticlesBoxTransform(XMFLOAT4X4 transfor
 
 
 
-inline float sign(float v)
-{
-    return v < 0.0f ? -1.0f : 1.0f;
-}
-
-extern "C" EXPORT_API uint32_t mpAddBoxCollider(int32_t owner, XMFLOAT4X4 transform, XMFLOAT3 size)
+inline void mpBuildBoxCollider(ispc::BoxCollider &o, uint32_t owner, XMFLOAT4X4 transform, XMFLOAT3 size)
 {
     size.x = size.x * 0.5f;
     size.y = size.y * 0.5f;
@@ -317,25 +186,22 @@ extern "C" EXPORT_API uint32_t mpAddBoxCollider(int32_t owner, XMFLOAT4X4 transf
         -(XMVector3Dot(vertices[4], normals[5]).m128_f32[0] + mpParticleSize),
     };
 
-    ispc::BoxCollider o = {
-        uint32_t(owner),
-        { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f },
-        transform.m[3][0], transform.m[3][1], transform.m[3][2],
-        {
-            { normals[0].m128_f32[0], normals[0].m128_f32[1], normals[0].m128_f32[2], distances[0] },
-            { normals[1].m128_f32[0], normals[1].m128_f32[1], normals[1].m128_f32[2], distances[1] },
-            { normals[2].m128_f32[0], normals[2].m128_f32[1], normals[2].m128_f32[2], distances[2] },
-            { normals[3].m128_f32[0], normals[3].m128_f32[1], normals[3].m128_f32[2], distances[3] },
-            { normals[4].m128_f32[0], normals[4].m128_f32[1], normals[4].m128_f32[2], distances[4] },
-            { normals[5].m128_f32[0], normals[5].m128_f32[1], normals[5].m128_f32[2], distances[5] },
-        }
-    };
 
-    for (int32 i = 0; i < _countof(vertices); ++i) {
+    o.id = owner;
+    o.x = transform.m[3][0];
+    o.y = transform.m[3][1];
+    o.z = transform.m[3][2];
+    for (int i = 0; i < 6; ++i) {
+        o.planes[i].nx = normals[i].m128_f32[0];
+        o.planes[i].ny = normals[i].m128_f32[1];
+        o.planes[i].nz = normals[i].m128_f32[2];
+        o.planes[i].distance = distances[i];
+    }
+    for (int i = 0; i < _countof(vertices); ++i) {
         float x = o.x + vertices[i].m128_f32[0];
         float y = o.y + vertices[i].m128_f32[1];
         float z = o.z + vertices[i].m128_f32[2];
-        if (i==0) {
+        if (i == 0) {
             o.bb.bl_x = o.bb.ur_x = x;
             o.bb.bl_y = o.bb.ur_y = y;
             o.bb.bl_z = o.bb.ur_z = z;
@@ -347,21 +213,38 @@ extern "C" EXPORT_API uint32_t mpAddBoxCollider(int32_t owner, XMFLOAT4X4 transf
         o.bb.ur_y = std::max<float>(o.bb.ur_y, y+mpParticleSize);
         o.bb.ur_z = std::max<float>(o.bb.ur_z, z+mpParticleSize);
     }
+}
 
-    g_mpWorld.collision_boxes.push_back(o);
+inline void mpBuildSphereCollider(ispc::SphereCollider &o, uint32_t owner, XMFLOAT3 center, float radius)
+{
+    float er = radius + mpParticleSize;
+    o.id = owner;
+    o.x = center.x;
+    o.y = center.y;
+    o.z = center.z;
+    o.radius = radius;
+    o.bb.bl_x = center.x - er;
+    o.bb.bl_y = center.y - er;
+    o.bb.bl_z = center.z - er;
+    o.bb.ur_x = center.x + er;
+    o.bb.ur_y = center.y + er;
+    o.bb.ur_z = center.z + er;
+}
+
+
+extern "C" EXPORT_API uint32_t mpAddBoxCollider(int32_t owner, XMFLOAT4X4 transform, XMFLOAT3 size)
+{
+    ispc::BoxCollider col;
+    mpBuildBoxCollider(col, owner, transform, size);
+    g_mpWorld.collision_boxes.push_back(col);
     return 0;
 }
 
 extern "C" EXPORT_API uint32_t mpAddSphereCollider(int32_t owner, XMFLOAT3 center, float radius)
 {
-    float er = radius + mpParticleSize;
-    ispc::SphereCollider sphere = {
-        owner,
-        { center.x-er, center.y-er, center.z-er,
-          center.x+er, center.y+er, center.z+er },
-        center.x, center.y, center.z, radius + mpParticleSize
-    };
-    g_mpWorld.collision_spheres.push_back(sphere);
+    ispc::SphereCollider col;
+    mpBuildSphereCollider(col, owner, center, radius);
+    g_mpWorld.collision_spheres.push_back(col);
     return 0;
 }
 
@@ -373,6 +256,47 @@ extern "C" EXPORT_API uint32_t mpAddDirectionalForce(XMFLOAT3 direction, float s
     g_mpWorld.force_directional.push_back(force);
     return 0;
 }
+
+extern "C" EXPORT_API uint32_t mpAddForce(int force_shape, XMFLOAT4X4 trans, int force_direction, ispc::ForceParams p)
+{
+    ispc::Force force;
+    force.shape_type = force_shape;
+    force.dir_type = force_direction;
+    force.params = p;
+
+    switch (force.shape_type) {
+    case mpFS_Box:
+    {
+        ispc::BoxCollider col;
+        mpBuildBoxCollider(col, 0, trans, XMFLOAT3(1.0f, 1.0f, 1.0f));
+        force.bb = col.bb;
+        force.shape_box.x = col.x;
+        force.shape_box.y = col.y;
+        force.shape_box.z = col.z;
+        for (int i = 0; i < 6; ++i) {
+            force.shape_box.planes[i] = col.planes[i];
+        }
+    }
+        break;
+
+    case mpFS_Sphere:
+    {
+        ispc::SphereCollider col;
+        XMFLOAT3 pos = XMFLOAT3(trans.m[3][0], trans.m[3][1], trans.m[3][2]);
+        float radius = (trans.m[0][0] + trans.m[1][1] + trans.m[2][2]) * 0.3333333333f * 0.5f;
+        mpBuildSphereCollider(col, 0, pos, radius);
+        force.bb = col.bb;
+        force.shape_sphere.x = col.x;
+        force.shape_sphere.y = col.y;
+        force.shape_sphere.z = col.z;
+        force.shape_sphere.radius = col.radius;
+    }
+        break;
+    }
+    g_mpWorld.forces.push_back(force);
+    return g_mpWorld.forces.size() - 1;
+}
+
 
 
 extern "C" EXPORT_API void mpUpdate(float dt)

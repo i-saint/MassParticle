@@ -15,6 +15,10 @@ public class Player : MonoBehaviour {
 		if(Input.GetButtonDown("Fire1")) {
 			Fire();
 		}
+		Vector3 move = Vector3.zero;
+		move.x = Input.GetAxis ("Horizontal");
+		move.z = Input.GetAxis ("Vertical");
+		transform.position += move * 0.1f;
 	}
 
 	void Fire()

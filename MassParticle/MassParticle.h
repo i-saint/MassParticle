@@ -5,7 +5,25 @@
 #include "UnityPluginInterface.h"
 #include "mpCore_ispc.h"
 
+
 //external
+
+enum mpForceShape
+{
+    mpFS_AffectAll,
+    mpFS_Sphere,
+    mpFS_Box,
+};
+
+enum mpForceDirection
+{
+    mpFD_Directional,
+    mpFD_Radial,
+    mpFD_Vortex,      // todo:
+    mpFD_Spline,      // 
+    mpFD_VectorField, //
+};
+
 extern "C" EXPORT_API void          mpReloadShader();
 
 extern "C" EXPORT_API void          mpClearParticles();
@@ -26,7 +44,9 @@ extern "C" EXPORT_API int32_t       mpScatterParticlesBoxTransform(XMFLOAT4X4 tr
 
 extern "C" EXPORT_API uint32_t      mpAddBoxCollider(int32_t owner, XMFLOAT4X4 transform, XMFLOAT3 size);
 extern "C" EXPORT_API uint32_t      mpAddSphereCollider(int32_t owner, XMFLOAT3 center, float radius);
+
 extern "C" EXPORT_API uint32_t      mpAddDirectionalForce(XMFLOAT3 direction, float strength);
+extern "C" EXPORT_API uint32_t      mpAddForce(int force_shape, XMFLOAT4X4 trans, int force_direction, ispc::ForceParams p);
 
 
 

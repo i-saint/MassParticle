@@ -5,9 +5,6 @@ using System.Runtime.InteropServices;
 
 [CustomEditor(typeof(mpWorld))]
 public class mpWorldEditor : Editor {
-	
-	[DllImport ("MassParticle")] private static extern void mpReloadShader ();
-
 
 	public override void OnInspectorGUI()
 	{
@@ -15,7 +12,7 @@ public class mpWorldEditor : Editor {
 
 		if(GUILayout.Button("Reload Shader"))
 		{
-			mpReloadShader();
+			mp.mpReloadShader();
 		}
 	}
 }

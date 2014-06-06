@@ -27,6 +27,7 @@ struct Sphere
 struct Box
 {
     Plane planes[6];
+    float x, y, z;
 };
 
 struct SphereCollider
@@ -94,47 +95,29 @@ enum ForceDirection
 {
     FD_Directional,
     FD_Radial,
-    FD_Vortex,
-    FD_VectorField, // todo:
+    FD_Vortex,      // todo:
+    FD_Spline,      // 
+    FD_VectorField, //
 };
 
-struct ForceRadial
+struct ForceParams
 {
-    float x, y, z;
+    float x, y, z; // direction for plane, position for other shapes
     float strength;
     float strength_random_diffuse;
-    float attenuation;
-    float attenuation_factor;
-};
-
-struct ForceDirectional
-{
-    float nx, ny, nz;
-    float strength;
-    float strength_random_diffuse;
-    float attenuation;
-    float attenuation_factor;
-};
-
-struct ForceVortex
-{
-    float x, y, z;
-    float strength;
-    float strength_random_diffuse;
-    float attenuation;
-    float attenuation_factor;
 };
 
 struct Force
 {
-    ForceShape shape_type;
-    ForceDirection dir_type;
+    int shape_type; // ForceShape
+    int dir_type; // ForceDirection
 
+    BoundingBox bb;
     // union doesn't exists in ISPC :(
     Sphere              shape_sphere;
     Box                 shape_box;
-    ForceRadial         dir_radial;
-    ForceDirectional    dir_directional;
+
+    ForceParams params;
 };
 
 
@@ -146,9 +129,11 @@ struct Particle
     int   hit;
 };
 
-struct Force
+struct ParticleIMData
 {
     float ax, ay, az;
+    float affection;
+    float distance_sq;
 };
 
 struct GridData

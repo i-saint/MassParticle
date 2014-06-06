@@ -103,6 +103,7 @@
     <ClCompile Include="..\mpTypes.cpp" />
     <ClCompile Include="..\MassParticle.cpp" />
     <ClCompile Include="..\tasksys.cpp" />
+    <ClCompile Include="..\UnityPluginInterface.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\ispc_vectormath.h" />

@@ -12,6 +12,20 @@ public class PlayerBullet : MonoBehaviour {
 	
 	// Update is called once per frame
 	void Update () {
+		if(Mathf.Abs (transform.position.x)>10.0f ||
+		   Mathf.Abs (transform.position.z)>10.0f )
+		{
+			Destroy (gameObject);
+		}
+	}
 	
+	
+	void OnCollisionEnter(Collision col)
+	{
+		excDestroyable destroyable = col.collider.GetComponent<excDestroyable>();
+		if(destroyable) {
+			destroyable.Damage(30.0f);
+		}
+		Destroy (gameObject);
 	}
 }

@@ -5,11 +5,7 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
 public class mpEmitter : MonoBehaviour {
-	
-	[DllImport ("MassParticle")] public static extern uint mpScatterParticlesSphere(Vector3 center, float radius, int num, Vector3 velBase, float velDiffuse);
-	[DllImport ("MassParticle")] public static extern uint mpScatterParticlesBox(Vector3 center, Vector3 size, int num, Vector3 velBase, float velDiffuse);
-	[DllImport ("MassParticle")] public static extern uint mpScatterParticlesSphereTransform(Matrix4x4 trans, int num, Vector3 velBase, float velDiffuse);
-	[DllImport ("MassParticle")] public static extern uint mpScatterParticlesBoxTransform(Matrix4x4 trans, int num, Vector3 velBase, float velDiffuse);
+
 
 	public enum Shape {
 		Sphere,
@@ -29,11 +25,11 @@ public class mpEmitter : MonoBehaviour {
 	{
 		switch (shape) {
 		case Shape.Sphere:
-			mpScatterParticlesSphereTransform (transform.localToWorldMatrix, emitCount, velosityBase, velosityDiffuse);
+			mp.mpScatterParticlesSphereTransform (transform.localToWorldMatrix, emitCount, velosityBase, velosityDiffuse);
 			break;
 
 		case Shape.Box:
-			mpScatterParticlesBoxTransform (transform.localToWorldMatrix, emitCount, velosityBase, velosityDiffuse);
+			mp.mpScatterParticlesBoxTransform (transform.localToWorldMatrix, emitCount, velosityBase, velosityDiffuse);
 			break;
 		}
 	}

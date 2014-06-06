@@ -95,6 +95,7 @@ void mpAoSnize( int32 num, const ispc::Particle_SOA8 *particles, mpParticle *out
             out[i+ei].position = aos_pos[ei/4][ei%4];
             out[i+ei].velocity = aos_vel[ei/4][ei%4];
             out[i+ei].params.density = particles[bi].density[ei];
+            out[i+ei].params.hit_prev = out[i + ei].params.hit;
             out[i+ei].params.hit = particles[bi].hit[ei];
         }
     }
@@ -144,6 +145,7 @@ void mpWorld::clearCollidersAndForces()
     force_point.clear();
     force_directional.clear();
     force_box.clear();
+    forces.clear();
 }
 
 void mpWorld::addParticles(mpParticle *p, uint32_t num)
@@ -178,7 +180,8 @@ void mpWorld::update(float32 dt)
     sphGridData *ce = &cell[0][0];          // 
     ispc::PointForce       *point_f = force_point.empty() ? nullptr : &force_point[0];
     ispc::DirectionalForce *dir_f   = force_directional.empty() ? nullptr : &force_directional[0];
-    ispc::BoxForce         *box_f   = force_box.empty() ? nullptr : &force_box[0];
+    ispc::BoxForce         *box_f = force_box.empty() ? nullptr : &force_box[0];
+    ispc::Force            *fs = forces.empty() ? nullptr : &forces[0];
 
     ispc::SphereCollider  *point_c = collision_spheres.empty() ? nullptr : &collision_spheres[0];
     ispc::PlaneCollider   *plane_c = collision_planes.empty() ? nullptr : &collision_planes[0];
@@ -294,6 +297,9 @@ void mpWorld::update(float32 dt)
                     point_f, (int32)force_point.size(),
                     dir_f, (int32)force_directional.size(),
                     box_f, (int32)force_box.size());
+                ispc::sphProcessExternalForce2(
+                    (ispc::Particle*)particles_soa, ce, xi, zi,
+                    fs, (int32)forces.size());
                 ispc::sphProcessCollision(
                     (ispc::Particle*)particles_soa, ce, xi, zi,
                     point_c, (int32)collision_spheres.size(),
@@ -361,6 +367,9 @@ void mpWorld::update(float32 dt)
                     &force_point[0], (int32)force_point.size(),
                     &force_directional[0], (int32)force_directional.size(),
                     &force_box[0], (int32)force_box.size());
+                ispc::sphProcessExternalForce2(
+                    (ispc::Particle*)particles_soa, ce, xi, zi,
+                   fs, (int32)forces.size());
                 ispc::sphProcessCollision(
                     (ispc::Particle*)particles_soa, ce, xi, zi,
                     &collision_spheres[0], (int32)collision_spheres.size(),

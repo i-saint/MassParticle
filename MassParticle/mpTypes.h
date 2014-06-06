@@ -77,7 +77,10 @@ struct mpParticle
     union {
         struct {
             float32 density;
-            uint32 hash;
+            union {
+                uint32 hash;
+                int32 hit_prev;
+            };
             int32 hit;
             float32 lifetime;
         } params;
@@ -221,6 +224,7 @@ public:
     std::vector<ispc::PointForce>       force_point;
     std::vector<ispc::DirectionalForce> force_directional;
     std::vector<ispc::BoxForce>         force_box;
+    std::vector<ispc::Force>            forces;
 
     std::mutex m_mutex;
     mpKernelParams m_params;

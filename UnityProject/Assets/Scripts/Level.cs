@@ -12,8 +12,8 @@ public class Level : MonoBehaviour {
 	
 	// Update is called once per frame
 	void Update () {
-		if (Time.frameCount % 60==0) {
-			Vector3 pos = new Vector3(Random.Range (-1.0f, 1.0f), 0.0f, Random.Range (-1.0f, 1.0f));
+		if (Time.frameCount % 150==0) {
+			Vector3 pos = new Vector3(Random.Range (-3.0f, 4.0f), 0.0f, Random.Range (-3.0f, 6.0f));
 			Instantiate(enemy, pos, Quaternion.identity);
 		}
 	}
