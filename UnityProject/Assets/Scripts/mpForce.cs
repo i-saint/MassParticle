@@ -31,7 +31,7 @@ public class mpForce : MonoBehaviour {
 			forceParams.pos = transform.position;
 			break;
 		}
-		mp.mpAddForce ((int)regionType, transform.localToWorldMatrix, (int)directionType, forceParams);
+		mp.mpAddForce (regionType, transform.localToWorldMatrix, directionType, forceParams);
 	}
 	
 	

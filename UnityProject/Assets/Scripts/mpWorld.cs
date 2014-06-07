@@ -97,15 +97,17 @@ public class mpWorld : MonoBehaviour {
 		for(uint i=0; i<numParticles; ++i) {
 			if(particles[i].hit != -1 && particles[i].hit!=particles[i].hit_prev) {
 				Collider col = colliders[particles[i].hit];
-				if(col.rigidbody && !col.isTrigger) {
+				if(col.isTrigger) { continue; }
+				Rigidbody rb = col.GetComponent<Rigidbody>();
+				if(rb) {
 					Vector3 vel = *(Vector3*)&particles[i].velocity;
-					col.rigidbody.AddForceAtPosition( vel * 0.02f, *(Vector3*)&particles[i].position );
+					rb.AddForceAtPosition( vel * 0.02f, *(Vector3*)&particles[i].position );
 
 					if(particles[i].velocity.w > damageThreshold) {
 						particles[i].lifetime = 0.0f;
-						excDestroyable dest = col.GetComponent<excDestroyable>();
-						if(dest) {
-							dest.Damage(Math.Abs(vel.z*0.01f));
+						excDestroyable stat = col.GetComponent<excDestroyable>();
+						if(stat) {
+							stat.Damage(Math.Abs(vel.z*0.02f));
 						}
 					}
 				}

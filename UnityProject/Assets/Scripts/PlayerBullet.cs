@@ -3,12 +3,11 @@ using System.Collections;
 
 public class PlayerBullet : MonoBehaviour {
 
-	public float speed = 10.0f;
+	public float speed = 1.0f;
 	public float power = 30.0f;
 
 	// Use this for initialization
 	void Start () {
-		rigidbody.velocity = transform.forward.normalized * speed;
 	}
 	
 	// Update is called once per frame
@@ -18,5 +17,6 @@ public class PlayerBullet : MonoBehaviour {
 		{
 			Destroy (gameObject);
 		}
+		transform.position += transform.forward.normalized * speed;
 	}
 }

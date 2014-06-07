@@ -37,10 +37,10 @@ struct PS_OUT
 PS_INPUT VS( VS_INPUT input )
 {
     float scaleByLifetime = min(input.InstanceParams.w*0.05, 1.0);
-    float ei = max(input.InstanceVel.w-1.0, 0.0) * 0.75;
+    float ei = max(input.InstanceVel.w-2.5, 0.0) * 1.0;
 
     PS_INPUT output = (PS_INPUT)0;
-    output.LsPos    = float4(input.Pos, 0.0f) * 0.05f * scaleByLifetime + input.InstancePos;
+    output.LsPos    = float4(input.Pos, 0.0f) * 0.08f * scaleByLifetime + input.InstancePos;
     output.Pos      = mul(float4(output.LsPos.xyz, 1.0), g_ViewProjection);
     output.Color    = float4(0.8f, 0.8f, 0.8f, 1.0f);
     output.Emission = float4(ei,ei,ei,ei) * float4(0.25, 0.05, 0.025, 0.0);

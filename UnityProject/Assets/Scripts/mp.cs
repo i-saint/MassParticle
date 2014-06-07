@@ -87,6 +87,18 @@ public class mp {
 	[DllImport ("MassParticle")] public static extern uint mpScatterParticlesBoxTransform(Matrix4x4 trans, int num, Vector3 velBase, float velDiffuse);
 	
 	[DllImport ("MassParticle")] public static extern uint mpAddDirectionalForce (Vector3 direction, float strength);
-	[DllImport ("MassParticle")] public static extern uint mpAddForce (int regionType, Matrix4x4 regionMat, int dirType, mpForceParams p);
+	[DllImport ("MassParticle")] public static extern uint mpAddForce (mpForceShape regionType, Matrix4x4 regionMat, mpForceDirection dirType, mpForceParams p);
+
+
+	// utilities
+
+	public static uint mpAddRadialSphereForce(Vector3 pos, float radius, float strength)
+	{
+		Matrix4x4 mat = Matrix4x4.TRS(pos, Quaternion.identity, Vector3.one * radius);
+		mpForceParams p = new mpForceParams();
+		p.strength = strength;
+		p.pos = pos;
+		return mpAddForce (mp.mpForceShape.Sphere, mat, mp.mpForceDirection.Radial, p);
+	}
 }
 
