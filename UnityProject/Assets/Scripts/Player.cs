@@ -28,11 +28,13 @@ public class Player : MonoBehaviour {
 			move.z = Input.GetAxis ("Vertical");
 			transform.position += move * 0.1f;
 		}
-		{
-			var aim = Input.mousePosition;
-			aim.z = Camera.main.transform.position.y;
-			aim = Camera.main.ScreenToWorldPoint(aim);
-			transform.rotation = Quaternion.LookRotation(aim-transform.position);
+		{			
+			Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+			Plane plane = new Plane(Vector3.up, Vector3.zero);
+			float distance = 0; 
+			if (plane.Raycast(ray, out distance)){
+				transform.rotation = Quaternion.LookRotation(ray.GetPoint(distance)-transform.position);
+			}
 		}
 
 		{
@@ -54,7 +56,7 @@ public class Player : MonoBehaviour {
 		float strength = 2000.0f;
 
 		forceParams.strength = strength;
-		forceParams.pos = pos - (transform.forward*3.0f);
+		forceParams.pos = pos - (transform.forward*6.0f);
 		mp.mpAddForce (mp.mpForceShape.Box, blowMatrix, mp.mpForceDirection.Radial, forceParams);
 	}
 	

@@ -58,6 +58,8 @@ public class mpWorld : MonoBehaviour {
 		for (int i = 0; i < colliders.Length; ++i )
 		{
 			Collider col = colliders[i];
+			if(col.isTrigger) { continue; }
+
 			SphereCollider sphere = col as SphereCollider;
 			BoxCollider box = col as BoxCollider;
 			int ownerid = col.rigidbody ? i : -1;
@@ -97,18 +99,17 @@ public class mpWorld : MonoBehaviour {
 		for(uint i=0; i<numParticles; ++i) {
 			if(particles[i].hit != -1 && particles[i].hit!=particles[i].hit_prev) {
 				Collider col = colliders[particles[i].hit];
-				if(col.isTrigger) { continue; }
+				Vector3 vel = *(Vector3*)&particles[i].velocity;
 				Rigidbody rb = col.GetComponent<Rigidbody>();
 				if(rb) {
-					Vector3 vel = *(Vector3*)&particles[i].velocity;
 					rb.AddForceAtPosition( vel * 0.02f, *(Vector3*)&particles[i].position );
-
-					if(particles[i].velocity.w > damageThreshold) {
-						particles[i].lifetime = 0.0f;
-						excDestroyable stat = col.GetComponent<excDestroyable>();
-						if(stat) {
-							stat.Damage(Math.Abs(vel.z*0.02f));
-						}
+				}
+				
+				if(particles[i].velocity.w > damageThreshold) {
+					particles[i].lifetime = 0.0f;
+					excDestroyable stat = col.GetComponent<excDestroyable>();
+					if(stat) {
+						stat.Damage(Math.Abs(vel.z*0.02f));
 					}
 				}
 			}

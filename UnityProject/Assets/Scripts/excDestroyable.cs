@@ -3,7 +3,9 @@ using System.Collections;
 
 public class excDestroyable : MonoBehaviour {
 
-	private Rigidbody rb;
+	private Rigidbody rigid;
+	private Transform trans;
+
 	public float life = 10.0f;
 	
 	public Vector3 accelDir = Vector3.zero;
@@ -11,40 +13,51 @@ public class excDestroyable : MonoBehaviour {
 	public float deccel = 0.99f;
 	public float maxSpeed = 5.0f;
 
+	public bool scatterFractions = true;
+
+
 	// Use this for initialization
 	void Start () {
-		rb = GetComponent<Rigidbody> ();
+		rigid = GetComponent<Rigidbody> ();
+		trans = GetComponent<Transform> ();
 	}
 	
 	// Update is called once per frame
 	void Update () {
 		if(IsDead()) {
-			float volume = transform.localScale.x*transform.localScale.y*transform.localScale.z;
-			int numFraction = (int)(volume * 500.0f);
-			mp.mpScatterParticlesBoxTransform(transform.localToWorldMatrix, numFraction, Vector3.zero, 3.0f);
+			if(scatterFractions) {
+				ScatterFractions();
+			}
 			Destroy (gameObject);
 		}
-		if(Mathf.Abs (transform.position.x)>25.0f ||
-		   Mathf.Abs (transform.position.z)>25.0f )
+		if(Mathf.Abs (trans.position.x)>30.0f ||
+		   Mathf.Abs (trans.position.z)>30.0f )
 		{
 			Destroy (gameObject);
 		}
 
 		
-		if(rb) {
-			Vector3 vel = rb.velocity;
+		if(rigid) {
+			Vector3 vel = rigid.velocity;
 			vel.x -= accel;
 			rigidbody.velocity = vel;
 			
-			Vector3 pos = rb.transform.position;
+			Vector3 pos = rigid.transform.position;
 			pos.y *= 0.98f;
-			rb.transform.position = pos;
+			rigid.transform.position = pos;
 			
-			float speed = rb.velocity.magnitude;
-			rb.velocity = rb.velocity.normalized * (Mathf.Min (speed, maxSpeed) * deccel);
+			float speed = rigid.velocity.magnitude;
+			rigid.velocity = rigid.velocity.normalized * (Mathf.Min (speed, maxSpeed) * deccel);
 			
-			rb.angularVelocity *= 0.98f;
+			rigid.angularVelocity *= 0.98f;
 		}
+	}
+
+	void ScatterFractions()
+	{
+		float volume = trans.localScale.x*trans.localScale.y*trans.localScale.z;
+		int numFraction = (int)(volume * 1000.0f);
+		mp.mpScatterParticlesBoxTransform(trans.localToWorldMatrix, numFraction, Vector3.zero, 3.0f);
 	}
 
 	public void Damage(float v)
@@ -55,5 +68,11 @@ public class excDestroyable : MonoBehaviour {
 	public bool IsDead()
 	{
 		return life<=0.0f;
+	}
+
+	void OnDestroy()
+	{
+		float radius = (trans.localScale.x + trans.localScale.y + trans.localScale.z) * 0.5f;
+		mp.mpAddRadialSphereForce (trans.position, radius, radius*100.0f);
 	}
 }

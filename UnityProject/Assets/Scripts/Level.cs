@@ -14,11 +14,11 @@ public class Level : MonoBehaviour {
 	// Update is called once per frame
 	void Update () {
 		if (Time.frameCount % 300==0) {
-			Vector3 pos = new Vector3(Random.Range (12.0f, 24.0f), 0.0f, Random.Range (-5.0f, 5.0f));
+			Vector3 pos = new Vector3(Random.Range (15.0f, 29.0f), 0.0f, Random.Range (-5.0f, 5.0f));
 			Instantiate(enemyLargeCube, pos, Quaternion.identity);
 		}
-		if (Time.frameCount % 50==0) {
-			Vector3 pos = new Vector3(Random.Range (15.0f, 24.0f), 0.0f, Random.Range (-6.0f, 6.0f));
+		if (Time.frameCount % 30==0) {
+			Vector3 pos = new Vector3(Random.Range (18.0f, 29.0f), 0.0f, Random.Range (-6.0f, 6.0f));
 			Instantiate(enemySmallCube, pos, Quaternion.identity);
 		}
 	}
