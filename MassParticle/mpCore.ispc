@@ -532,11 +532,11 @@ static inline void impComputeParticleInteraction(
     vec3 pos2,
     vec3 &accel )
 {
-    const uniform float SPH_RCP_PARTICLE_SIZE2 = 1.0f/(mpParticleSize*2.0f);
+    const uniform float mpRcpParticleSize2 = 1.0f/(mpParticleSize*2.0f);
     vec3 diff = pos2 - pos1;    
     float d = length3(diff); // float d = length3est(diff); // ‰½ŒÌ‚© est ‚Ì•û‚ª’x‚­‚È‚é
     if(d > 0.0f) { // d==0: Õ“ËŒ³•Õ“Ë‘Šè‚ª“¯ˆê
-        vec3 dir = diff * SPH_RCP_PARTICLE_SIZE2; // vec3 dir = diff / d;
+        vec3 dir = diff * mpRcpParticleSize2; // vec3 dir = diff / d;
         accel += dir * (min(0.0f, d-(mpParticleSize*2.0f)) * mpPressureStiffness);
     }
 }

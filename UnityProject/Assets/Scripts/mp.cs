@@ -62,9 +62,35 @@ public class mp {
 		[FieldOffset(16)] public float strengthRandomDiffuse;
 	}
 
-	
+#if MP_PURE_CSHARP
+
+	public static void mpSetViewProjectionMatrix(Matrix4x4 view, Matrix4x4 proj);
+	public static void mpClearParticles();
+	public static void mpReloadShader();
+	public static mpKernelParams mpGetKernelParams();
+	public static void mpSetKernelParams(ref mpKernelParams p);
+
+	public static uint mpGetNumParticles();
+	unsafe public static mpParticle* mpGetParticles();
+	unsafe public static void mpCopyParticles(mpParticle* dst) { }
+	unsafe public static void mpWriteParticles(mpParticle* from) { }
+
+	public static uint mpAddBoxCollider(int owner, Matrix4x4 transform, Vector3 size);
+	public static uint mpAddSphereCollider(int owner, Vector3 center, float radius);
+
+	public static void mpUpdate(float dt);
+
+	public static uint mpScatterParticlesSphere(Vector3 center, float radius, int num, Vector3 velBase, float velDiffuse) { return 0; }
+	public static uint mpScatterParticlesBox(Vector3 center, Vector3 size, int num, Vector3 velBase, float velDiffuse) { return 0; }
+	public static uint mpScatterParticlesSphereTransform(Matrix4x4 trans, int num, Vector3 velBase, float velDiffuse) { return 0; }
+	public static uint mpScatterParticlesBoxTransform(Matrix4x4 trans, int num, Vector3 velBase, float velDiffuse) { return 0; }
+
+	public static uint mpAddDirectionalForce(Vector3 direction, float strength);
+	public static uint mpAddForce(mpForceShape regionType, Matrix4x4 regionMat, mpForceDirection dirType, mpForceParams p);
+
+#else
+
 	[DllImport ("MassParticle")] public static extern void mpSetViewProjectionMatrix(Matrix4x4 view, Matrix4x4 proj);
-	[DllImport ("MassParticle")] public static extern void mpSetRenderTargets(IntPtr renderTexture, IntPtr depthTexture);
 	[DllImport ("MassParticle")] public static extern void mpClearParticles();
 	[DllImport ("MassParticle")] public static extern void mpReloadShader ();
 	[DllImport ("MassParticle")] public static extern mpKernelParams mpGetKernelParams();
@@ -88,6 +114,9 @@ public class mp {
 	
 	[DllImport ("MassParticle")] public static extern uint mpAddDirectionalForce (Vector3 direction, float strength);
 	[DllImport ("MassParticle")] public static extern uint mpAddForce (mpForceShape regionType, Matrix4x4 regionMat, mpForceDirection dirType, mpForceParams p);
+
+#endif // MP_PURE_CSHARP
+
 
 
 	// utilities
