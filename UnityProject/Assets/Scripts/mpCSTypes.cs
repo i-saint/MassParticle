@@ -6,24 +6,67 @@ using System.Runtime.InteropServices;
 
 namespace mpCS
 {
-	[StructLayout(LayoutKind.Explicit)]
-	public struct mpParticle
-	{
-		[FieldOffset( 0)] public Vector4 position;	// union
-		[FieldOffset( 0)] public Vector3 position3; // 
-		[FieldOffset(16)] public Vector4 velocity;	// union
-		[FieldOffset(16)] public Vector3 velocity3;	// 
-		[FieldOffset(28)] public float speed;		// 
-		[FieldOffset(32)] public float density;
-		[FieldOffset(36)] public uint hash;		// union
-		[FieldOffset(36)] public int hit_prev;	// 
-		[FieldOffset(40)] public int hit;
-		[FieldOffset(44)] public float lifetime;
-	};
-
-	struct mpIMData
+	public struct mpIMData
 	{
 		public Vector3 accel;
+		public float affection;
+	}
+
+
+	public struct mpSphere
+	{
+		public Vector3 pos;
+		public float radius;
+	}
+
+	public struct mpPlane
+	{
+		public Vector3 normal;
+		public float distance;
+	}
+
+	public unsafe struct mpBox
+	{
+		public Vector3 center;
+		public mpPlane plane0;
+		public mpPlane plane1;
+		public mpPlane plane2;
+		public mpPlane plane3;
+		public mpPlane plane4;
+		public mpPlane plane5;
+	}
+
+	public struct mpBoxCollider
+	{
+		public int id;
+		public Bounds bb;
+		public Vector3 center;
+		public mpPlane plane0;
+		public mpPlane plane1;
+		public mpPlane plane2;
+		public mpPlane plane3;
+		public mpPlane plane4;
+		public mpPlane plane5;
+	}
+
+	public struct mpSphereCollider
+	{
+		public int id;
+		public Bounds bb;
+		public Vector3 center;
+		public float radius;
+	};
+
+
+	public struct mpForce
+	{
+		public mp.mpForceShape		shape_type;
+		public mp.mpForceDirection	dir_type;
+		public Bounds				bb;
+		public mpSphere				shape_sphere;
+		public mpBox				shape_box;
+		public Vector3 pos;
+		public float strength;
 	}
 
 }

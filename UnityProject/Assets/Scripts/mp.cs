@@ -9,14 +9,19 @@ public class mp {
 	[StructLayout(LayoutKind.Explicit)]
 	public struct mpParticle
 	{
-		[FieldOffset( 0)] public Vector4 position;
-		[FieldOffset(16)] public Vector4 velocity;
+		[FieldOffset( 0)] public Vector4 position;	// union
+		[FieldOffset( 0)] public Vector3 position3; // 
+		[FieldOffset(16)] public Vector4 velocity;	// union
+		[FieldOffset(16)] public Vector3 velocity3;	// 
+		[FieldOffset(28)] public float speed;		// 
 		[FieldOffset(32)] public float density;
-		[FieldOffset(36)] public int hit_prev;
+		[FieldOffset(36)] public uint hash;		// union
+		[FieldOffset(36)] public int hit_prev;	// 
 		[FieldOffset(40)] public int hit;
 		[FieldOffset(44)] public float lifetime;
-	}
-	
+	};
+
+
 	[StructLayout(LayoutKind.Explicit)]
 	public struct mpKernelParams {
 		[FieldOffset( 0)] public Vector3  WorldCenter;
@@ -31,6 +36,8 @@ public class mp {
 		[FieldOffset(72)] public float SPHRestDensity;
 		[FieldOffset(76)] public float SPHParticleMass;
 		[FieldOffset(80)] public float SPHViscosity;
+
+		[FieldOffset(84)] public float ParticleSize;
 	};
 	
 	public enum mpSolverType
@@ -64,29 +71,37 @@ public class mp {
 
 #if MP_PURE_CSHARP
 
-	public static void mpSetViewProjectionMatrix(Matrix4x4 view, Matrix4x4 proj);
-	public static void mpClearParticles();
-	public static void mpReloadShader();
-	public static mpKernelParams mpGetKernelParams();
-	public static void mpSetKernelParams(ref mpKernelParams p);
+	public static void mpSetViewProjectionMatrix(Matrix4x4 view, Matrix4x4 proj) {}
+	public static void mpClearParticles() { mpCS.mpSystem.instance.ClearParticles(); }
+	public static void mpReloadShader() { }
+	public static mpKernelParams mpGetKernelParams() { return mpCS.mpSystem.instance.kparams;  }
+	public static void mpSetKernelParams(ref mpKernelParams p) { mpCS.mpSystem.instance.kparams = p;  }
 
-	public static uint mpGetNumParticles();
-	unsafe public static mpParticle* mpGetParticles();
+	public static int mpGetNumParticles() { return mpCS.mpSystem.instance.numActiveParticles; }
+	unsafe public static mpParticle[] mpGetParticles() { return mpCS.mpSystem.instance.particles; }
 	unsafe public static void mpCopyParticles(mpParticle* dst) { }
 	unsafe public static void mpWriteParticles(mpParticle* from) { }
 
-	public static uint mpAddBoxCollider(int owner, Matrix4x4 transform, Vector3 size);
-	public static uint mpAddSphereCollider(int owner, Vector3 center, float radius);
 
-	public static void mpUpdate(float dt);
+	public static void mpUpdate(float dt) { mpCS.mpSystem.instance.Update(dt); }
 
-	public static uint mpScatterParticlesSphere(Vector3 center, float radius, int num, Vector3 velBase, float velDiffuse) { return 0; }
-	public static uint mpScatterParticlesBox(Vector3 center, Vector3 size, int num, Vector3 velBase, float velDiffuse) { return 0; }
-	public static uint mpScatterParticlesSphereTransform(Matrix4x4 trans, int num, Vector3 velBase, float velDiffuse) { return 0; }
-	public static uint mpScatterParticlesBoxTransform(Matrix4x4 trans, int num, Vector3 velBase, float velDiffuse) { return 0; }
+	public static uint mpAddSphereCollider(int owner, Vector3 center, float radius) { return mpCS.mpSystem.instance.AddSphereCollider(owner, center, radius); }
+	public static uint mpAddBoxCollider(int owner, Matrix4x4 transform, Vector3 size) { return mpCS.mpSystem.instance.AddBoxCollider(owner, transform, size);  }
+	//public static uint mpScatterParticlesSphere(Vector3 center, float radius, int num, Vector3 velBase, float velDiffuse) { return 0; }
+	//public static uint mpScatterParticlesBox(Vector3 center, Vector3 size, int num, Vector3 velBase, float velDiffuse) { return 0; }
+	public static uint mpScatterParticlesSphereTransform(Matrix4x4 trans, int num, Vector3 velBase, float velDiffuse)
+	{
+		return mpCS.mpSystem.instance.ScatterParticlesSphereTransform(trans, num, velBase, velDiffuse);
+	}
+	public static uint mpScatterParticlesBoxTransform(Matrix4x4 trans, int num, Vector3 velBase, float velDiffuse)
+	{
+		return mpCS.mpSystem.instance.ScatterParticlesBoxTransform(trans, num, velBase, velDiffuse);
+	}
 
-	public static uint mpAddDirectionalForce(Vector3 direction, float strength);
-	public static uint mpAddForce(mpForceShape regionType, Matrix4x4 regionMat, mpForceDirection dirType, mpForceParams p);
+	public static uint mpAddForce(mpForceShape regionType, Matrix4x4 regionMat, mpForceDirection dirType, mpForceParams p)
+	{
+		return mpCS.mpSystem.instance.AddForce(regionType, regionMat, dirType, p);
+	}
 
 #else
 
@@ -96,23 +111,19 @@ public class mp {
 	[DllImport ("MassParticle")] public static extern mpKernelParams mpGetKernelParams();
 	[DllImport ("MassParticle")] public static extern void mpSetKernelParams(ref mpKernelParams p);
 
-	[DllImport ("MassParticle")] public static extern uint mpGetNumParticles();
+	[DllImport ("MassParticle")] public static extern int mpGetNumParticles();
 	[DllImport ("MassParticle")] unsafe public static extern mpParticle* mpGetParticles();
 	[DllImport ("MassParticle")] unsafe public static extern void mpCopyParticles (mpParticle *dst);
 	[DllImport ("MassParticle")] unsafe public static extern void mpWriteParticles(mpParticle *from);
 
-	[DllImport ("MassParticle")] public static extern uint mpAddBoxCollider(int owner, Matrix4x4 transform, Vector3 size);
-	[DllImport ("MassParticle")] public static extern uint mpAddSphereCollider(int owner, Vector3 center, float radius);
-	
 	[DllImport ("MassParticle")] public static extern void mpUpdate (float dt);
 
-
+	[DllImport ("MassParticle")] public static extern uint mpAddSphereCollider(int owner, Vector3 center, float radius);
+	[DllImport ("MassParticle")] public static extern uint mpAddBoxCollider(int owner, Matrix4x4 transform, Vector3 size);
 	[DllImport ("MassParticle")] public static extern uint mpScatterParticlesSphere(Vector3 center, float radius, int num, Vector3 velBase, float velDiffuse);
 	[DllImport ("MassParticle")] public static extern uint mpScatterParticlesBox(Vector3 center, Vector3 size, int num, Vector3 velBase, float velDiffuse);
 	[DllImport ("MassParticle")] public static extern uint mpScatterParticlesSphereTransform(Matrix4x4 trans, int num, Vector3 velBase, float velDiffuse);
 	[DllImport ("MassParticle")] public static extern uint mpScatterParticlesBoxTransform(Matrix4x4 trans, int num, Vector3 velBase, float velDiffuse);
-	
-	[DllImport ("MassParticle")] public static extern uint mpAddDirectionalForce (Vector3 direction, float strength);
 	[DllImport ("MassParticle")] public static extern uint mpAddForce (mpForceShape regionType, Matrix4x4 regionMat, mpForceDirection dirType, mpForceParams p);
 
 #endif // MP_PURE_CSHARP

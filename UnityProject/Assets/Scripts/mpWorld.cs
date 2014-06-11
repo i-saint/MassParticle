@@ -94,9 +94,9 @@ public class mpWorld : MonoBehaviour {
 
 	unsafe void ProcessParticleCollision()
 	{
-		uint numParticles = mp.mpGetNumParticles();
+		int numParticles = mp.mpGetNumParticles();
 		mp.mpParticle *particles = mp.mpGetParticles();
-		for(uint i=0; i<numParticles; ++i) {
+		for(int i=0; i<numParticles; ++i) {
 			if(particles[i].hit != -1 && particles[i].hit!=particles[i].hit_prev) {
 				Collider col = colliders[particles[i].hit];
 				Vector3 vel = *(Vector3*)&particles[i].velocity;
