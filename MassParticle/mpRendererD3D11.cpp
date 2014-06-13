@@ -26,13 +26,12 @@ struct mpCBCData
 {
     XMMATRIX ViewProjection;
     XMFLOAT4 CameraPos;
-
     XMFLOAT4 LightPos;
     XMFLOAT4 LightColor;
-
     XMFLOAT4 MeshColor;
+    FLOAT    ParticleSize;
     FLOAT    MeshShininess;
-    FLOAT    padding[3];
+    FLOAT    padding[2];
 };
 
 
@@ -67,6 +66,7 @@ private:
     XMFLOAT4                g_MeshColor;
 
     mpWorld *m_world;
+    int num_particles;
 };
 
 mpRenderer* mpCreateRendererD3D11(void *device, mpWorld &world)
@@ -93,11 +93,11 @@ HRESULT mpRendererD3D11::CompileShaderFromFile(WCHAR* szFileName, LPCSTR szEntry
 #endif
 
     ID3DBlob* pErrorBlob;
-    hr = D3DX11CompileFromFile( szFileName, NULL, NULL, szEntryPoint, szShaderModel, 
-        dwShaderFlags, 0, NULL, ppBlobOut, &pErrorBlob, NULL );
+    hr = D3DX11CompileFromFile( szFileName, nullptr, nullptr, szEntryPoint, szShaderModel, 
+        dwShaderFlags, 0, nullptr, ppBlobOut, &pErrorBlob, nullptr );
     if( FAILED(hr) )
     {
-        if( pErrorBlob != NULL )
+        if( pErrorBlob != nullptr )
             OutputDebugStringA( (char*)pErrorBlob->GetBufferPointer() );
         if( pErrorBlob ) pErrorBlob->Release();
         return hr;
@@ -124,7 +124,7 @@ ID3D11Buffer* mpRendererD3D11::CreateVertexBuffer(const void *data, UINT size)
     ID3D11Buffer *buffer;
     HRESULT hr = g_pd3dDevice->CreateBuffer( &bd, &InitData, &buffer );
     if( FAILED( hr ) ) {
-        return NULL;
+        return nullptr;
     }
     return buffer;
 }
@@ -146,6 +146,7 @@ mpRendererD3D11::mpRendererD3D11(void *_dev, mpWorld &world)
 , g_pCBChangesEveryFrame(nullptr)
 , g_MeshColor(0.7f, 0.7f, 0.7f, 1.0f)
 , m_world(&world)
+, num_particles(0)
 {
     initializeDevice(_dev);
 }
@@ -228,9 +229,6 @@ bool mpRendererD3D11::initializeDevice(void *_dev)
         };
         g_pCubeVertexBuffer = CreateVertexBuffer(vertices, sizeof(mpVertex)*ARRAYSIZE(vertices));
     }
-    {
-        g_pCubeInstanceBuffer = CreateVertexBuffer(m_world->particles, sizeof(mpParticle) * mpMaxParticleNum);
-    }
 
     // Create index buffer
     {
@@ -268,7 +266,7 @@ bool mpRendererD3D11::initializeDevice(void *_dev)
         bd.ByteWidth = sizeof(mpCBCData);
         bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
         bd.CPUAccessFlags = 0;
-        hr = g_pd3dDevice->CreateBuffer( &bd, NULL, &g_pCBChangesEveryFrame );
+        hr = g_pd3dDevice->CreateBuffer( &bd, nullptr, &g_pCBChangesEveryFrame );
         if (FAILED(hr)) {
             return false;
         }
@@ -310,17 +308,17 @@ void mpRendererD3D11::reloadShader()
 
     {
         // Compile the vertex shader
-        ID3DBlob* pVSBlob = NULL;
+        ID3DBlob* pVSBlob = nullptr;
         hr = CompileShaderFromFile(L"MassParticle.fx", "VS", "vs_4_0", &pVSBlob);
         if (FAILED(hr))
         {
-            MessageBox(NULL,
+            MessageBox(nullptr,
                 L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK);
             goto on_failed;
         }
 
         // Create the vertex shader
-        hr = g_pd3dDevice->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), NULL, &pCubeVertexShader);
+        hr = g_pd3dDevice->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), nullptr, &pCubeVertexShader);
         if (FAILED(hr))
         {
             pVSBlob->Release();
@@ -348,17 +346,17 @@ void mpRendererD3D11::reloadShader()
 
     {
         // Compile the pixel shader
-        ID3DBlob* pPSBlob = NULL;
+        ID3DBlob* pPSBlob = nullptr;
         hr = CompileShaderFromFile(L"MassParticle.fx", "PS", "ps_4_0", &pPSBlob);
         if (FAILED(hr))
         {
-            MessageBox(NULL,
+            MessageBox(nullptr,
                 L"The FX file cannot be compiled.  Please run this executable from the directory that contains the FX file.", L"Error", MB_OK);
             goto on_failed;
         }
 
         // Create the pixel shader
-        hr = g_pd3dDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), NULL, &pCubePixelShader);
+        hr = g_pd3dDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &pCubePixelShader);
         pPSBlob->Release();
         if (FAILED(hr)) {
             goto on_failed;
@@ -385,6 +383,12 @@ void mpRendererD3D11::render()
     {
         std::unique_lock<std::mutex> lock(m_world->m_mutex);
 
+        if (num_particles < (int)m_world->particles.size()) {
+            num_particles = (int)m_world->particles.size();
+            mpSafeRelease(g_pCubeInstanceBuffer);
+            g_pCubeInstanceBuffer = CreateVertexBuffer(&m_world->particles[0], sizeof(mpParticle) * num_particles);
+        }
+
         mpCamera &camera = m_world->m_camera;
         mpCBCData cb;
         XMVECTOR eye = camera.getEye();
@@ -395,8 +399,9 @@ void mpRendererD3D11::render()
         cb.LightPos = XMFLOAT4(10.0f, 10.0f, -10.0f, 1.0f);
         cb.LightColor = XMFLOAT4(0.9f, 0.9f, 0.9f, 1.0f);
         cb.MeshShininess = 200.0f;
-        g_pImmediateContext->UpdateSubresource(g_pCBChangesEveryFrame, 0, NULL, &cb, 0, 0);
-        g_pImmediateContext->UpdateSubresource(g_pCubeInstanceBuffer, 0, NULL, &m_world->particles, 0, 0);
+        cb.ParticleSize = m_world->m_params.ParticleSize;
+        g_pImmediateContext->UpdateSubresource(g_pCBChangesEveryFrame, 0, nullptr, &cb, 0, 0);
+        g_pImmediateContext->UpdateSubresource(g_pCubeInstanceBuffer, 0, nullptr, &m_world->particles[0], 0, 0);
     }
     {
         ID3D11Buffer *buffers[] = {g_pCubeVertexBuffer, g_pCubeInstanceBuffer};
@@ -408,9 +413,9 @@ void mpRendererD3D11::render()
     g_pImmediateContext->IASetIndexBuffer( g_pCubeIndexBuffer, DXGI_FORMAT_R16_UINT, 0 );
     g_pImmediateContext->IASetPrimitiveTopology( D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST );
 
-    g_pImmediateContext->VSSetShader( g_pCubeVertexShader, NULL, 0 );
+    g_pImmediateContext->VSSetShader( g_pCubeVertexShader, nullptr, 0 );
     g_pImmediateContext->VSSetConstantBuffers( 0, 1, &g_pCBChangesEveryFrame );
-    g_pImmediateContext->PSSetShader( g_pCubePixelShader, NULL, 0 );
+    g_pImmediateContext->PSSetShader( g_pCubePixelShader, nullptr, 0 );
     g_pImmediateContext->PSSetConstantBuffers( 0, 1, &g_pCBChangesEveryFrame );
 
 
@@ -421,7 +426,7 @@ void mpRendererD3D11::render()
     g_pImmediateContext->OMGetDepthStencilState(&ds_old, &ds_stencil_ref);
 
     g_pImmediateContext->OMSetDepthStencilState(g_pDepthStencilState, ds_stencil_ref);
-    g_pImmediateContext->OMSetBlendState(g_pBlendState, NULL, 0xFFFFFFFF);
+    g_pImmediateContext->OMSetBlendState(g_pBlendState, nullptr, 0xFFFFFFFF);
     g_pImmediateContext->RSSetState(g_pRasterState);
 
     // Render cubes

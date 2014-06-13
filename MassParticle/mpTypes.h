@@ -26,6 +26,7 @@ using ist::soavec34;
 using ist::soavec44;
 
 typedef ispc::Particle_SOA8 sphParticleSOA8;
+typedef ispc::ParticleIMData_SOA8 sphParticleIMDSOA8;
 typedef ispc::GridData sphGridData;
 
 #define set_xyz(v, _x, _y, _z)  v.x =_x; v.y =_y; v.z =_z;
@@ -61,6 +62,8 @@ struct mpKernelParams : ispc::KernelParams
         Decelerate = 0.995f;
         PressureStiffness = 500.0f;
         WallStiffness = 1500.0f;
+        MaxParticles = 200000;
+        ParticleSize = 0.08f;
 
         SPHRestDensity = 1000.0f;
         SPHParticleMass = 0.002f;
@@ -236,6 +239,10 @@ public:
 template<class T, typename Alloc> inline bool operator==(const mpAlignedAllocator<T>& l, const mpAlignedAllocator<T>& r) { return (l.equals(r)); }
 template<class T, typename Alloc> inline bool operator!=(const mpAlignedAllocator<T>& l, const mpAlignedAllocator<T>& r) { return (!(l == r)); }
 
+typedef std::vector<mpParticle, mpAlignedAllocator<mpParticle> > mpParticleVector;
+typedef std::vector<sphParticleSOA8, mpAlignedAllocator<sphParticleSOA8> > mpParticleSOA8Vector;
+typedef std::vector<sphParticleIMDSOA8, mpAlignedAllocator<sphParticleIMDSOA8> > mpsphParticleIMDSOA88Vector;
+
 
 class mpRenderer
 {
@@ -253,12 +260,11 @@ mpRenderer* mpCreateRendererOpenGL(void *dev, mpWorld &world);
 class mpWorld
 {
 public:
-    // todo: refactoring
-    mpParticle particles[mpMaxParticleNum];
-    sphParticleSOA8 particles_soa[mpMaxParticleNum];
-    //sphGridData cell[mpWorldDivNum][mpWorldDivNum];
+    mpParticleVector particles;
+    mpParticleSOA8Vector particles_soa;
+    mpsphParticleIMDSOA88Vector particles_imd;
     std::vector<sphGridData> cell;
-    uint32_t m_num_active_particles;
+    int m_num_active_particles;
 
     std::vector<ispc::SphereCollider>   collision_spheres;
     std::vector<ispc::PlaneCollider>    collision_planes;

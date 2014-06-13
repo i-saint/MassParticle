@@ -8,8 +8,6 @@
 #include "mpTypes.h"
 #include "MassParticle.h"
 
-typedef std::vector<mpParticle, mpAlignedAllocator<mpParticle> > mpParticleVector;
-
 extern mpWorld g_mpWorld;
 
 
@@ -61,17 +59,17 @@ extern "C" EXPORT_API uint32_t mpGetNumParticles()
 }
 extern "C" EXPORT_API mpParticle* mpGetParticles()
 {
-    return g_mpWorld.particles;
+    return &g_mpWorld.particles[0];
 }
 
 extern "C" EXPORT_API void mpCopyParticles(mpParticle *dst)
 {
-    memcpy(dst, g_mpWorld.particles, sizeof(mpParticle)*mpGetNumParticles());
+    memcpy(dst, &g_mpWorld.particles[0], sizeof(mpParticle)*mpGetNumParticles());
 }
 
 extern "C" EXPORT_API void mpWriteParticles(const mpParticle *from)
 {
-    memcpy(g_mpWorld.particles, from, sizeof(mpParticle)*mpGetNumParticles());
+    memcpy(&g_mpWorld.particles[0], from, sizeof(mpParticle)*mpGetNumParticles());
 }
 
 
@@ -162,6 +160,7 @@ extern "C" EXPORT_API int32_t mpScatterParticlesBoxTransform(XMFLOAT4X4 transfor
 
 inline void mpBuildBoxCollider(ispc::BoxCollider &o, uint32_t owner, XMFLOAT4X4 transform, XMFLOAT3 size)
 {
+    float psize = g_mpWorld.m_params.ParticleSize;
     size.x = size.x * 0.5f;
     size.y = size.y * 0.5f;
     size.z = size.z * 0.5f;
@@ -190,12 +189,12 @@ inline void mpBuildBoxCollider(ispc::BoxCollider &o, uint32_t owner, XMFLOAT4X4 
         XMVector3Normalize(XMVector3Cross(XMVectorSubtract(vertices[7], vertices[4]), XMVectorSubtract(vertices[5], vertices[4]))),
     };
     float32 distances[6] = {
-        -(XMVector3Dot(vertices[0], normals[0]).m128_f32[0] + mpParticleSize),
-        -(XMVector3Dot(vertices[1], normals[1]).m128_f32[0] + mpParticleSize),
-        -(XMVector3Dot(vertices[0], normals[2]).m128_f32[0] + mpParticleSize),
-        -(XMVector3Dot(vertices[3], normals[3]).m128_f32[0] + mpParticleSize),
-        -(XMVector3Dot(vertices[0], normals[4]).m128_f32[0] + mpParticleSize),
-        -(XMVector3Dot(vertices[4], normals[5]).m128_f32[0] + mpParticleSize),
+        -(XMVector3Dot(vertices[0], normals[0]).m128_f32[0] + psize),
+        -(XMVector3Dot(vertices[1], normals[1]).m128_f32[0] + psize),
+        -(XMVector3Dot(vertices[0], normals[2]).m128_f32[0] + psize),
+        -(XMVector3Dot(vertices[3], normals[3]).m128_f32[0] + psize),
+        -(XMVector3Dot(vertices[0], normals[4]).m128_f32[0] + psize),
+        -(XMVector3Dot(vertices[4], normals[5]).m128_f32[0] + psize),
     };
 
 
@@ -218,18 +217,19 @@ inline void mpBuildBoxCollider(ispc::BoxCollider &o, uint32_t owner, XMFLOAT4X4 
             o.bb.bl_y = o.bb.ur_y = y;
             o.bb.bl_z = o.bb.ur_z = z;
         }
-        o.bb.bl_x = std::min<float>(o.bb.bl_x, x-mpParticleSize);
-        o.bb.bl_y = std::min<float>(o.bb.bl_y, y-mpParticleSize);
-        o.bb.bl_z = std::min<float>(o.bb.bl_z, z-mpParticleSize);
-        o.bb.ur_x = std::max<float>(o.bb.ur_x, x+mpParticleSize);
-        o.bb.ur_y = std::max<float>(o.bb.ur_y, y+mpParticleSize);
-        o.bb.ur_z = std::max<float>(o.bb.ur_z, z+mpParticleSize);
+        o.bb.bl_x = std::min<float>(o.bb.bl_x, x-psize);
+        o.bb.bl_y = std::min<float>(o.bb.bl_y, y-psize);
+        o.bb.bl_z = std::min<float>(o.bb.bl_z, z-psize);
+        o.bb.ur_x = std::max<float>(o.bb.ur_x, x+psize);
+        o.bb.ur_y = std::max<float>(o.bb.ur_y, y+psize);
+        o.bb.ur_z = std::max<float>(o.bb.ur_z, z+psize);
     }
 }
 
 inline void mpBuildSphereCollider(ispc::SphereCollider &o, uint32_t owner, XMFLOAT3 center, float radius)
 {
-    float er = radius + mpParticleSize;
+    float psize = g_mpWorld.m_params.ParticleSize;
+    float er = radius + psize;
     o.id = owner;
     o.x = center.x;
     o.y = center.y;

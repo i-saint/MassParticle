@@ -21,6 +21,8 @@ public class mpWorld : MonoBehaviour {
 	public int divX = 256;
 	public int divY = 1;
 	public int divZ = 256;
+	public float particleSize = 0.08f;
+	public int maxParticleNum = 200000;
 
 	private Collider[] colliders3d;
 	private Collider2D[] colliders2d;
@@ -38,6 +40,8 @@ public class mpWorld : MonoBehaviour {
 		pressureStiffness 	= p.PressureStiffness;
 		wallStiffness 		= p.WallStiffness;
 		coordScale 			= p.Scaler;
+		particleSize		= p.ParticleSize;
+		maxParticleNum		= p.MaxParticles;
 	}
 
 	void Start () {
@@ -60,6 +64,8 @@ public class mpWorld : MonoBehaviour {
 			p.PressureStiffness	= pressureStiffness;
 			p.WallStiffness		= wallStiffness;
 			p.Scaler			= coordScale;
+			p.ParticleSize		= particleSize;
+			p.MaxParticles		= maxParticleNum;
 			mp.mpSetKernelParams(ref p);
 		}
 
@@ -98,7 +104,7 @@ public class mpWorld : MonoBehaviour {
 				int ownerid = col.rigidbody ? i : -1;
 				if (sphere)
 				{
-					mp.mpAddSphereCollider(ownerid, sphere.transform.position, sphere.radius);
+					mp.mpAddSphereCollider(ownerid, sphere.transform.position, sphere.radius * col.gameObject.transform.localScale.magnitude*0.5f);
 				}
 				else if (box)
 				{

@@ -132,12 +132,14 @@ mpWorld::mpWorld()
     , m_renderer(nullptr)
 {
     collision_spheres.reserve(64);
+
+    particles.resize(m_params.MaxParticles);
     clearParticles();
 }
 
 void mpWorld::clearParticles()
 {
-    for (uint32 i = 0; i < _countof(particles); ++i) {
+    for (uint32 i = 0; i < particles.size(); ++i) {
         particles[i].params.lifetime = 0.0f;
     }
 }
@@ -152,7 +154,7 @@ void mpWorld::clearCollidersAndForces()
 
 void mpWorld::addParticles(mpParticle *p, uint32_t num)
 {
-    num = std::min<uint32_t>(num, mpMaxParticleNum - m_num_active_particles);
+    num = std::min<uint32_t>(num, m_params.MaxParticles - m_num_active_particles);
     for (uint32_t i = 0; i<num; ++i) {
         particles[m_num_active_particles+i] = p[i];
         particles[m_num_active_particles+i].params.lifetime = m_params.LifeTime;
@@ -168,19 +170,30 @@ void mpWorld::update(float32 dt)
     int particles_par_task = 2048;
     int cells_par_task = 256;
 
-    cell.resize(cell_num);
     {
         XMFLOAT3 &wpos = (XMFLOAT3&)p.WorldCenter_x;
         XMFLOAT3 &wsize = (XMFLOAT3&)p.WorldSize_x;
         XMFLOAT3 &rcpCell = (XMFLOAT3&)t.RcpCellSize;
         XMFLOAT3 &bl = (XMFLOAT3&)t.WorldBBBL;
         XMFLOAT3 &ur = (XMFLOAT3&)t.WorldBBUR;
+        p.ParticleSize = std::max<float>(p.ParticleSize, 0.00001f);
+        p.MaxParticles = std::max<int>(p.MaxParticles, 128);
+        m_num_active_particles = std::min<int>(m_num_active_particles, p.MaxParticles);
+        p.WorldDiv_x = std::max<int>(p.WorldDiv_x, 1);
+        p.WorldDiv_y = std::max<int>(p.WorldDiv_y, 1);
+        p.WorldDiv_z = std::max<int>(p.WorldDiv_z, 1);
         t.WorldDivBits_x = mpMSB(p.WorldDiv_x);
         t.WorldDivBits_y = mpMSB(p.WorldDiv_y);
         t.WorldDivBits_z = mpMSB(p.WorldDiv_z);
         rcpCell = XMFLOAT3(1.0f, 1.0f, 1.0f) / (wsize*2.0f / XMFLOAT3(p.WorldDiv_x, p.WorldDiv_y, p.WorldDiv_z));
         bl = wpos - wsize;
         ur = wpos + wsize;
+
+        int SOADataNum = std::max<int>(cell_num, p.MaxParticles / 8);
+        cell.resize(cell_num);
+        particles.resize(p.MaxParticles);
+        particles_soa.resize(SOADataNum);
+        particles_imd.resize(SOADataNum);
     }
 
     sphGridData *ce = &cell[0]; 
@@ -217,7 +230,7 @@ void mpWorld::update(float32 dt)
         });
 
     // パーティクルを hash で sort
-    tbb::parallel_sort(particles, particles+m_num_active_particles, 
+    tbb::parallel_sort(&particles[0], &particles[0]+m_num_active_particles, 
         [&](const mpParticle &a, const mpParticle &b) { return a.params.hash < b.params.hash; } );
 
     // パーティクルがどの grid に入っているかを算出
@@ -230,7 +243,7 @@ void mpWorld::update(float32 dt)
 
                 uint32 cell = particles[G_ID].params.hash;
                 uint32 cell_prev = (G_ID_PREV==-1) ? -1 : particles[G_ID_PREV].params.hash;
-                uint32 cell_next = (G_ID_NEXT==mpMaxParticleNum) ? -2 : particles[G_ID_NEXT].params.hash;
+                uint32 cell_next = (G_ID_NEXT == p.MaxParticles) ? -2 : particles[G_ID_NEXT].params.hash;
                 if((cell & 0x80000000) != 0) { // 最上位 bit が立っていたら死んでいる扱い
                     if((cell_prev & 0x80000000) == 0) { // 
                         m_num_active_particles = G_ID;
@@ -250,8 +263,8 @@ void mpWorld::update(float32 dt)
         if( (particles[0].params.hash & 0x80000000) != 0 ) {
             m_num_active_particles = 0;
         }
-        else if( (particles[mpMaxParticleNum-1].params.hash & 0x80000000) == 0 ) {
-            m_num_active_particles = mpMaxParticleNum;
+        else if ((particles[p.MaxParticles - 1].params.hash & 0x80000000) == 0) {
+            m_num_active_particles = p.MaxParticles;
         }
     }
 
@@ -284,7 +297,10 @@ void mpWorld::update(float32 dt)
                 if (n == 0) { continue; }
                 int xi, yi, zi;
                 mpGenIndex(i, xi, yi, zi);
-                ispc::impUpdateVelocity((ispc::Particle*)particles_soa, ce, xi, yi, zi);
+                ispc::impUpdateVelocity(
+                    (ispc::Particle*)&particles_soa[0],
+                    (ispc::ParticleIMData*)&particles_imd[0],
+                    ce, xi, yi, zi);
             }
         });
         tbb::parallel_for(tbb::blocked_range<int>(0, cell_num, cells_par_task),
@@ -295,14 +311,21 @@ void mpWorld::update(float32 dt)
                 int xi, yi, zi;
                 mpGenIndex(i, xi, yi, zi);
                 ispc::sphProcessExternalForce(
-                    (ispc::Particle*)particles_soa, ce, xi, yi, zi,
+                    (ispc::Particle*)&particles_soa[0],
+                    (ispc::ParticleIMData*)&particles_imd[0],
+                    ce, xi, yi, zi,
                     fs, (int32)forces.size());
                 ispc::sphProcessCollision(
-                    (ispc::Particle*)particles_soa, ce, xi, yi, zi,
+                    (ispc::Particle*)&particles_soa[0],
+                    (ispc::ParticleIMData*)&particles_imd[0],
+                    ce, xi, yi, zi,
                     point_c, (int32)collision_spheres.size(),
                     plane_c, (int32)collision_planes.size(),
                     box_c, (int32)collision_boxes.size());
-                ispc::impIntegrate((ispc::Particle*)particles_soa, ce, xi, yi, zi);
+                ispc::impIntegrate(
+                    (ispc::Particle*)&particles_soa[0],
+                    (ispc::ParticleIMData*)&particles_imd[0],
+                    ce, xi, yi, zi);
             }
         });
     }
@@ -315,7 +338,10 @@ void mpWorld::update(float32 dt)
                     if (n == 0) { continue; }
                     int xi, yi, zi;
                     mpGenIndex(i, xi, yi, zi);
-                    ispc::sphUpdateDensity((ispc::Particle*)particles_soa, ce, xi, yi, zi);
+                    ispc::sphUpdateDensity(
+                        (ispc::Particle*)&particles_soa[0],
+                        (ispc::ParticleIMData*)&particles_imd[0],
+                        ce, xi, yi, zi);
                 }
             });
         }
@@ -327,7 +353,10 @@ void mpWorld::update(float32 dt)
                     if (n == 0) { continue; }
                     int xi, yi, zi;
                     mpGenIndex(i, xi, yi, zi);
-                    ispc::sphUpdateDensityEst1((ispc::Particle*)particles_soa, ce, xi, yi, zi);
+                    ispc::sphUpdateDensityEst1(
+                        (ispc::Particle*)&particles_soa[0],
+                        (ispc::ParticleIMData*)&particles_imd[0],
+                        ce, xi, yi, zi);
                 }
             });
             tbb::parallel_for(tbb::blocked_range<int>(0, cell_num, cells_par_task),
@@ -337,7 +366,10 @@ void mpWorld::update(float32 dt)
                     if (n == 0) { continue; }
                     int xi, yi, zi;
                     mpGenIndex(i, xi, yi, zi);
-                    ispc::sphUpdateDensityEst2((ispc::Particle*)particles_soa, ce, xi, yi, zi);
+                    ispc::sphUpdateDensityEst2(
+                        (ispc::Particle*)&particles_soa[0],
+                        (ispc::ParticleIMData*)&particles_imd[0],
+                        ce, xi, yi, zi);
                 }
             });
         }
@@ -349,7 +381,10 @@ void mpWorld::update(float32 dt)
                 if (n == 0) { continue; }
                 int xi, yi, zi;
                 mpGenIndex(i, xi, yi, zi);
-                ispc::sphUpdateForce((ispc::Particle*)particles_soa, ce, xi, yi, zi);
+                ispc::sphUpdateForce(
+                    (ispc::Particle*)&particles_soa[0],
+                    (ispc::ParticleIMData*)&particles_imd[0],
+                    ce, xi, yi, zi);
             }
         });
         tbb::parallel_for(tbb::blocked_range<int>(0, cell_num, cells_par_task),
@@ -360,14 +395,21 @@ void mpWorld::update(float32 dt)
                 int xi, yi, zi;
                 mpGenIndex(i, xi, yi, zi);
                 ispc::sphProcessExternalForce(
-                    (ispc::Particle*)particles_soa, ce, xi, yi, zi,
+                    (ispc::Particle*)&particles_soa[0],
+                    (ispc::ParticleIMData*)&particles_imd[0],
+                    ce, xi, yi, zi,
                    fs, (int32)forces.size());
                 ispc::sphProcessCollision(
-                    (ispc::Particle*)particles_soa, ce, xi, yi, zi,
+                    (ispc::Particle*)&particles_soa[0],
+                    (ispc::ParticleIMData*)&particles_imd[0],
+                    ce, xi, yi, zi,
                     &collision_spheres[0], (int32)collision_spheres.size(),
                     &collision_planes[0], (int32)collision_planes.size(),
                     &collision_boxes[0], (int32)collision_boxes.size());
-                ispc::sphIntegrate((ispc::Particle*)particles_soa, ce, xi, yi, zi);
+                ispc::sphIntegrate(
+                    (ispc::Particle*)&particles_soa[0],
+                    (ispc::ParticleIMData*)&particles_imd[0],
+                    ce, xi, yi, zi);
             }
         });
     }
@@ -379,16 +421,26 @@ void mpWorld::update(float32 dt)
                 if (n == 0) { continue; }
                 int xi, yi, zi;
                 mpGenIndex(i, xi, yi, zi);
-                ispc::impZeroAccel((ispc::Particle*)particles_soa, ce, xi, yi, zi);
+                ispc::impZeroAccel(
+                    (ispc::Particle*)&particles_soa[0],
+                    (ispc::ParticleIMData*)&particles_imd[0],
+                    ce, xi, yi, zi);
                 ispc::sphProcessExternalForce(
-                    (ispc::Particle*)particles_soa, ce, xi, yi, zi,
+                    (ispc::Particle*)&particles_soa[0],
+                    (ispc::ParticleIMData*)&particles_imd[0],
+                    ce, xi, yi, zi,
                     fs, (int32)forces.size());
                 ispc::sphProcessCollision(
-                    (ispc::Particle*)particles_soa, ce, xi, yi, zi,
+                    (ispc::Particle*)&particles_soa[0],
+                    (ispc::ParticleIMData*)&particles_imd[0],
+                    ce, xi, yi, zi,
                     point_c, (int32)collision_spheres.size(),
                     plane_c, (int32)collision_planes.size(),
                     box_c, (int32)collision_boxes.size());
-                ispc::impIntegrate((ispc::Particle*)particles_soa, ce, xi, yi, zi);
+                ispc::impIntegrate(
+                    (ispc::Particle*)&particles_soa[0],
+                    (ispc::ParticleIMData*)&particles_imd[0],
+                    ce, xi, yi, zi);
             }
         });
     }

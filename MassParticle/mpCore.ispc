@@ -19,6 +19,8 @@ static uniform float mpTimestep;
 static uniform float mpDecelerate;
 static uniform float mpPressureStiffness;
 static uniform float mpWallStiffness;
+static uniform float mpParticleSize;
+static uniform float mpRcpParticleSize2;
 
 static uniform float mpSPHRestDensity;
 static uniform float mpSPHParticleMass;
@@ -27,11 +29,11 @@ static uniform float mpSPHDensityCoef;
 static uniform float mpSPHGradPressureCoef;
 static uniform float mpSPHLapViscosityCoef;
 
-static soa<8> ParticleIMData g_imds[mpMaxParticleNum];
-
 
 export void sphUpdateConstants(uniform KernelParams &params)
 {
+    mpParticleSize      = params.ParticleSize;
+    mpRcpParticleSize2  = 1.0f / (mpParticleSize*2.0f);
     mpWorldCenter.x     = params.WorldCenter_x;
     mpWorldCenter.y     = params.WorldCenter_y;
     mpWorldCenter.z     = params.WorldCenter_z;
@@ -113,6 +115,7 @@ bool IsGridOverrapedAABB(uniform int32 xi, uniform int32 yi, uniform int32 zi, u
     uniform vec3 bb_bl = get_bl(bb);
     uniform vec3 bb_ur = get_ur(bb);
     if( grid_ur.x < bb_bl.x || grid_bl.x > bb_ur.x ||
+        grid_ur.y < bb_bl.y || grid_bl.y > bb_ur.y ||
         grid_ur.z < bb_bl.z || grid_bl.z > bb_ur.z )
     {
         return false;
@@ -122,6 +125,7 @@ bool IsGridOverrapedAABB(uniform int32 xi, uniform int32 yi, uniform int32 zi, u
 
 export void sphProcessCollision(
     soa<8> Particle all_particles[],
+    soa<8> ParticleIMData imds[],
     GridData uniform grid[],
     uniform int32 xi, uniform int32 yi, uniform int32 zi,
     uniform SphereCollider spheres[], uniform int32 num_spheres,
@@ -131,7 +135,7 @@ export void sphProcessCollision(
     uniform const GridData &gd = grid[mpWorldDiv.x*mpWorldDiv.z*yi + mpWorldDiv.x*zi + xi];
     uniform const int32 particle_num = gd.end - gd.begin;
     soa<8> Particle * uniform particles = &all_particles[gd.soai*8];
-    soa<8> ParticleIMData * uniform imd = &g_imds[gd.soai*8];
+    soa<8> ParticleIMData * uniform imd = &imds[gd.soai*8];
 
     uniform float particle_radius = mpParticleSize;
 
@@ -155,7 +159,7 @@ export void sphProcessCollision(
     // Sphere
     for(uniform int32 s=0; s<num_spheres; ++s) {
         uniform const SphereCollider &shape = spheres[s];
-        if(!IsGridOverrapedAABB(xi,0,zi, shape.bb)) { continue; }
+        if(!IsGridOverrapedAABB(xi,yi,zi, shape.bb)) { continue; }
 
         uniform const vec3 sphere_pos = get_pos(shape);
         uniform const float sphere_radius = shape.radius;
@@ -174,7 +178,7 @@ export void sphProcessCollision(
     // Box
     for(uniform int32 s=0; s<num_boxes; ++s) {
         uniform const BoxCollider &shape = boxes[s];
-        if(!IsGridOverrapedAABB(xi,0,zi, shape.bb)) { continue; }
+        if(!IsGridOverrapedAABB(xi,yi,zi, shape.bb)) { continue; }
 
         uniform vec3 box_pos = get_pos(shape);
         foreach(i=0 ... particle_num) {
@@ -207,6 +211,7 @@ export void sphProcessCollision(
 
 export void sphProcessExternalForce(
     soa<8> Particle all_particles[],
+    soa<8> ParticleIMData imds[],
     GridData uniform grid[],
     uniform int32 xi, uniform int32 yi, uniform int32 zi,
     uniform Force forces[], uniform int32 num_forces )
@@ -214,7 +219,7 @@ export void sphProcessExternalForce(
     uniform const GridData &gd = grid[mpWorldDiv.x*mpWorldDiv.z*yi + mpWorldDiv.x*zi + xi];
     uniform const int32 particle_num = gd.end - gd.begin;
     soa<8> Particle * uniform particles = &all_particles[gd.soai*8];
-    soa<8> ParticleIMData * uniform imd = &g_imds[gd.soai*8];
+    soa<8> ParticleIMData * uniform imd = &imds[gd.soai*8];
 
     uniform float particle_radius = mpParticleSize;
 
@@ -229,7 +234,7 @@ export void sphProcessExternalForce(
             }
         }
         else if(force.shape_type==FS_Sphere) {
-            if(!IsGridOverrapedAABB(xi,0,zi, force.bb)) { continue; }
+            if(!IsGridOverrapedAABB(xi,yi,zi, force.bb)) { continue; }
 
             uniform const Sphere &sphere = force.shape_sphere;
             float radius_sq = sphere.radius * sphere.radius;
@@ -242,7 +247,7 @@ export void sphProcessExternalForce(
             }
         }
         else if(force.shape_type==FS_Box) {
-            if(!IsGridOverrapedAABB(xi,0,zi, force.bb)) { continue; }
+            if(!IsGridOverrapedAABB(xi,yi,zi, force.bb)) { continue; }
 
             uniform const Box &box = force.shape_box;
             uniform vec3 box_pos = get_pos(box);
@@ -291,7 +296,7 @@ static inline float sphComputeDensity(
     vec3 pos1,
     vec3 pos2 )
 {
-    static uniform const float h_sq = mpParticleSize * mpParticleSize;
+    uniform const float h_sq = mpParticleSize * mpParticleSize;
     vec3 diff = pos2 - pos1;
     float r_sq = dot3(diff, diff);
     if(r_sq < h_sq) {
@@ -305,6 +310,7 @@ static inline float sphComputeDensity(
 
 export void sphUpdateDensity(
     soa<8> Particle all_particles[],
+    soa<8> ParticleIMData imds[],
     GridData uniform grid[],
     uniform int32 xi, uniform int32 yi, uniform int32 zi )
 {
@@ -342,6 +348,7 @@ export void sphUpdateDensity(
 
 export void sphUpdateDensityEst1(
     soa<8> Particle all_particles[],
+    soa<8> ParticleIMData imds[],
     GridData uniform grid[],
     uniform int32 xi, uniform int32 yi, uniform int32 zi )
 {
@@ -374,6 +381,7 @@ export void sphUpdateDensityEst1(
 
 export void sphUpdateDensityEst2(
     soa<8> Particle all_particles[],
+    soa<8> ParticleIMData imds[],
     GridData uniform grid[],
     uniform int32 xi, uniform int32 yi, uniform int32 zi )
 {
@@ -452,7 +460,7 @@ static inline vec3 sphComputeAccel(
     float pressure1,
     float density2 )
 {
-    static uniform const float h_sq = mpParticleSize * mpParticleSize;
+    uniform const float h_sq = mpParticleSize * mpParticleSize;
     vec3 accel = {0.0f, 0.0f, 0.0f};
     vec3 diff = pos2 - pos1;
     float r_sq = dot3(diff, diff);
@@ -471,13 +479,14 @@ static inline vec3 sphComputeAccel(
 
 export void sphUpdateForce(
     soa<8> Particle all_particles[],
+    soa<8> ParticleIMData imds[],
     GridData uniform grid[],
     uniform int32 xi, uniform int32 yi, uniform int32 zi )
 {
     uniform const GridData &gd = grid[mpWorldDiv.x*mpWorldDiv.z*yi + mpWorldDiv.x*zi + xi];
     uniform const int32 particle_num = gd.end - gd.begin;
     soa<8> Particle * uniform particles = &all_particles[gd.soai*8];
-    soa<8> ParticleIMData * uniform imd = &g_imds[gd.soai*8];
+    soa<8> ParticleIMData * uniform imd = &imds[gd.soai*8];
 
     uniform const int32 nx_beg = max(xi-1, 0);
     uniform const int32 nx_end = min(xi+1, mpWorldDiv.x-1);
@@ -493,16 +502,18 @@ export void sphUpdateForce(
         uniform float pressure1 = sphCalculatePressure(density1);
 
         vec3 accel = {0.0f, 0.0f, 0.0f};
-        for(uniform int32 nzi=nz_beg; nzi<=nz_end; ++nzi) {
-            for(uniform int32 nxi=nx_beg; nxi<=nx_end; ++nxi) {
-                uniform const GridData &ngd = grid[mpWorldDiv.x*nzi + nxi];
-                uniform const int32 neighbor_num = ngd.end - ngd.begin;
-                soa<8> Particle * uniform neighbors = &all_particles[ngd.soai*8];
-                foreach(t=0 ... neighbor_num) {
-                    vec3 pos2 = get_pos(neighbors[t]);
-                    vec3 vel2 = get_vel(neighbors[t]);
-                    float density2 = neighbors[t].density;
-                    accel += sphComputeAccel(pos1, pos2, vel1, vel2, pressure1, density2);
+        for(uniform int32 nyi=ny_beg; nyi<=ny_end; ++nyi) {
+            for(uniform int32 nzi=nz_beg; nzi<=nz_end; ++nzi) {
+                for(uniform int32 nxi=nx_beg; nxi<=nx_end; ++nxi) {
+                    uniform const GridData &ngd = grid[mpWorldDiv.x*mpWorldDiv.z*nyi + mpWorldDiv.x*nzi + nxi];
+                    uniform const int32 neighbor_num = ngd.end - ngd.begin;
+                    soa<8> Particle * uniform neighbors = &all_particles[ngd.soai*8];
+                    foreach(t=0 ... neighbor_num) {
+                        vec3 pos2 = get_pos(neighbors[t]);
+                        vec3 vel2 = get_vel(neighbors[t]);
+                        float density2 = neighbors[t].density;
+                        accel += sphComputeAccel(pos1, pos2, vel1, vel2, pressure1, density2);
+                    }
                 }
             }
         }
@@ -516,13 +527,14 @@ export void sphUpdateForce(
 
 export void sphIntegrate(
     soa<8> Particle all_particles[],
+    soa<8> ParticleIMData imds[],
     GridData uniform grid[],
     uniform int32 xi, uniform int32 yi, uniform int32 zi )
 {
     uniform const GridData &gd = grid[mpWorldDiv.x*mpWorldDiv.z*yi + mpWorldDiv.x*zi + xi];
     uniform const int32 particle_num = gd.end - gd.begin;
     soa<8> Particle * uniform particles = &all_particles[gd.soai*8];
-    soa<8> ParticleIMData * uniform imd = &g_imds[gd.soai*8];
+    soa<8> ParticleIMData * uniform imd = &imds[gd.soai*8];
 
     foreach(i=0 ... particle_num) {
         vec3 vel = get_vel(particles[i]);
@@ -549,7 +561,6 @@ static inline void impComputeParticleInteraction(
     vec3 pos2,
     vec3 &accel )
 {
-    const uniform float mpRcpParticleSize2 = 1.0f/(mpParticleSize*2.0f);
     vec3 diff = pos2 - pos1;    
     float d = length3(diff); // float d = length3est(diff); // âΩåÃÇ© est ÇÃï˚Ç™íxÇ≠Ç»ÇÈ
     if(d > 0.0f) { // d==0: è’ìÀå≥Åïè’ìÀëäéËÇ™ìØàÍ
@@ -560,13 +571,14 @@ static inline void impComputeParticleInteraction(
 
 export void impZeroAccel(
     soa<8> Particle all_particles[],
+    soa<8> ParticleIMData imds[],
     GridData uniform grid[],
     uniform int32 xi, uniform int32 yi, uniform int32 zi )
 {
     uniform const GridData &gd = grid[mpWorldDiv.x*mpWorldDiv.z*yi + mpWorldDiv.x*zi + xi];
     uniform const int32 particle_num = gd.end - gd.begin;
     soa<8> Particle * uniform particles = &all_particles[gd.soai*8];
-    soa<8> ParticleIMData * uniform imd = &g_imds[gd.soai*8];
+    soa<8> ParticleIMData * uniform imd = &imds[gd.soai*8];
     foreach(i=0 ... particle_num) {
         imd[i].ax = 0.0f;
         imd[i].ay = 0.0f;
@@ -576,13 +588,14 @@ export void impZeroAccel(
 
 export void impUpdateVelocity(
     soa<8> Particle all_particles[],
+    soa<8> ParticleIMData imds[],
     GridData uniform grid[],
     uniform int32 xi, uniform int32 yi, uniform int32 zi )
 {
     uniform const GridData &gd = grid[mpWorldDiv.x*mpWorldDiv.z*yi + mpWorldDiv.x*zi + xi];
     uniform const int32 particle_num = gd.end - gd.begin;
     soa<8> Particle * uniform particles = &all_particles[gd.soai*8];
-    soa<8> ParticleIMData * uniform imd = &g_imds[gd.soai*8];
+    soa<8> ParticleIMData * uniform imd = &imds[gd.soai*8];
 
     uniform const int32 nx_beg = max(xi-1, 0);
     uniform const int32 nx_end = min(xi+1, mpWorldDiv.x-1);
@@ -616,13 +629,14 @@ export void impUpdateVelocity(
 
 export void impIntegrate(
     soa<8> Particle all_particles[],
+    soa<8> ParticleIMData imds[],
     GridData uniform grid[],
     uniform int32 xi, uniform int32 yi, uniform int32 zi )
 {
     uniform const GridData &gd = grid[mpWorldDiv.x*mpWorldDiv.z*yi + mpWorldDiv.x*zi + xi];
     uniform const int32 particle_num = gd.end - gd.begin;
     soa<8> Particle * uniform particles = &all_particles[gd.soai*8];
-    soa<8> ParticleIMData * uniform imd = &g_imds[gd.soai*8];
+    soa<8> ParticleIMData * uniform imd = &imds[gd.soai*8];
 
     foreach(i=0 ... particle_num) {
         vec3 pos = get_pos(particles[i]);

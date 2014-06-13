@@ -170,6 +170,9 @@ struct KernelParams
     float PressureStiffness;
     float WallStiffness;
 
+    int MaxParticles;
+    float ParticleSize;
+
     float SPHRestDensity;
     float SPHParticleMass;
     float SPHViscosity;

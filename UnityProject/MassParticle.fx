@@ -2,12 +2,10 @@ cbuffer cbChangesEveryFrame : register( b0 )
 {
     matrix g_ViewProjection;
     float4 g_CameraPos;
-
     float4 g_LightPos;
     float4 g_LightColor;
-
     float4 g_MeshColor;
-    float g_MeshShininess;
+    float4 g_params; // x: size, y: shininess
 };
 
 struct VS_INPUT
@@ -40,7 +38,7 @@ PS_INPUT VS( VS_INPUT input )
     float ei = max(input.InstanceVel.w-2.5, 0.0) * 1.0;
 
     PS_INPUT output = (PS_INPUT)0;
-    output.LsPos    = float4(input.Pos, 0.0f) * 0.08f * scaleByLifetime + input.InstancePos;
+    output.LsPos    = float4(input.Pos, 0.0f) * g_params.x * scaleByLifetime + input.InstancePos;
     output.Pos      = mul(float4(output.LsPos.xyz, 1.0), g_ViewProjection);
     output.Color    = float4(0.8f, 0.8f, 0.8f, 1.0f);
     output.Emission = float4(ei,ei,ei,ei) * float4(0.25, 0.05, 0.025, 0.0);
@@ -60,7 +58,7 @@ PS_OUT PS( PS_INPUT input)
     float3 LightDir     = LightDiff / LightDist;
 
     float3 Albedo       = input.Color.rgb;
-    float Shininess     = g_MeshShininess;
+    float Shininess     = g_params.y;
     float3 Normal       = input.Normal.xyz;
     float3 EyePos       = g_CameraPos.xyz;
     float3 EyeDir       = normalize(EyePos - FragPos);

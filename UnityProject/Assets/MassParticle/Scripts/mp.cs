@@ -36,10 +36,11 @@ public class mp {
 		[FieldOffset( 76)] public float Decelerate;
 		[FieldOffset( 80)] public float PressureStiffness;
 		[FieldOffset( 84)] public float WallStiffness;
-		[FieldOffset( 88)] public float SPHRestDensity;
-		[FieldOffset( 92)] public float SPHParticleMass;
-		[FieldOffset( 96)] public float SPHViscosity;
-		[FieldOffset(100)] public float ParticleSize;
+		[FieldOffset( 88)] public int MaxParticles;
+		[FieldOffset( 92)] public float ParticleSize;
+		[FieldOffset( 96)] public float SPHRestDensity;
+		[FieldOffset(100)] public float SPHParticleMass;
+		[FieldOffset(104)] public float SPHViscosity;
 	};
 	
 	public enum mpSolverType
