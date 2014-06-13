@@ -161,10 +161,11 @@ export void sphProcessCollision(
         uniform const float sphere_radius = shape.radius;
         foreach(i=0 ... particle_num) {
             vec3 particles_pos = get_pos(particles[i]);
-            vec3 diff = sphere_pos - particles_pos;
-            float distance = length3(diff) - sphere_radius;
-            if(distance < 0.0f) {
-                vec3 dir = diff / distance;
+            vec3 diff = particles_pos-sphere_pos;
+            float len = length3(diff);
+            float distance = len - sphere_radius;
+            if(distance <= 0.0f) {
+                vec3 dir = diff / len;
                 repulse(particles[i], imd[i], dir, distance, shape);
             }
         }

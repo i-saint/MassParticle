@@ -76,7 +76,7 @@ public class mpWorld : MonoBehaviour {
 				int ownerid = col.rigidbody ? i : -1;
 				if (sphere)
 				{
-					mp.mpAddSphereCollider(ownerid, sphere.transform.position, sphere.radius);
+					mp.mpAddSphereCollider(ownerid, sphere.transform.position, sphere.radius * col.gameObject.transform.localScale.magnitude*0.5f);
 				}
 				else if (box)
 				{
