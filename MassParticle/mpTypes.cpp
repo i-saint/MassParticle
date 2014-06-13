@@ -162,8 +162,8 @@ void mpWorld::addParticles(mpParticle *p, uint32_t num)
 
 void mpWorld::update(float32 dt)
 {
-    mpKernelParams &p = g_mpWorld.m_params;
-    mpTempParams &t = g_mpWorld.m_tmp;
+    mpKernelParams &p = m_params;
+    mpTempParams &t = m_tmp;
     int cell_num = p.WorldDiv_x*p.WorldDiv_y*p.WorldDiv_z;
     int particles_par_task = 2048;
     int cells_par_task = 256;

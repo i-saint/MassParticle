@@ -112,8 +112,8 @@ bool IsGridOverrapedAABB(uniform int32 xi, uniform int32 yi, uniform int32 zi, u
     ComputeGridBox(xi,yi,zi, grid_bl, grid_ur);
     uniform vec3 bb_bl = get_bl(bb);
     uniform vec3 bb_ur = get_ur(bb);
-    if( grid_ur.x < bb_bl.x || grid_ur.z < bb_bl.z ||
-        grid_bl.x > bb_ur.x || grid_bl.z > bb_ur.z )
+    if( grid_ur.x < bb_bl.x || grid_bl.x > bb_ur.x ||
+        grid_ur.z < bb_bl.z || grid_bl.z > bb_ur.z )
     {
         return false;
     }
@@ -308,28 +308,30 @@ export void sphUpdateDensity(
     GridData uniform grid[],
     uniform int32 xi, uniform int32 yi, uniform int32 zi )
 {
-    uniform GridData &gd = grid[mpWorldDiv.x*mpWorldDiv.z*yi + mpWorldDiv.x*zi + xi];
+    uniform const GridData &gd = grid[mpWorldDiv.x*mpWorldDiv.z*yi + mpWorldDiv.x*zi + xi];
     uniform const int32 particle_num = gd.end - gd.begin;
     soa<8> Particle * uniform particles = &all_particles[gd.soai*8];
 
     uniform const int32 nx_beg = max(xi-1, 0);
     uniform const int32 nx_end = min(xi+1, mpWorldDiv.x-1);
-    uniform const int32 ny_beg = max(xi-1, 0);
-    uniform const int32 ny_end = min(xi+1, mpWorldDiv.y-1);
+    uniform const int32 ny_beg = max(yi-1, 0);
+    uniform const int32 ny_end = min(yi+1, mpWorldDiv.y-1);
     uniform const int32 nz_beg = max(zi-1, 0);
     uniform const int32 nz_end = min(zi+1, mpWorldDiv.z-1);
 
     for(uniform int32 i=0; i<particle_num; ++i) {
         uniform vec3 pos1 = get_pos(particles[i]);
         float density = 0.0f;
-        for(uniform int32 nzi=nz_beg; nzi<=nz_end; ++nzi) {
-            for(uniform int32 nxi=nx_beg; nxi<=nx_end; ++nxi) {
-                uniform const GridData &ngd = grid[mpWorldDiv.x*nzi* + nxi];
-                uniform const int32 neighbor_num = ngd.end - ngd.begin;
-                soa<8> Particle * uniform neighbors = &all_particles[ngd.soai*8];
-                foreach(t=0 ... neighbor_num) {
-                    vec3 pos2 = get_pos(neighbors[t]);
-                    density += sphComputeDensity(pos1, pos2);
+        for(uniform int32 nyi=ny_beg; nyi<=ny_end; ++nyi) {
+            for(uniform int32 nzi=nz_beg; nzi<=nz_end; ++nzi) {
+                for(uniform int32 nxi=nx_beg; nxi<=nx_end; ++nxi) {
+                    uniform const GridData &ngd = grid[mpWorldDiv.x*mpWorldDiv.z*nyi + mpWorldDiv.x*nzi + nxi];
+                    uniform const int32 neighbor_num = ngd.end - ngd.begin;
+                    soa<8> Particle * uniform neighbors = &all_particles[ngd.soai*8];
+                    foreach(t=0 ... neighbor_num) {
+                        vec3 pos2 = get_pos(neighbors[t]);
+                        density += sphComputeDensity(pos1, pos2);
+                    }
                 }
             }
         }
@@ -375,22 +377,24 @@ export void sphUpdateDensityEst2(
     GridData uniform grid[],
     uniform int32 xi, uniform int32 yi, uniform int32 zi )
 {
-    uniform GridData &gd = grid[mpWorldDiv.x*mpWorldDiv.z*yi + mpWorldDiv.x*zi + xi];
+    uniform const GridData &gd = grid[mpWorldDiv.x*mpWorldDiv.z*yi + mpWorldDiv.x*zi + xi];
     uniform const int32 particle_num = gd.end - gd.begin;
     soa<8> Particle * uniform particles = &all_particles[gd.soai*8];
 
     uniform const int32 nx_beg = max(xi-1, 0);
     uniform const int32 nx_end = min(xi+1, mpWorldDiv.x-1);
-    uniform const int32 ny_beg = max(xi-1, 0);
-    uniform const int32 ny_end = min(xi+1, mpWorldDiv.y-1);
+    uniform const int32 ny_beg = max(yi-1, 0);
+    uniform const int32 ny_end = min(yi+1, mpWorldDiv.y-1);
     uniform const int32 nz_beg = max(zi-1, 0);
     uniform const int32 nz_end = min(zi+1, mpWorldDiv.z-1);
 
-    for(uniform int32 nzi=nz_beg; nzi<=nz_end; ++nzi) {
-        for(uniform int32 nxi=nx_beg; nxi<=nx_end; ++nxi) {
-            uniform const GridData &ngd = grid[mpWorldDiv.x*nzi + nxi];
-            foreach(i=0 ... particle_num) {
-                particles[i].density += ngd.density*0.05f;
+    for(uniform int32 nyi=ny_beg; nyi<=ny_end; ++nyi) {
+        for(uniform int32 nzi=nz_beg; nzi<=nz_end; ++nzi) {
+            for(uniform int32 nxi=nx_beg; nxi<=nx_end; ++nxi) {
+                uniform const GridData &ngd = grid[mpWorldDiv.x*mpWorldDiv.z*nyi + mpWorldDiv.x*nzi + nxi];
+                foreach(i=0 ... particle_num) {
+                    particles[i].density += ngd.density*0.05f;
+                }
             }
         }
     }
@@ -470,15 +474,15 @@ export void sphUpdateForce(
     GridData uniform grid[],
     uniform int32 xi, uniform int32 yi, uniform int32 zi )
 {
-    uniform const GridData &gd = grid[mpWorldDiv.x*zi + xi];
+    uniform const GridData &gd = grid[mpWorldDiv.x*mpWorldDiv.z*yi + mpWorldDiv.x*zi + xi];
     uniform const int32 particle_num = gd.end - gd.begin;
     soa<8> Particle * uniform particles = &all_particles[gd.soai*8];
     soa<8> ParticleIMData * uniform imd = &g_imds[gd.soai*8];
 
     uniform const int32 nx_beg = max(xi-1, 0);
     uniform const int32 nx_end = min(xi+1, mpWorldDiv.x-1);
-    uniform const int32 ny_beg = max(xi-1, 0);
-    uniform const int32 ny_end = min(xi+1, mpWorldDiv.y-1);
+    uniform const int32 ny_beg = max(yi-1, 0);
+    uniform const int32 ny_end = min(yi+1, mpWorldDiv.y-1);
     uniform const int32 nz_beg = max(zi-1, 0);
     uniform const int32 nz_end = min(zi+1, mpWorldDiv.z-1);
 
@@ -515,7 +519,7 @@ export void sphIntegrate(
     GridData uniform grid[],
     uniform int32 xi, uniform int32 yi, uniform int32 zi )
 {
-    uniform const GridData &gd = grid[mpWorldDiv.x*zi + xi];
+    uniform const GridData &gd = grid[mpWorldDiv.x*mpWorldDiv.z*yi + mpWorldDiv.x*zi + xi];
     uniform const int32 particle_num = gd.end - gd.begin;
     soa<8> Particle * uniform particles = &all_particles[gd.soai*8];
     soa<8> ParticleIMData * uniform imd = &g_imds[gd.soai*8];
@@ -559,7 +563,7 @@ export void impZeroAccel(
     GridData uniform grid[],
     uniform int32 xi, uniform int32 yi, uniform int32 zi )
 {
-    uniform const GridData &gd = grid[mpWorldDiv.x*zi + xi];
+    uniform const GridData &gd = grid[mpWorldDiv.x*mpWorldDiv.z*yi + mpWorldDiv.x*zi + xi];
     uniform const int32 particle_num = gd.end - gd.begin;
     soa<8> Particle * uniform particles = &all_particles[gd.soai*8];
     soa<8> ParticleIMData * uniform imd = &g_imds[gd.soai*8];
@@ -575,29 +579,31 @@ export void impUpdateVelocity(
     GridData uniform grid[],
     uniform int32 xi, uniform int32 yi, uniform int32 zi )
 {
-    uniform const GridData &gd = grid[mpWorldDiv.x*zi + xi];
+    uniform const GridData &gd = grid[mpWorldDiv.x*mpWorldDiv.z*yi + mpWorldDiv.x*zi + xi];
     uniform const int32 particle_num = gd.end - gd.begin;
     soa<8> Particle * uniform particles = &all_particles[gd.soai*8];
     soa<8> ParticleIMData * uniform imd = &g_imds[gd.soai*8];
 
     uniform const int32 nx_beg = max(xi-1, 0);
     uniform const int32 nx_end = min(xi+1, mpWorldDiv.x-1);
-    uniform const int32 ny_beg = max(xi-1, 0);
-    uniform const int32 ny_end = min(xi+1, mpWorldDiv.y-1);
+    uniform const int32 ny_beg = max(yi-1, 0);
+    uniform const int32 ny_end = min(yi+1, mpWorldDiv.y-1);
     uniform const int32 nz_beg = max(zi-1, 0);
     uniform const int32 nz_end = min(zi+1, mpWorldDiv.z-1);
 
     for(uniform int32 i=0; i<particle_num; ++i) {
         uniform vec3 pos1 = get_pos(particles[i]);
         vec3 accel = {0.0f, 0.0f, 0.0f};
-        for(uniform int32 nzi=nz_beg; nzi<=nz_end; ++nzi) {
-            for(uniform int32 nxi=nx_beg; nxi<=nx_end; ++nxi) {
-                uniform const GridData &ngd = grid[mpWorldDiv.x*nzi + nxi];
-                soa<8> Particle * uniform neighbors = &all_particles[ngd.soai*8];
-                uniform const int32 neighbor_num = ngd.end - ngd.begin;
-                foreach(t=0 ... neighbor_num) {
-                    vec3 pos2 = get_pos(neighbors[t]);
-                    impComputeParticleInteraction(pos1, pos2, accel);
+        for(uniform int32 nyi=ny_beg; nyi<=ny_end; ++nyi) {
+            for(uniform int32 nzi=nz_beg; nzi<=nz_end; ++nzi) {
+                for(uniform int32 nxi=nx_beg; nxi<=nx_end; ++nxi) {
+                    uniform const GridData &ngd = grid[mpWorldDiv.x*mpWorldDiv.z*nyi + mpWorldDiv.x*nzi + nxi];
+                    soa<8> Particle * uniform neighbors = &all_particles[ngd.soai*8];
+                    uniform const int32 neighbor_num = ngd.end - ngd.begin;
+                    foreach(t=0 ... neighbor_num) {
+                        vec3 pos2 = get_pos(neighbors[t]);
+                        impComputeParticleInteraction(pos1, pos2, accel);
+                    }
                 }
             }
         }
