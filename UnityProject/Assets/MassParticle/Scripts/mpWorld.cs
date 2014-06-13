@@ -1,0 +1,153 @@
+using UnityEngine;
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Runtime.InteropServices;
+
+
+public class mpWorld : MonoBehaviour {
+
+	//public float particleRadius;
+	public mp.mpSolverType solverType;
+	public float particleLifeTime;
+	public float timeStep;
+	public float deceleration;
+	public float pressureStiffness;
+	public float wallStiffness;
+	public Vector3 coordScale;
+	public float damageThreshold = 3.0f;
+	public bool include3DColliders = true;
+	public bool include2DColliders = true;
+	public int divX = 256;
+	public int divY = 1;
+	public int divZ = 256;
+
+	private Collider[] colliders3d;
+	private Collider2D[] colliders2d;
+
+
+	void Reset()
+	{
+		mp.mpKernelParams p = mp.mpGetKernelParams();
+		transform.position = p.WorldCenter;
+		transform.localScale = p.WorldSize;
+		solverType 			= (mp.mpSolverType)p.SolverType;
+		particleLifeTime 	= p.LifeTime;
+		timeStep 			= p.Timestep;
+		deceleration 		= p.Decelerate;
+		pressureStiffness 	= p.PressureStiffness;
+		wallStiffness 		= p.WallStiffness;
+		coordScale 			= p.Scaler;
+	}
+
+	void Start () {
+		mp.mpClearParticles();
+	}
+
+	void Update()
+	{
+		{
+			mp.mpKernelParams p = mp.mpGetKernelParams();
+			p.WorldCenter 		= transform.position;
+			p.WorldSize 		= transform.localScale;
+			p.WorldDiv_x		= divX;
+			p.WorldDiv_y		= divY;
+			p.WorldDiv_z		= divZ;
+			p.SolverType		= (int)solverType;
+			p.LifeTime			= particleLifeTime;
+			p.Timestep			= timeStep;
+			p.Decelerate		= deceleration;
+			p.PressureStiffness	= pressureStiffness;
+			p.WallStiffness		= wallStiffness;
+			p.Scaler			= coordScale;
+			mp.mpSetKernelParams(ref p);
+		}
+
+		if (include3DColliders)
+		{
+			colliders3d = Physics.OverlapSphere(transform.position, transform.localScale.magnitude);
+			for (int i = 0; i < colliders3d.Length; ++i)
+			{
+				Collider col = colliders3d[i];
+				if (col.isTrigger) { continue; }
+
+				SphereCollider sphere = col as SphereCollider;
+				BoxCollider box = col as BoxCollider;
+				int ownerid = col.rigidbody ? i : -1;
+				if (sphere)
+				{
+					mp.mpAddSphereCollider(ownerid, sphere.transform.position, sphere.radius);
+				}
+				else if (box)
+				{
+					mp.mpAddBoxCollider(ownerid, box.transform.localToWorldMatrix, box.size);
+				}
+			}
+		}
+		if (include2DColliders)
+		{
+			Vector2 xy = new Vector2(transform.position.x, transform.position.y);
+			colliders2d = Physics2D.OverlapCircleAll(xy, transform.localScale.magnitude);
+			for (int i = 0; i < colliders2d.Length; ++i)
+			{
+				Collider2D col = colliders2d[i];
+				if (col.isTrigger) { continue; }
+
+				CircleCollider2D sphere = col as CircleCollider2D;
+				BoxCollider2D box = col as BoxCollider2D;
+				int ownerid = col.rigidbody ? i : -1;
+				if (sphere)
+				{
+					mp.mpAddSphereCollider(ownerid, sphere.transform.position, sphere.radius);
+				}
+				else if (box)
+				{
+					mp.mpAddBoxCollider(ownerid, box.transform.localToWorldMatrix, new Vector3(box.size.x, box.size.y, box.size.magnitude));
+				}
+			}
+		}
+
+		mp.mpUpdate (Time.timeSinceLevelLoad);
+		ProcessParticleCollision();
+	}
+	
+	void OnRenderObject()
+	{		
+		UnityEngine.Camera cam = UnityEngine.Camera.current;
+		if (cam) {
+			mp.mpSetViewProjectionMatrix(cam.worldToCameraMatrix, cam.projectionMatrix);
+		}
+		GL.IssuePluginEvent (1);
+	}
+
+	void OnDrawGizmos()
+	{
+		Gizmos.color = Color.yellow;
+		Gizmos.DrawWireCube(transform.position, transform.localScale*2.0f);
+	}
+
+
+	unsafe void ProcessParticleCollision()
+	{
+		int numParticles = mp.mpGetNumParticles();
+		mp.mpParticle *particles = mp.mpGetParticles();
+		for(int i=0; i<numParticles; ++i) {
+			if(particles[i].hit != -1 && particles[i].hit!=particles[i].hit_prev) {
+				Collider col = colliders3d[particles[i].hit];
+				Vector3 vel = *(Vector3*)&particles[i].velocity;
+				Rigidbody rb = col.GetComponent<Rigidbody>();
+				if(rb) {
+					rb.AddForceAtPosition( vel * 0.02f, *(Vector3*)&particles[i].position );
+				}
+				
+				if(particles[i].velocity.w > damageThreshold) {
+					particles[i].lifetime = 0.0f;
+					excDestroyable stat = col.GetComponent<excDestroyable>();
+					if(stat) {
+						stat.Damage(Math.Abs(vel.z*0.02f));
+					}
+				}
+			}
+		}
+	}
+}

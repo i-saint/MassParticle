@@ -24,20 +24,22 @@ public class mp {
 
 	[StructLayout(LayoutKind.Explicit)]
 	public struct mpKernelParams {
-		[FieldOffset( 0)] public Vector3  WorldCenter;
-		[FieldOffset(16)] public Vector3  WorldSize;
-		[FieldOffset(32)] public Vector3  Scaler;
-		[FieldOffset(48)] public int SolverType;
-		[FieldOffset(52)] public float LifeTime;
-		[FieldOffset(56)] public float Timestep;
-		[FieldOffset(60)] public float Decelerate;
-		[FieldOffset(64)] public float PressureStiffness;
-		[FieldOffset(68)] public float WallStiffness;
-		[FieldOffset(72)] public float SPHRestDensity;
-		[FieldOffset(76)] public float SPHParticleMass;
-		[FieldOffset(80)] public float SPHViscosity;
-
-		[FieldOffset(84)] public float ParticleSize;
+		[FieldOffset(  0)] public Vector3  WorldCenter;
+		[FieldOffset( 16)] public Vector3  WorldSize;
+		[FieldOffset( 32)] public int  WorldDiv_x;
+		[FieldOffset( 36)] public int  WorldDiv_y;
+		[FieldOffset( 40)] public int  WorldDiv_z;
+		[FieldOffset( 48)] public Vector3  Scaler;
+		[FieldOffset( 64)] public int SolverType;
+		[FieldOffset( 68)] public float LifeTime;
+		[FieldOffset( 72)] public float Timestep;
+		[FieldOffset( 76)] public float Decelerate;
+		[FieldOffset( 80)] public float PressureStiffness;
+		[FieldOffset( 84)] public float WallStiffness;
+		[FieldOffset( 88)] public float SPHRestDensity;
+		[FieldOffset( 92)] public float SPHParticleMass;
+		[FieldOffset( 96)] public float SPHViscosity;
+		[FieldOffset(100)] public float ParticleSize;
 	};
 	
 	public enum mpSolverType

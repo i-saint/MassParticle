@@ -4,6 +4,9 @@
 typedef float<2> vec2;
 typedef float<3> vec3;
 typedef float<4> vec4;
+typedef int<2> ivec2;
+typedef int<3> ivec3;
+typedef int<4> ivec4;
 
 
 static inline float dot3(vec3 a, vec3 b)

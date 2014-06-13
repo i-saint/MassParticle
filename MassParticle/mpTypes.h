@@ -73,6 +73,9 @@ struct mpTempParams
     XMFLOAT3 RcpCellSize;
     XMFLOAT3 WorldBBBL;
     XMFLOAT3 WorldBBUR;
+    int WorldDivBits_x;
+    int WorldDivBits_y;
+    int WorldDivBits_z;
 };
 
 
@@ -253,7 +256,8 @@ public:
     // todo: refactoring
     mpParticle particles[mpMaxParticleNum];
     sphParticleSOA8 particles_soa[mpMaxParticleNum];
-    sphGridData cell[mpWorldDivNum][mpWorldDivNum];
+    //sphGridData cell[mpWorldDivNum][mpWorldDivNum];
+    std::vector<sphGridData> cell;
     uint32_t m_num_active_particles;
 
     std::vector<ispc::SphereCollider>   collision_spheres;
@@ -274,6 +278,17 @@ public:
     void addParticles(mpParticle *p, uint32_t num_particles);
     void update(float32 dt);
 };
+
+inline int mpMSB(int a)
+{
+#ifdef _MSC_VER
+    ULONG r;
+    _BitScanReverse(&r, (ULONG)a);
+    return (int)r;
+#else  // _MSC_VER
+    return __builtin_clz(a);
+#endif // _MSC_VER
+}
 
 
 #endif // _SPH_types_h_

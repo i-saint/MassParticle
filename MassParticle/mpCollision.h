@@ -154,6 +154,10 @@ struct KernelParams
     float WorldSize_y;
     float WorldSize_z;
     float WorldSize_pad;
+    int WorldDiv_x;
+    int WorldDiv_y;
+    int WorldDiv_z;
+    int WorldDiv_pad;
     float Scale_x;
     float Scale_y;
     float Scale_z;
