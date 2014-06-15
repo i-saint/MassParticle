@@ -5,17 +5,18 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
 
-public class mpWorld : MonoBehaviour {
+public unsafe class mpWorld : MonoBehaviour {
 
-	//public float particleRadius;
+	public delegate void ParticleHandler(int numParticles, mp.mpParticle* particles);
+
 	public mp.mpSolverType solverType;
+	public float force = 1.0f;
 	public float particleLifeTime;
 	public float timeStep;
 	public float deceleration;
 	public float pressureStiffness;
 	public float wallStiffness;
 	public Vector3 coordScale;
-	public float damageThreshold = 3.0f;
 	public bool include3DColliders = true;
 	public bool include2DColliders = true;
 	public int divX = 256;
@@ -24,9 +25,15 @@ public class mpWorld : MonoBehaviour {
 	public float particleSize = 0.08f;
 	public int maxParticleNum = 200000;
 
-	private Collider[] colliders3d;
-	private Collider2D[] colliders2d;
+	public ParticleHandler particleHandler;
 
+	public Collider[] colliders3d;
+	public Collider2D[] colliders2d;
+
+	mpWorld()
+	{
+		particleHandler = (a, b) => DefaultParticleHandler(a, b);
+	}
 
 	void Reset()
 	{
@@ -48,7 +55,7 @@ public class mpWorld : MonoBehaviour {
 		mp.mpClearParticles();
 	}
 
-	void Update()
+	unsafe void Update()
 	{
 		{
 			mp.mpKernelParams p = mp.mpGetKernelParams();
@@ -104,17 +111,20 @@ public class mpWorld : MonoBehaviour {
 				int ownerid = col.rigidbody ? i : -1;
 				if (sphere)
 				{
-					mp.mpAddSphereCollider(ownerid, sphere.transform.position, sphere.radius * col.gameObject.transform.localScale.magnitude*0.5f);
+					mp.mpAddSphereCollider(ownerid, sphere.transform.position, sphere.radius * col.gameObject.transform.localScale.x);
 				}
 				else if (box)
 				{
-					mp.mpAddBoxCollider(ownerid, box.transform.localToWorldMatrix, new Vector3(box.size.x, box.size.y, box.size.magnitude));
+					mp.mpAddBoxCollider(ownerid, box.transform.localToWorldMatrix, new Vector3(box.size.x, box.size.y, box.size.x));
 				}
 			}
 		}
 
 		mp.mpUpdate (Time.timeSinceLevelLoad);
-		ProcessParticleCollision();
+		if (particleHandler!=null)
+		{
+			particleHandler(mp.mpGetNumParticles(), mp.mpGetParticles());
+		}
 	}
 	
 	void OnRenderObject()
@@ -133,25 +143,19 @@ public class mpWorld : MonoBehaviour {
 	}
 
 
-	unsafe void ProcessParticleCollision()
+	unsafe void DefaultParticleHandler(int numParticles, mp.mpParticle* particles)
 	{
-		int numParticles = mp.mpGetNumParticles();
-		mp.mpParticle *particles = mp.mpGetParticles();
-		for(int i=0; i<numParticles; ++i) {
-			if(particles[i].hit != -1 && particles[i].hit!=particles[i].hit_prev) {
+		if (force == 0.0f) { return; }
+		for (int i = 0; i < numParticles; ++i)
+		{
+			if (particles[i].hit != -1 && particles[i].hit != particles[i].hit_prev)
+			{
 				Collider col = colliders3d[particles[i].hit];
 				Vector3 vel = *(Vector3*)&particles[i].velocity;
 				Rigidbody rb = col.GetComponent<Rigidbody>();
-				if(rb) {
-					rb.AddForceAtPosition( vel * 0.02f, *(Vector3*)&particles[i].position );
-				}
-				
-				if(particles[i].velocity.w > damageThreshold) {
-					particles[i].lifetime = 0.0f;
-					excDestroyable stat = col.GetComponent<excDestroyable>();
-					if(stat) {
-						stat.Damage(Math.Abs(vel.z*0.02f));
-					}
+				if (rb)
+				{
+					rb.AddForceAtPosition(vel * force, *(Vector3*)&particles[i].position);
 				}
 			}
 		}
