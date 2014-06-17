@@ -52,9 +52,6 @@ public unsafe class mpWorld : MonoBehaviour {
 	}
 
 	void Start () {
-#if MP_PURE_CSHARP
-		mp.mpStart();
-#endif // MP_PURE_CSHARP
 		mp.mpClearParticles();
 	}
 
@@ -126,28 +123,17 @@ public unsafe class mpWorld : MonoBehaviour {
 		mp.mpUpdate (Time.timeSinceLevelLoad);
 		if (particleHandler!=null)
 		{
-#if MP_PURE_CSHARP
-			mp.mpParticle[] particles = mp.mpGetParticles();
-			fixed(mp.mpParticle *ps = particles) {
-				particleHandler(mp.mpGetNumParticles(), ps);
-			}
-#else // MP_PURE_CSHARP
 			particleHandler(mp.mpGetNumParticles(), mp.mpGetParticles());
-#endif // MP_PURE_CSHARP
 		}
 	}
 	
 	void OnRenderObject()
 	{		
-#if MP_PURE_CSHARP
-		mp.mpDrawParticles();
-#else
 		UnityEngine.Camera cam = UnityEngine.Camera.current;
 		if (cam) {
 			mp.mpSetViewProjectionMatrix(cam.worldToCameraMatrix, cam.projectionMatrix);
 		}
 		GL.IssuePluginEvent (1);
-#endif
 	}
 
 	void OnDrawGizmos()
