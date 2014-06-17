@@ -86,7 +86,7 @@ public unsafe class mpWorld : MonoBehaviour {
 
 				SphereCollider sphere = col as SphereCollider;
 				BoxCollider box = col as BoxCollider;
-				int ownerid = col.rigidbody ? i : -1;
+				int ownerid = i;
 				if (sphere)
 				{
 					mp.mpAddSphereCollider(ownerid, sphere.transform.position, sphere.radius * col.gameObject.transform.localScale.magnitude * 0.5f);
@@ -108,7 +108,7 @@ public unsafe class mpWorld : MonoBehaviour {
 
 				CircleCollider2D sphere = col as CircleCollider2D;
 				BoxCollider2D box = col as BoxCollider2D;
-				int ownerid = col.rigidbody ? i : -1;
+				int ownerid = i;
 				if (sphere)
 				{
 					mp.mpAddSphereCollider(ownerid, sphere.transform.position, sphere.radius * col.gameObject.transform.localScale.x);
