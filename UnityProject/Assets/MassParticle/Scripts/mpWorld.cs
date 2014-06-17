@@ -52,6 +52,9 @@ public unsafe class mpWorld : MonoBehaviour {
 	}
 
 	void Start () {
+#if MP_PURE_CSHARP
+		mp.mpStart();
+#endif // MP_PURE_CSHARP
 		mp.mpClearParticles();
 	}
 
@@ -59,20 +62,20 @@ public unsafe class mpWorld : MonoBehaviour {
 	{
 		{
 			mp.mpKernelParams p = mp.mpGetKernelParams();
-			p.WorldCenter 		= transform.position;
-			p.WorldSize 		= transform.localScale;
-			p.WorldDiv_x		= divX;
-			p.WorldDiv_y		= divY;
-			p.WorldDiv_z		= divZ;
-			p.SolverType		= (int)solverType;
-			p.LifeTime			= particleLifeTime;
-			p.Timestep			= timeStep;
-			p.Decelerate		= deceleration;
-			p.PressureStiffness	= pressureStiffness;
-			p.WallStiffness		= wallStiffness;
-			p.Scaler			= coordScale;
-			p.ParticleSize		= particleSize;
-			p.MaxParticles		= maxParticleNum;
+			p.WorldCenter = transform.position;
+			p.WorldSize = transform.localScale;
+			p.WorldDiv_x = divX;
+			p.WorldDiv_y = divY;
+			p.WorldDiv_z = divZ;
+			p.SolverType = (int)solverType;
+			p.LifeTime = particleLifeTime;
+			p.Timestep = timeStep;
+			p.Decelerate = deceleration;
+			p.PressureStiffness = pressureStiffness;
+			p.WallStiffness = wallStiffness;
+			p.Scaler = coordScale;
+			p.ParticleSize = particleSize;
+			p.MaxParticles = maxParticleNum;
 			mp.mpSetKernelParams(ref p);
 		}
 
@@ -89,7 +92,7 @@ public unsafe class mpWorld : MonoBehaviour {
 				int ownerid = col.rigidbody ? i : -1;
 				if (sphere)
 				{
-					mp.mpAddSphereCollider(ownerid, sphere.transform.position, sphere.radius * col.gameObject.transform.localScale.magnitude*0.5f);
+					mp.mpAddSphereCollider(ownerid, sphere.transform.position, sphere.radius * col.gameObject.transform.localScale.magnitude * 0.5f);
 				}
 				else if (box)
 				{
@@ -123,17 +126,28 @@ public unsafe class mpWorld : MonoBehaviour {
 		mp.mpUpdate (Time.timeSinceLevelLoad);
 		if (particleHandler!=null)
 		{
+#if MP_PURE_CSHARP
+			mp.mpParticle[] particles = mp.mpGetParticles();
+			fixed(mp.mpParticle *ps = particles) {
+				particleHandler(mp.mpGetNumParticles(), ps);
+			}
+#else // MP_PURE_CSHARP
 			particleHandler(mp.mpGetNumParticles(), mp.mpGetParticles());
+#endif // MP_PURE_CSHARP
 		}
 	}
 	
 	void OnRenderObject()
 	{		
+#if MP_PURE_CSHARP
+		mp.mpDrawParticles();
+#else
 		UnityEngine.Camera cam = UnityEngine.Camera.current;
 		if (cam) {
 			mp.mpSetViewProjectionMatrix(cam.worldToCameraMatrix, cam.projectionMatrix);
 		}
 		GL.IssuePluginEvent (1);
+#endif
 	}
 
 	void OnDrawGizmos()

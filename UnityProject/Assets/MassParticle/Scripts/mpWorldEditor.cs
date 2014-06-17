@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿#if UNITY_EDITOR
+using UnityEngine;
 using System.Collections;
 using UnityEditor;
 using System.Runtime.InteropServices;
@@ -16,3 +17,4 @@ public class mpWorldEditor : Editor {
 		}
 	}
 }
+#endif // UNITY_EDITOR
