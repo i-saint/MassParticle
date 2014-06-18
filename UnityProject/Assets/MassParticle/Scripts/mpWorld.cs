@@ -121,6 +121,7 @@ public unsafe class mpWorld : MonoBehaviour {
 		}
 
 		mp.mpUpdate (Time.timeSinceLevelLoad);
+		mp.mpClearCollidersAndForces();
 		if (particleHandler!=null)
 		{
 			particleHandler(mp.mpGetNumParticles(), mp.mpGetParticles());

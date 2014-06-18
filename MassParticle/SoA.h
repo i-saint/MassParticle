@@ -54,35 +54,35 @@ istForceInline simdvec4i simdvec4_seti(int x, int y, int z, int w) { return _mm_
 
 istForceInline simdvec4 reduce_add4(simdvec4 v1)
 {
-    simdvec4 t1 = _mm_shuffle_ps(v1,v1,SSE_SHUFFLE(1,0,3,0));
-    t1 = _mm_add_ps(v1,t1);
-    v1 = _mm_shuffle_ps(t1,t1,SSE_SHUFFLE(2,0,0,0));
-    t1 = _mm_add_ps(v1,t1);
-    return _mm_shuffle_ps(t1,t1,SSE_SHUFFLE(0,0,0,0));
+	simdvec4 t1 = _mm_shuffle_ps(v1,v1,SSE_SHUFFLE(1,0,3,0));
+	t1 = _mm_add_ps(v1,t1);
+	v1 = _mm_shuffle_ps(t1,t1,SSE_SHUFFLE(2,0,0,0));
+	t1 = _mm_add_ps(v1,t1);
+	return _mm_shuffle_ps(t1,t1,SSE_SHUFFLE(0,0,0,0));
 }
 
 istForceInline simdvec4 rsqrt4(simdvec4 v1)
 {
-    return _mm_rsqrt_ps(v1);
+	return _mm_rsqrt_ps(v1);
 }
 istForceInline simdvec4 sqrt4(simdvec4 v1)
 {
-    return _mm_sqrt_ps(v1);
+	return _mm_sqrt_ps(v1);
 }
 
 istForceInline simdvec4 dot4(simdvec4 v1, simdvec4 v2)
 {
-    return XMVector4Dot(v1, v2);
+	return XMVector4Dot(v1, v2);
 }
 
 istForceInline simdvec4 length_sq4(simdvec4 v1)
 {
-    return XMVector4LengthSq(v1);
+	return XMVector4LengthSq(v1);
 }
 
 istForceInline simdvec4 length4(simdvec4 v1)
 {
-    return XMVector4LengthEst(v1);
+	return XMVector4LengthEst(v1);
 }
 
 
@@ -91,20 +91,20 @@ template<class simdvec> struct simdvec_traits;
 template<>
 struct simdvec_traits<simdvec4>
 {
-    enum{ simd_elements = 4 };
+	enum{ simd_elements = 4 };
 };
 template<>
 struct simdvec_traits<simdvec8>
 {
-    enum{ simd_elements = 8 };
+	enum{ simd_elements = 8 };
 };
 
 
 template<class soavec>
 struct soavec_traits
 {
-    enum{ soa_elements  = soavec::soa_elements };
-    enum{ simd_elements = soavec::simd_elements };
+	enum{ soa_elements  = soavec::soa_elements };
+	enum{ simd_elements = soavec::simd_elements };
 };
 
 
@@ -112,77 +112,77 @@ struct soavec_traits
 template<class simdvec>
 struct tsoavec2x
 {
-    typedef simdvec simdvec_t;
-    enum{
-        soa_elements  = 2,
-        simd_elements = simdvec_traits<simdvec_t>::simd_elements,
-    };
+	typedef simdvec simdvec_t;
+	enum{
+		soa_elements  = 2,
+		simd_elements = simdvec_traits<simdvec_t>::simd_elements,
+	};
 
-    simdvec sv[2];
+	simdvec sv[2];
 
-    istForceInline tsoavec2x() {}
-    istForceInline tsoavec2x(const simdvec *_v) { sv[0]=_sv[0]; sv[1]=_sv[1]; }
-    istForceInline tsoavec2x(const simdvec &_x, const simdvec &_y) { sv[0]=_x; sv[1]=_y; }
-    istForceInline simdvec x() const { return sv[0]; }
-    istForceInline simdvec y() const { return sv[1]; }
-    istForceInline void x(const simdvec &_v) { sv[0]=_v; }
-    istForceInline void y(const simdvec &_v) { sv[1]=_v; }
-    istForceInline simdvec& operator[](int i) { return sv[i]; }
-    istForceInline const simdvec& operator[](int i) const { return sv[i]; }
+	istForceInline tsoavec2x() {}
+	istForceInline tsoavec2x(const simdvec *_v) { sv[0]=_sv[0]; sv[1]=_sv[1]; }
+	istForceInline tsoavec2x(const simdvec &_x, const simdvec &_y) { sv[0]=_x; sv[1]=_y; }
+	istForceInline simdvec x() const { return sv[0]; }
+	istForceInline simdvec y() const { return sv[1]; }
+	istForceInline void x(const simdvec &_v) { sv[0]=_v; }
+	istForceInline void y(const simdvec &_v) { sv[1]=_v; }
+	istForceInline simdvec& operator[](int i) { return sv[i]; }
+	istForceInline const simdvec& operator[](int i) const { return sv[i]; }
 };
 
 template<class simdvec>
 struct tsoavec3x
 {
-    typedef simdvec simdvec_t;
-    enum{
-        soa_elements  = 3,
-        simd_elements = simdvec_traits<simdvec_t>::simd_elements,
-    };
+	typedef simdvec simdvec_t;
+	enum{
+		soa_elements  = 3,
+		simd_elements = simdvec_traits<simdvec_t>::simd_elements,
+	};
 
-    simdvec sv[3];
+	simdvec sv[3];
 
-    istForceInline tsoavec3x() {}
-    istForceInline tsoavec3x(const simdvec *_v) { sv[0]=_sv[0]; sv[1]=_sv[1]; sv[2]=_sv[2]; }
-    istForceInline tsoavec3x(const simdvec &_x, const simdvec &_y, const simdvec &_z) { sv[0]=_x; sv[1]=_y; sv[2]=_z; }
-    istForceInline simdvec x() const { return sv[0]; }
-    istForceInline simdvec y() const { return sv[1]; }
-    istForceInline simdvec z() const { return sv[2]; }
-    istForceInline void x(const simdvec &_v) { sv[0]=_v; }
-    istForceInline void y(const simdvec &_v) { sv[1]=_v; }
-    istForceInline void z(const simdvec &_v) { sv[2]=_v; }
-    istForceInline simdvec& operator[](int i) { return sv[i]; }
-    istForceInline const simdvec& operator[](int i) const { return sv[i]; }
+	istForceInline tsoavec3x() {}
+	istForceInline tsoavec3x(const simdvec *_v) { sv[0]=_sv[0]; sv[1]=_sv[1]; sv[2]=_sv[2]; }
+	istForceInline tsoavec3x(const simdvec &_x, const simdvec &_y, const simdvec &_z) { sv[0]=_x; sv[1]=_y; sv[2]=_z; }
+	istForceInline simdvec x() const { return sv[0]; }
+	istForceInline simdvec y() const { return sv[1]; }
+	istForceInline simdvec z() const { return sv[2]; }
+	istForceInline void x(const simdvec &_v) { sv[0]=_v; }
+	istForceInline void y(const simdvec &_v) { sv[1]=_v; }
+	istForceInline void z(const simdvec &_v) { sv[2]=_v; }
+	istForceInline simdvec& operator[](int i) { return sv[i]; }
+	istForceInline const simdvec& operator[](int i) const { return sv[i]; }
 };
 
 template<class simdvec>
 struct tsoavec4x
 {
-    typedef simdvec simdvec_t;
-    typedef tsoavec3x<simdvec_t> soavec3x;
-    enum{
-        soa_elements  = 4,
-        simd_elements = simdvec_traits<simdvec_t>::simd_elements,
-    };
+	typedef simdvec simdvec_t;
+	typedef tsoavec3x<simdvec_t> soavec3x;
+	enum{
+		soa_elements  = 4,
+		simd_elements = simdvec_traits<simdvec_t>::simd_elements,
+	};
 
-    simdvec sv[4];
+	simdvec sv[4];
 
-    istForceInline tsoavec4x() {}
-    istForceInline tsoavec4x(const simdvec *_v) { sv[0]=_sv[0]; sv[1]=_sv[1]; sv[2]=_sv[2]; sv[3]=_sv[3]; }
-    istForceInline tsoavec4x(const simdvec &_x, const simdvec &_y, const simdvec &_z, const simdvec &_w) { sv[0]=_x; sv[1]=_y; sv[2]=_z; sv[3]=_w; }
-    istForceInline tsoavec4x(const soavec3x &_xyz, const simdvec &_w) { sv[0]=_xyz.sv[0]; sv[1]=_xyz.sv[1]; sv[2]=_xyz.sv[2]; sv[3]=_w; }
-    istForceInline simdvec x() const { return sv[0]; }
-    istForceInline simdvec y() const { return sv[1]; }
-    istForceInline simdvec z() const { return sv[2]; }
-    istForceInline simdvec w() const { return sv[3]; }
-    istForceInline soavec3x xyz() const { return soavec3x(sv[0], sv[1], sv[2]); }
-    istForceInline void x(const simdvec &_v) { sv[0]=_v; }
-    istForceInline void y(const simdvec &_v) { sv[1]=_v; }
-    istForceInline void z(const simdvec &_v) { sv[2]=_v; }
-    istForceInline void w(const simdvec &_v) { sv[3]=_v; }
-    istForceInline void xyz(const soavec3x &_v) { sv[0]=_v.sv[0]; sv[1]=_v.sv[1]; sv[2]=_v.sv[2]; }
-    istForceInline simdvec& operator[](int i) { return sv[i]; }
-    istForceInline const simdvec& operator[](int i) const { return sv[i]; }
+	istForceInline tsoavec4x() {}
+	istForceInline tsoavec4x(const simdvec *_v) { sv[0]=_sv[0]; sv[1]=_sv[1]; sv[2]=_sv[2]; sv[3]=_sv[3]; }
+	istForceInline tsoavec4x(const simdvec &_x, const simdvec &_y, const simdvec &_z, const simdvec &_w) { sv[0]=_x; sv[1]=_y; sv[2]=_z; sv[3]=_w; }
+	istForceInline tsoavec4x(const soavec3x &_xyz, const simdvec &_w) { sv[0]=_xyz.sv[0]; sv[1]=_xyz.sv[1]; sv[2]=_xyz.sv[2]; sv[3]=_w; }
+	istForceInline simdvec x() const { return sv[0]; }
+	istForceInline simdvec y() const { return sv[1]; }
+	istForceInline simdvec z() const { return sv[2]; }
+	istForceInline simdvec w() const { return sv[3]; }
+	istForceInline soavec3x xyz() const { return soavec3x(sv[0], sv[1], sv[2]); }
+	istForceInline void x(const simdvec &_v) { sv[0]=_v; }
+	istForceInline void y(const simdvec &_v) { sv[1]=_v; }
+	istForceInline void z(const simdvec &_v) { sv[2]=_v; }
+	istForceInline void w(const simdvec &_v) { sv[3]=_v; }
+	istForceInline void xyz(const soavec3x &_v) { sv[0]=_v.sv[0]; sv[1]=_v.sv[1]; sv[2]=_v.sv[2]; }
+	istForceInline simdvec& operator[](int i) { return sv[i]; }
+	istForceInline const simdvec& operator[](int i) const { return sv[i]; }
 };
 
 typedef __declspec(align(16)) tsoavec2x<simdvec4> soavec24;
@@ -195,25 +195,25 @@ typedef __declspec(align(32)) tsoavec4x<simdvec8> soavec48;
 
 namespace detail {
 
-    template<size_t S> struct soa_types;
+	template<size_t S> struct soa_types;
 
-    template<>
-    struct soa_types<4>
-    {
-        typedef simdvec4 simdvec;
-        typedef soavec24 soavec2x;
-        typedef soavec34 soavec3x;
-        typedef soavec44 soavec4x;
-    };
+	template<>
+	struct soa_types<4>
+	{
+		typedef simdvec4 simdvec;
+		typedef soavec24 soavec2x;
+		typedef soavec34 soavec3x;
+		typedef soavec44 soavec4x;
+	};
 
-    template<>
-    struct soa_types<8>
-    {
-        typedef simdvec8 simdvec;
-        typedef soavec28 soavec2x;
-        typedef soavec38 soavec3x;
-        typedef soavec48 soavec4x;
-    };
+	template<>
+	struct soa_types<8>
+	{
+		typedef simdvec8 simdvec;
+		typedef soavec28 soavec2x;
+		typedef soavec38 soavec3x;
+		typedef soavec48 soavec4x;
+	};
 
 } // namespace detail
 
@@ -232,12 +232,12 @@ namespace detail {
 //      y[0], 0.0f, 0.0f, 0.0f
 inline soavec24 soa_transpose24(const simdvec4 &v0)
 {
-    __m128 zero = _mm_set_ps1(0.0f);
-    __m128 r1 = _mm_unpacklo_ps(v0, zero);
-    __m128 r2 = zero;
-    return soavec24(
-        _mm_shuffle_ps(r1, r2, SSE_SHUFFLE(0,1,0,1)),
-        _mm_shuffle_ps(r1, r2, SSE_SHUFFLE(2,3,2,3)) );
+	__m128 zero = _mm_set_ps1(0.0f);
+	__m128 r1 = _mm_unpacklo_ps(v0, zero);
+	__m128 r2 = zero;
+	return soavec24(
+		_mm_shuffle_ps(r1, r2, SSE_SHUFFLE(0,1,0,1)),
+		_mm_shuffle_ps(r1, r2, SSE_SHUFFLE(2,3,2,3)) );
 }
 
 // in:  {x,y,z,w}[2]
@@ -246,12 +246,12 @@ inline soavec24 soa_transpose24(const simdvec4 &v0)
 //      y[0], y[1], 0.0f, 0.0f
 inline soavec24 soa_transpose24(const simdvec4 &v0, const simdvec4 &v1)
 {
-    __m128 zero = _mm_set_ps1(0.0f);
-    __m128 r1 = _mm_unpacklo_ps(v0, v1);
-    __m128 r2 = zero;
-    return soavec24(
-        _mm_shuffle_ps(r1, r2, SSE_SHUFFLE(0,1,0,1)),
-        _mm_shuffle_ps(r1, r2, SSE_SHUFFLE(2,3,2,3)) );
+	__m128 zero = _mm_set_ps1(0.0f);
+	__m128 r1 = _mm_unpacklo_ps(v0, v1);
+	__m128 r2 = zero;
+	return soavec24(
+		_mm_shuffle_ps(r1, r2, SSE_SHUFFLE(0,1,0,1)),
+		_mm_shuffle_ps(r1, r2, SSE_SHUFFLE(2,3,2,3)) );
 }
 
 // in:  {x,y,z,w}[3]
@@ -260,12 +260,12 @@ inline soavec24 soa_transpose24(const simdvec4 &v0, const simdvec4 &v1)
 //      y[0], y[1], y[2], 0.0f
 inline soavec24 soa_transpose24(const simdvec4 &v0, const simdvec4 &v1, const simdvec4 &v2)
 {
-    __m128 zero = _mm_set_ps1(0.0f);
-    __m128 r1 = _mm_unpacklo_ps(v0, v1);
-    __m128 r2 = _mm_unpacklo_ps(v2, zero);
-    return soavec24(
-        _mm_shuffle_ps(r1, r2, SSE_SHUFFLE(0,1,0,1)),
-        _mm_shuffle_ps(r1, r2, SSE_SHUFFLE(2,3,2,3)) );
+	__m128 zero = _mm_set_ps1(0.0f);
+	__m128 r1 = _mm_unpacklo_ps(v0, v1);
+	__m128 r2 = _mm_unpacklo_ps(v2, zero);
+	return soavec24(
+		_mm_shuffle_ps(r1, r2, SSE_SHUFFLE(0,1,0,1)),
+		_mm_shuffle_ps(r1, r2, SSE_SHUFFLE(2,3,2,3)) );
 }
 
 // in:  {x,y,z,w}[4]
@@ -274,11 +274,11 @@ inline soavec24 soa_transpose24(const simdvec4 &v0, const simdvec4 &v1, const si
 //      y[0], y[1], y[2], y[3]
 inline soavec24 soa_transpose24(const simdvec4 &v0, const simdvec4 &v1, const simdvec4 &v2, const simdvec4 &v3)
 {
-    __m128 r1 = _mm_unpacklo_ps(v0, v1);
-    __m128 r2 = _mm_unpacklo_ps(v2, v3);
-    return soavec24(
-        _mm_shuffle_ps(r1, r2, SSE_SHUFFLE(0,1,0,1)),
-        _mm_shuffle_ps(r1, r2, SSE_SHUFFLE(2,3,2,3)) );
+	__m128 r1 = _mm_unpacklo_ps(v0, v1);
+	__m128 r2 = _mm_unpacklo_ps(v2, v3);
+	return soavec24(
+		_mm_shuffle_ps(r1, r2, SSE_SHUFFLE(0,1,0,1)),
+		_mm_shuffle_ps(r1, r2, SSE_SHUFFLE(2,3,2,3)) );
 }
 
 
@@ -291,15 +291,15 @@ inline soavec24 soa_transpose24(const simdvec4 &v0, const simdvec4 &v1, const si
 //      z[0], 0.0f, 0.0f, 0.0f
 inline soavec34 soa_transpose34(const simdvec4 &v0)
 {
-    __m128 zero = _mm_set_ps1(0.0f);
-    __m128 r1 = _mm_unpacklo_ps(v0, zero);
-    __m128 r2 = zero;
-    __m128 r3 = _mm_unpackhi_ps(v0, zero);
-    __m128 r4 = zero;
-    return soavec34(
-        _mm_shuffle_ps(r1, r2, SSE_SHUFFLE(0,1,0,1)),
-        _mm_shuffle_ps(r1, r2, SSE_SHUFFLE(2,3,2,3)),
-        _mm_shuffle_ps(r3, r4, SSE_SHUFFLE(0,1,0,1)) );
+	__m128 zero = _mm_set_ps1(0.0f);
+	__m128 r1 = _mm_unpacklo_ps(v0, zero);
+	__m128 r2 = zero;
+	__m128 r3 = _mm_unpackhi_ps(v0, zero);
+	__m128 r4 = zero;
+	return soavec34(
+		_mm_shuffle_ps(r1, r2, SSE_SHUFFLE(0,1,0,1)),
+		_mm_shuffle_ps(r1, r2, SSE_SHUFFLE(2,3,2,3)),
+		_mm_shuffle_ps(r3, r4, SSE_SHUFFLE(0,1,0,1)) );
 }
 
 // in:  {x,y,z,w}[2]
@@ -309,15 +309,15 @@ inline soavec34 soa_transpose34(const simdvec4 &v0)
 //      z[0], z[1], 0.0f, 0.0f
 inline soavec34 soa_transpose34(const simdvec4 &v0, const simdvec4 &v1)
 {
-    __m128 zero = _mm_set_ps1(0.0f);
-    __m128 r1 = _mm_unpacklo_ps(v0, v1);
-    __m128 r2 = zero;
-    __m128 r3 = _mm_unpackhi_ps(v0, v1);
-    __m128 r4 = zero;
-    return soavec34(
-        _mm_shuffle_ps(r1, r2, SSE_SHUFFLE(0,1,0,1)),
-        _mm_shuffle_ps(r1, r2, SSE_SHUFFLE(2,3,2,3)),
-        _mm_shuffle_ps(r3, r4, SSE_SHUFFLE(0,1,0,1)) );
+	__m128 zero = _mm_set_ps1(0.0f);
+	__m128 r1 = _mm_unpacklo_ps(v0, v1);
+	__m128 r2 = zero;
+	__m128 r3 = _mm_unpackhi_ps(v0, v1);
+	__m128 r4 = zero;
+	return soavec34(
+		_mm_shuffle_ps(r1, r2, SSE_SHUFFLE(0,1,0,1)),
+		_mm_shuffle_ps(r1, r2, SSE_SHUFFLE(2,3,2,3)),
+		_mm_shuffle_ps(r3, r4, SSE_SHUFFLE(0,1,0,1)) );
 }
 
 // in:  {x,y,z,w}[3]
@@ -327,15 +327,15 @@ inline soavec34 soa_transpose34(const simdvec4 &v0, const simdvec4 &v1)
 //      z[0], z[1], z[2], 0.0f
 inline soavec34 soa_transpose34(const simdvec4 &v0, const simdvec4 &v1, const simdvec4 &v2)
 {
-    __m128 zero = _mm_set_ps1(0.0f);
-    __m128 r1 = _mm_unpacklo_ps(v0, v1);
-    __m128 r2 = _mm_unpacklo_ps(v2, zero);
-    __m128 r3 = _mm_unpackhi_ps(v0, v1);
-    __m128 r4 = _mm_unpackhi_ps(v2, zero);
-    return soavec34(
-        _mm_shuffle_ps(r1, r2, SSE_SHUFFLE(0,1,0,1)),
-        _mm_shuffle_ps(r1, r2, SSE_SHUFFLE(2,3,2,3)),
-        _mm_shuffle_ps(r3, r4, SSE_SHUFFLE(0,1,0,1)) );
+	__m128 zero = _mm_set_ps1(0.0f);
+	__m128 r1 = _mm_unpacklo_ps(v0, v1);
+	__m128 r2 = _mm_unpacklo_ps(v2, zero);
+	__m128 r3 = _mm_unpackhi_ps(v0, v1);
+	__m128 r4 = _mm_unpackhi_ps(v2, zero);
+	return soavec34(
+		_mm_shuffle_ps(r1, r2, SSE_SHUFFLE(0,1,0,1)),
+		_mm_shuffle_ps(r1, r2, SSE_SHUFFLE(2,3,2,3)),
+		_mm_shuffle_ps(r3, r4, SSE_SHUFFLE(0,1,0,1)) );
 }
 
 // in:  {x,y,z,w}[4]
@@ -345,14 +345,14 @@ inline soavec34 soa_transpose34(const simdvec4 &v0, const simdvec4 &v1, const si
 //      z[0], z[1], z[2], z[3]
 inline soavec34 soa_transpose34(const simdvec4 &v0, const simdvec4 &v1, const simdvec4 &v2, const simdvec4 &v3)
 {
-    __m128 r1 = _mm_unpacklo_ps(v0, v1);
-    __m128 r2 = _mm_unpacklo_ps(v2, v3);
-    __m128 r3 = _mm_unpackhi_ps(v0, v1);
-    __m128 r4 = _mm_unpackhi_ps(v2, v3);
-    return soavec34(
-        _mm_shuffle_ps(r1, r2, SSE_SHUFFLE(0,1,0,1)),
-        _mm_shuffle_ps(r1, r2, SSE_SHUFFLE(2,3,2,3)),
-        _mm_shuffle_ps(r3, r4, SSE_SHUFFLE(0,1,0,1)) );
+	__m128 r1 = _mm_unpacklo_ps(v0, v1);
+	__m128 r2 = _mm_unpacklo_ps(v2, v3);
+	__m128 r3 = _mm_unpackhi_ps(v0, v1);
+	__m128 r4 = _mm_unpackhi_ps(v2, v3);
+	return soavec34(
+		_mm_shuffle_ps(r1, r2, SSE_SHUFFLE(0,1,0,1)),
+		_mm_shuffle_ps(r1, r2, SSE_SHUFFLE(2,3,2,3)),
+		_mm_shuffle_ps(r3, r4, SSE_SHUFFLE(0,1,0,1)) );
 }
 
 
@@ -366,16 +366,16 @@ inline soavec34 soa_transpose34(const simdvec4 &v0, const simdvec4 &v1, const si
 //      w[0], 0.0f, 0.0f, 0.0f
 inline soavec44 soa_transpose44(const simdvec4 &v0)
 {
-    __m128 zero = _mm_set_ps1(0.0f);
-    __m128 r1 = _mm_unpacklo_ps(v0, zero);
-    __m128 r2 = zero;
-    __m128 r3 = _mm_unpackhi_ps(v0, zero);
-    __m128 r4 = zero;
-    return soavec44(
-        _mm_shuffle_ps(r1, r2, SSE_SHUFFLE(0,1,0,1)),
-        _mm_shuffle_ps(r1, r2, SSE_SHUFFLE(2,3,2,3)),
-        _mm_shuffle_ps(r3, r4, SSE_SHUFFLE(0,1,0,1)),
-        _mm_shuffle_ps(r3, r4, SSE_SHUFFLE(2,3,2,3)) );
+	__m128 zero = _mm_set_ps1(0.0f);
+	__m128 r1 = _mm_unpacklo_ps(v0, zero);
+	__m128 r2 = zero;
+	__m128 r3 = _mm_unpackhi_ps(v0, zero);
+	__m128 r4 = zero;
+	return soavec44(
+		_mm_shuffle_ps(r1, r2, SSE_SHUFFLE(0,1,0,1)),
+		_mm_shuffle_ps(r1, r2, SSE_SHUFFLE(2,3,2,3)),
+		_mm_shuffle_ps(r3, r4, SSE_SHUFFLE(0,1,0,1)),
+		_mm_shuffle_ps(r3, r4, SSE_SHUFFLE(2,3,2,3)) );
 }
 
 // in:  {x,y,z,w}[2]
@@ -386,16 +386,16 @@ inline soavec44 soa_transpose44(const simdvec4 &v0)
 //      w[0], w[1], 0.0f, 0.0f
 inline soavec44 soa_transpose44(const simdvec4 &v0, const simdvec4 &v1)
 {
-    __m128 zero = _mm_set_ps1(0.0f);
-    __m128 r1 = _mm_unpacklo_ps(v0, v1);
-    __m128 r2 = zero;
-    __m128 r3 = _mm_unpackhi_ps(v0, v1);
-    __m128 r4 = zero;
-    return soavec44(
-        _mm_shuffle_ps(r1, r2, SSE_SHUFFLE(0,1,0,1)),
-        _mm_shuffle_ps(r1, r2, SSE_SHUFFLE(2,3,2,3)),
-        _mm_shuffle_ps(r3, r4, SSE_SHUFFLE(0,1,0,1)),
-        _mm_shuffle_ps(r3, r4, SSE_SHUFFLE(2,3,2,3)) );
+	__m128 zero = _mm_set_ps1(0.0f);
+	__m128 r1 = _mm_unpacklo_ps(v0, v1);
+	__m128 r2 = zero;
+	__m128 r3 = _mm_unpackhi_ps(v0, v1);
+	__m128 r4 = zero;
+	return soavec44(
+		_mm_shuffle_ps(r1, r2, SSE_SHUFFLE(0,1,0,1)),
+		_mm_shuffle_ps(r1, r2, SSE_SHUFFLE(2,3,2,3)),
+		_mm_shuffle_ps(r3, r4, SSE_SHUFFLE(0,1,0,1)),
+		_mm_shuffle_ps(r3, r4, SSE_SHUFFLE(2,3,2,3)) );
 }
 
 // in:  {x,y,z,w}[3]
@@ -406,16 +406,16 @@ inline soavec44 soa_transpose44(const simdvec4 &v0, const simdvec4 &v1)
 //      w[0], w[1], w[2], 0.0f
 inline soavec44 soa_transpose44(const simdvec4 &v0, const simdvec4 &v1, const simdvec4 &v2)
 {
-    __m128 zero = _mm_set_ps1(0.0f);
-    __m128 r1 = _mm_unpacklo_ps(v0, v1);
-    __m128 r2 = _mm_unpacklo_ps(v2, zero);
-    __m128 r3 = _mm_unpackhi_ps(v0, v1);
-    __m128 r4 = _mm_unpackhi_ps(v2, zero);
-    return soavec44(
-        _mm_shuffle_ps(r1, r2, SSE_SHUFFLE(0,1,0,1)),
-        _mm_shuffle_ps(r1, r2, SSE_SHUFFLE(2,3,2,3)),
-        _mm_shuffle_ps(r3, r4, SSE_SHUFFLE(0,1,0,1)),
-        _mm_shuffle_ps(r3, r4, SSE_SHUFFLE(2,3,2,3)) );
+	__m128 zero = _mm_set_ps1(0.0f);
+	__m128 r1 = _mm_unpacklo_ps(v0, v1);
+	__m128 r2 = _mm_unpacklo_ps(v2, zero);
+	__m128 r3 = _mm_unpackhi_ps(v0, v1);
+	__m128 r4 = _mm_unpackhi_ps(v2, zero);
+	return soavec44(
+		_mm_shuffle_ps(r1, r2, SSE_SHUFFLE(0,1,0,1)),
+		_mm_shuffle_ps(r1, r2, SSE_SHUFFLE(2,3,2,3)),
+		_mm_shuffle_ps(r3, r4, SSE_SHUFFLE(0,1,0,1)),
+		_mm_shuffle_ps(r3, r4, SSE_SHUFFLE(2,3,2,3)) );
 }
 
 // in:  {x,y,z,w}[4]
@@ -426,15 +426,15 @@ inline soavec44 soa_transpose44(const simdvec4 &v0, const simdvec4 &v1, const si
 //      w[0], w[1], w[2], w[3]
 inline soavec44 soa_transpose44(const simdvec4 &v0, const simdvec4 &v1, const simdvec4 &v2, const simdvec4 &v3)
 {
-    __m128 r1 = _mm_unpacklo_ps(v0, v1);
-    __m128 r2 = _mm_unpacklo_ps(v2, v3);
-    __m128 r3 = _mm_unpackhi_ps(v0, v1);
-    __m128 r4 = _mm_unpackhi_ps(v2, v3);
-    return soavec44(
-        _mm_shuffle_ps(r1, r2, SSE_SHUFFLE(0,1,0,1)),
-        _mm_shuffle_ps(r1, r2, SSE_SHUFFLE(2,3,2,3)),
-        _mm_shuffle_ps(r3, r4, SSE_SHUFFLE(0,1,0,1)),
-        _mm_shuffle_ps(r3, r4, SSE_SHUFFLE(2,3,2,3)) );
+	__m128 r1 = _mm_unpacklo_ps(v0, v1);
+	__m128 r2 = _mm_unpacklo_ps(v2, v3);
+	__m128 r3 = _mm_unpackhi_ps(v0, v1);
+	__m128 r4 = _mm_unpackhi_ps(v2, v3);
+	return soavec44(
+		_mm_shuffle_ps(r1, r2, SSE_SHUFFLE(0,1,0,1)),
+		_mm_shuffle_ps(r1, r2, SSE_SHUFFLE(2,3,2,3)),
+		_mm_shuffle_ps(r3, r4, SSE_SHUFFLE(0,1,0,1)),
+		_mm_shuffle_ps(r3, r4, SSE_SHUFFLE(2,3,2,3)) );
 }
 
 

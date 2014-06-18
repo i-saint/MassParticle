@@ -196,7 +196,6 @@
     <ClInclude Include="..\MassParticle.h" />
     <ClInclude Include="..\SoA.h" />
     <ClInclude Include="..\mpCollision.h" />
-    <ClInclude Include="..\mpConst.h" />
     <ClInclude Include="..\mpTypes.h" />
     <ClInclude Include="..\UnityPluginInterface.h" />
   </ItemGroup>

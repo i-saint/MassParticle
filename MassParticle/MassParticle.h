@@ -10,24 +10,25 @@
 
 enum mpForceShape
 {
-    mpFS_AffectAll,
-    mpFS_Sphere,
-    mpFS_Box,
+	mpFS_AffectAll,
+	mpFS_Sphere,
+	mpFS_Box,
 };
 
 enum mpForceDirection
 {
-    mpFD_Directional,
-    mpFD_Radial,
-    mpFD_Vortex,      // todo:
-    mpFD_Spline,      // 
-    mpFD_VectorField, //
+	mpFD_Directional,
+	mpFD_Radial,
+	mpFD_Vortex,      // todo:
+	mpFD_Spline,      // 
+	mpFD_VectorField, //
 };
 
 extern "C" EXPORT_API void          mpReloadShader();
 
-extern "C" EXPORT_API void          mpClearParticles();
 extern "C" EXPORT_API void          mpUpdate(float dt);
+extern "C" EXPORT_API void          mpClearParticles();
+extern "C" EXPORT_API void          mpClearCollidersAndForces();
 
 extern "C" EXPORT_API void          mpSetViewProjectionMatrix(XMFLOAT4X4 view, XMFLOAT4X4 proj, XMFLOAT3 camerapos);
 extern "C" EXPORT_API ispc::KernelParams mpGetKernelParams();
@@ -37,22 +38,21 @@ extern "C" EXPORT_API uint32_t      mpGetNumParticles();
 extern "C" EXPORT_API mpParticle*   mpGetParticles();
 extern "C" EXPORT_API void          mpCopyParticles(mpParticle *dst);
 extern "C" EXPORT_API void          mpWriteParticles(const mpParticle *from);
-extern "C" EXPORT_API int32_t       mpPutParticles(mpParticle *particles, int32_t num_particles);
-extern "C" EXPORT_API int32_t       mpScatterParticlesSphere(XMFLOAT3 center, float radius, int32_t num, XMFLOAT3 vel, float vel_diffuse);
-extern "C" EXPORT_API int32_t       mpScatterParticlesBox(XMFLOAT3 center, XMFLOAT3 size, int32_t num, XMFLOAT3 vel, float vel_diffuse);
-extern "C" EXPORT_API int32_t       mpScatterParticlesSphereTransform(XMFLOAT4X4 transform, int32_t num, XMFLOAT3 vel, float vel_diffuse);
-extern "C" EXPORT_API int32_t       mpScatterParticlesBoxTransform(XMFLOAT4X4 transform, int32_t num, XMFLOAT3 vel, float vel_diffuse);
-
-extern "C" EXPORT_API uint32_t      mpAddBoxCollider(int32_t owner, XMFLOAT4X4 transform, XMFLOAT3 size);
-extern "C" EXPORT_API uint32_t      mpAddSphereCollider(int32_t owner, XMFLOAT3 center, float radius);
-extern "C" EXPORT_API uint32_t      mpAddForce(int force_shape, XMFLOAT4X4 trans, int force_direction, ispc::ForceParams p);
+extern "C" EXPORT_API void          mpPutParticles(mpParticle *particles, int32_t num_particles);
+extern "C" EXPORT_API void          mpScatterParticlesSphere(XMFLOAT3 center, float radius, int32_t num, XMFLOAT3 vel, float vel_diffuse);
+extern "C" EXPORT_API void          mpScatterParticlesBox(XMFLOAT3 center, XMFLOAT3 size, int32_t num, XMFLOAT3 vel, float vel_diffuse);
+extern "C" EXPORT_API void          mpScatterParticlesSphereTransform(XMFLOAT4X4 transform, int32_t num, XMFLOAT3 vel, float vel_diffuse);
+extern "C" EXPORT_API void          mpScatterParticlesBoxTransform(XMFLOAT4X4 transform, int32_t num, XMFLOAT3 vel, float vel_diffuse);
+extern "C" EXPORT_API void          mpAddBoxCollider(int32_t owner, XMFLOAT4X4 transform, XMFLOAT3 size);
+extern "C" EXPORT_API void          mpAddSphereCollider(int32_t owner, XMFLOAT3 center, float radius);
+extern "C" EXPORT_API void          mpAddForce(int force_shape, XMFLOAT4X4 trans, int force_direction, ispc::ForceParams p);
 
 
 
 
 inline float mpGenRand()
 {
-    return float((rand() - (RAND_MAX / 2)) * 2) / (float)RAND_MAX;
+	return float((rand() - (RAND_MAX / 2)) * 2) / (float)RAND_MAX;
 }
 // 0.0f-1.0f
 inline float mpGenRand1() { return (float)rand() / RAND_MAX; }

@@ -73,8 +73,10 @@ public class mp {
 	}
 
 
-	[DllImport ("MassParticle")] public static extern void mpSetViewProjectionMatrix(Matrix4x4 view, Matrix4x4 proj, Vector3 cameraPos);
+	[DllImport ("MassParticle")] public static extern void mpUpdate (float dt);
 	[DllImport ("MassParticle")] public static extern void mpClearParticles();
+	[DllImport ("MassParticle")] public static extern void mpClearCollidersAndForces();
+	[DllImport ("MassParticle")] public static extern void mpSetViewProjectionMatrix(Matrix4x4 view, Matrix4x4 proj, Vector3 cameraPos);
 	[DllImport ("MassParticle")] public static extern void mpReloadShader ();
 	[DllImport ("MassParticle")] public static extern mpKernelParams mpGetKernelParams();
 	[DllImport ("MassParticle")] public static extern void mpSetKernelParams(ref mpKernelParams p);
@@ -84,7 +86,6 @@ public class mp {
 	[DllImport ("MassParticle")] unsafe public static extern void mpCopyParticles (mpParticle *dst);
 	[DllImport ("MassParticle")] unsafe public static extern void mpWriteParticles(mpParticle *from);
 
-	[DllImport ("MassParticle")] public static extern void mpUpdate (float dt);
 
 	[DllImport ("MassParticle")] public static extern int mpAddSphereCollider(int owner, Vector3 center, float radius);
 	[DllImport ("MassParticle")] public static extern int mpAddBoxCollider(int owner, Matrix4x4 transform, Vector3 size);

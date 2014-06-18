@@ -8,174 +8,174 @@ typedef int id_type;
 
 struct Plane
 {
-    float nx, ny, nz;
-    float distance;
+	float nx, ny, nz;
+	float distance;
 };
 
 struct BoundingBox
 {
-    float bl_x, bl_y, bl_z;
-    float ur_x, ur_y, ur_z;
+	float bl_x, bl_y, bl_z;
+	float ur_x, ur_y, ur_z;
 };
 
 struct Sphere
 {
-    float x, y, z;
-    float radius;
+	float x, y, z;
+	float radius;
 };
 
 struct Box
 {
-    Plane planes[6];
-    float x, y, z;
+	Plane planes[6];
+	float x, y, z;
 };
 
 struct SphereCollider
 {
-    id_type id;
-    BoundingBox bb;
-    float x, y, z;
-    float radius;
+	id_type id;
+	BoundingBox bb;
+	float x, y, z;
+	float radius;
 };
 
 struct CapsuleCollider
 {
-    id_type id;
-    BoundingBox bb;
-    float x1, y1, z1;
-    float x2, y2, z2;
-    float radius;
+	id_type id;
+	BoundingBox bb;
+	float x1, y1, z1;
+	float x2, y2, z2;
+	float radius;
 };
 
 struct PlaneCollider
 {
-    id_type id;
-    BoundingBox bb;
-    float nx, ny, nz;
-    float distance;
+	id_type id;
+	BoundingBox bb;
+	float nx, ny, nz;
+	float distance;
 };
 
 struct BoxCollider
 {
-    id_type id;
-    BoundingBox bb;
-    float x, y, z;
-    Plane planes[6];
+	id_type id;
+	BoundingBox bb;
+	float x, y, z;
+	Plane planes[6];
 };
 
 
 struct PointForce
 {
-    float x, y, z;
-    float strength;
+	float x, y, z;
+	float strength;
 };
 
 struct DirectionalForce
 {
-    float nx, ny, nz;
-    float strength;
+	float nx, ny, nz;
+	float strength;
 };
 
 struct BoxForce
 {
-    float nx, ny, nz;
-    float strength;
-    Box box;
+	float nx, ny, nz;
+	float strength;
+	Box box;
 };
 
 
 enum ForceShape
 {
-    FS_AffectAll,
-    FS_Sphere,
-    FS_Box,
+	FS_AffectAll,
+	FS_Sphere,
+	FS_Box,
 };
 
 enum ForceDirection
 {
-    FD_Directional,
-    FD_Radial,
-    FD_Vortex,      // todo:
-    FD_Spline,      // 
-    FD_VectorField, //
+	FD_Directional,
+	FD_Radial,
+	FD_Vortex,      // todo:
+	FD_Spline,      // 
+	FD_VectorField, //
 };
 
 struct ForceParams
 {
-    float x, y, z; // direction for plane, position for other shapes
-    float strength;
-    float strength_random_diffuse;
+	float x, y, z; // direction for plane, position for other shapes
+	float strength;
+	float strength_random_diffuse;
 };
 
 struct Force
 {
-    int shape_type; // ForceShape
-    int dir_type; // ForceDirection
+	int shape_type; // ForceShape
+	int dir_type; // ForceDirection
 
-    BoundingBox bb;
-    // union doesn't exists in ISPC :(
-    Sphere              shape_sphere;
-    Box                 shape_box;
+	BoundingBox bb;
+	// union doesn't exists in ISPC :(
+	Sphere              shape_sphere;
+	Box                 shape_box;
 
-    ForceParams params;
+	ForceParams params;
 };
 
 
 struct Particle
 {
-    float   x, y, z;
-    float   vx, vy, vz;
-    float   speed;
-    float   density;
-    int     hit;
+	float   x, y, z;
+	float   vx, vy, vz;
+	float   speed;
+	float   density;
+	int     hit;
 };
 
 struct ParticleIMData
 {
-    float ax, ay, az;
-    float affection;
-    float distance_sq;
+	float ax, ay, az;
+	float affection;
+	float distance_sq;
 };
 
 struct GridData
 {
-    int begin, end;
-    int soai;
-    float density;
+	int begin, end;
+	int soai;
+	float density;
 };
 
 struct KernelParams
 {
-    float WorldCenter_x;
-    float WorldCenter_y;
-    float WorldCenter_z;
-    float WorldCenter_pad;
-    float WorldSize_x;
-    float WorldSize_y;
-    float WorldSize_z;
-    float WorldSize_pad;
-    int WorldDiv_x;
-    int WorldDiv_y;
-    int WorldDiv_z;
-    int WorldDiv_pad;
-    float Scale_x;
-    float Scale_y;
-    float Scale_z;
-    float Scale_pad;
+	float WorldCenter_x;
+	float WorldCenter_y;
+	float WorldCenter_z;
+	float WorldCenter_pad;
+	float WorldSize_x;
+	float WorldSize_y;
+	float WorldSize_z;
+	float WorldSize_pad;
+	int WorldDiv_x;
+	int WorldDiv_y;
+	int WorldDiv_z;
+	int WorldDiv_pad;
+	float Scale_x;
+	float Scale_y;
+	float Scale_z;
+	float Scale_pad;
 
-    int SolverType;
-    float LifeTime;
-    float Timestep;
-    float Decelerate;
-    float PressureStiffness;
-    float WallStiffness;
+	int SolverType;
+	float LifeTime;
+	float Timestep;
+	float Decelerate;
+	float PressureStiffness;
+	float WallStiffness;
 
-    int MaxParticles;
-    float ParticleSize;
+	int MaxParticles;
+	float ParticleSize;
 
-    float SPHRestDensity;
-    float SPHParticleMass;
-    float SPHViscosity;
+	float SPHRestDensity;
+	float SPHParticleMass;
+	float SPHViscosity;
 };
 
 // struct ÇÃéQè∆ìnÇµÇ™Ç≈Ç´Ç»Ç¢Ç¡Ç€Ç¢ÇÃÇ≈ macro Ç≈...
