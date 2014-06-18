@@ -2,7 +2,6 @@
 #define mpCollision_h
 
 #include "ispc_vectormath.h"
-#include "mpConst.h"
 typedef int id_type;
 
 

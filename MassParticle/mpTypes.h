@@ -128,9 +128,14 @@ public:
 template<class T, typename Alloc> inline bool operator==(const mpAlignedAllocator<T>& l, const mpAlignedAllocator<T>& r) { return (l.equals(r)); }
 template<class T, typename Alloc> inline bool operator!=(const mpAlignedAllocator<T>& l, const mpAlignedAllocator<T>& r) { return (!(l == r)); }
 
-typedef std::vector<mpParticle, mpAlignedAllocator<mpParticle> > mpParticleVector;
-typedef std::vector<mpParticleSOA8, mpAlignedAllocator<mpParticleSOA8> > mpParticleSOA8Vector;
-typedef std::vector<mpParticleIMDSOA8, mpAlignedAllocator<mpParticleIMDSOA8> > mpsphParticleIMDSOA88Vector;
+typedef std::vector<mpParticle, mpAlignedAllocator<mpParticle> >				mpParticleCont;
+typedef std::vector<mpParticleSOA8, mpAlignedAllocator<mpParticleSOA8> >		mpParticleSOACont;
+typedef std::vector<mpParticleIMDSOA8, mpAlignedAllocator<mpParticleIMDSOA8> >	mpParticleIMDSOACont;
+typedef std::vector<mpGridData, mpAlignedAllocator<mpGridData> >				mpGridDataCont;
+typedef std::vector<mpSphereCollider, mpAlignedAllocator<mpSphereCollider> >	mpSphereColliderCont;
+typedef std::vector<mpPlaneCollider, mpAlignedAllocator<mpPlaneCollider> >		mpPlaneColliderCont;
+typedef std::vector<mpBoxCollider, mpAlignedAllocator<mpBoxCollider> >			mpBoxColliderCont;
+typedef std::vector<mpForce, mpAlignedAllocator<mpForce> >						mpForceCont;
 
 class mpWorld;
 
@@ -172,22 +177,23 @@ public:
 	std::mutex& getMutex() { return m_mutex;  }
 
 private:
-	mpParticleVector m_particles;
-	mpParticleSOA8Vector m_particles_soa;
-	mpsphParticleIMDSOA88Vector m_imd;
-	std::vector<mpGridData> m_cells;
-	int m_num_active_particles;
+	mpParticleCont			m_particles;
+	mpParticleSOACont		m_particles_soa;
+	mpParticleIMDSOACont	m_imd_soa;
+	mpGridDataCont			m_cells;
+	int						m_num_active_particles;
 
-	std::vector<mpSphereCollider>   m_sphere_colliders;
-	std::vector<mpPlaneCollider>    m_plane_colliders;
-	std::vector<mpBoxCollider>      m_box_colliders;
-	std::vector<mpForce>            m_forces;
+	mpSphereColliderCont	m_sphere_colliders;
+	mpPlaneColliderCont		m_plane_colliders;
+	mpBoxColliderCont		m_box_colliders;
+	mpForceCont				m_forces;
 
-	std::mutex		m_mutex;
-	mpKernelParams	m_kparams;
-	mpTempParams	m_tparams;
-	XMFLOAT4X4		m_viewproj;
-	XMFLOAT3		m_camerapos;
+	std::mutex				m_mutex;
+	mpKernelParams			m_kparams;
+	mpTempParams			m_tparams;
+
+	XMFLOAT4X4				m_viewproj;
+	XMFLOAT3				m_camerapos;
 };
 
 inline int mpMSB(int a)

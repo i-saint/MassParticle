@@ -87,24 +87,24 @@ public class mp {
 	[DllImport ("MassParticle")] unsafe public static extern void mpWriteParticles(mpParticle *from);
 
 
-	[DllImport ("MassParticle")] public static extern int mpAddSphereCollider(int owner, Vector3 center, float radius);
-	[DllImport ("MassParticle")] public static extern int mpAddBoxCollider(int owner, Matrix4x4 transform, Vector3 size);
-	[DllImport ("MassParticle")] public static extern int mpScatterParticlesSphere(Vector3 center, float radius, int num, Vector3 velBase, float velDiffuse);
-	[DllImport ("MassParticle")] public static extern int mpScatterParticlesBox(Vector3 center, Vector3 size, int num, Vector3 velBase, float velDiffuse);
-	[DllImport ("MassParticle")] public static extern int mpScatterParticlesSphereTransform(Matrix4x4 trans, int num, Vector3 velBase, float velDiffuse);
-	[DllImport ("MassParticle")] public static extern int mpScatterParticlesBoxTransform(Matrix4x4 trans, int num, Vector3 velBase, float velDiffuse);
-	[DllImport ("MassParticle")] public static extern int mpAddForce (mpForceShape regionType, Matrix4x4 regionMat, mpForceDirection dirType, mpForceParams p);
+	[DllImport ("MassParticle")] public static extern void mpAddSphereCollider(int owner, Vector3 center, float radius);
+	[DllImport ("MassParticle")] public static extern void mpAddBoxCollider(int owner, Matrix4x4 transform, Vector3 size);
+	[DllImport ("MassParticle")] public static extern void mpScatterParticlesSphere(Vector3 center, float radius, int num, Vector3 velBase, float velDiffuse);
+	[DllImport ("MassParticle")] public static extern void mpScatterParticlesBox(Vector3 center, Vector3 size, int num, Vector3 velBase, float velDiffuse);
+	[DllImport ("MassParticle")] public static extern void mpScatterParticlesSphereTransform(Matrix4x4 trans, int num, Vector3 velBase, float velDiffuse);
+	[DllImport ("MassParticle")] public static extern void mpScatterParticlesBoxTransform(Matrix4x4 trans, int num, Vector3 velBase, float velDiffuse);
+	[DllImport ("MassParticle")] public static extern void mpAddForce (mpForceShape regionType, Matrix4x4 regionMat, mpForceDirection dirType, mpForceParams p);
 
 
 	// utilities
 
-	public static int mpAddRadialSphereForce(Vector3 pos, float radius, float strength)
+	public static void mpAddRadialSphereForce(Vector3 pos, float radius, float strength)
 	{
 		Matrix4x4 mat = Matrix4x4.TRS(pos, Quaternion.identity, Vector3.one * radius);
 		mpForceParams p = new mpForceParams();
 		p.strength = strength;
 		p.pos = pos;
-		return mpAddForce (mp.mpForceShape.Sphere, mat, mp.mpForceDirection.Radial, p);
+		mpAddForce (mp.mpForceShape.Sphere, mat, mp.mpForceDirection.Radial, p);
 	}
 }
 

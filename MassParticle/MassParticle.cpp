@@ -95,7 +95,7 @@ extern "C" EXPORT_API void mpScatterParticlesSphere(XMFLOAT3 center, float radiu
 {
 	if (num <= 0) { return; }
 
-	mpParticleVector particles(num);
+	mpParticleCont particles(num);
 	for (size_t i = 0; i < particles.size(); ++i) {
 		float l = mpGenRand()*radius;
 		XMVECTOR dir = { mpGenRand(), mpGenRand(), mpGenRand(), 0.0f };
@@ -114,7 +114,7 @@ extern "C" EXPORT_API void mpScatterParticlesBox(XMFLOAT3 center, XMFLOAT3 size,
 {
 	if (num <= 0) { return; }
 
-	mpParticleVector particles(num);
+	mpParticleCont particles(num);
 	for (size_t i = 0; i < particles.size(); ++i) {
 		XMVECTOR pos = { center.x + mpGenRand()*size.x, center.y + mpGenRand()*size.y, center.z + mpGenRand()*size.z, 1.0f };
 		XMVECTOR vel = ComputeVelosity(vel_base, vel_diffuse);
@@ -130,7 +130,7 @@ extern "C" EXPORT_API void mpScatterParticlesSphereTransform(XMFLOAT4X4 transfor
 {
 	if (num <= 0) { return; }
 
-	mpParticleVector particles(num);
+	mpParticleCont particles(num);
 	XMMATRIX mat = XMMATRIX((float*)&transform);
 	for (size_t i = 0; i < particles.size(); ++i) {
 		XMVECTOR dir = { mpGenRand(), mpGenRand(), mpGenRand(), 0.0f };
@@ -151,7 +151,7 @@ extern "C" EXPORT_API void mpScatterParticlesBoxTransform(XMFLOAT4X4 transform, 
 {
 	if (num <= 0) { return; }
 
-	mpParticleVector particles(num);
+	mpParticleCont particles(num);
 	XMMATRIX mat = XMMATRIX((float*)&transform);
 	for (size_t i = 0; i < particles.size(); ++i) {
 		XMVECTOR pos = { mpGenRand()*0.5f, mpGenRand()*0.5f, mpGenRand()*0.5f, 1.0f };

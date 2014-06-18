@@ -29,7 +29,7 @@ static uniform float mpSPHGradPressureCoef;
 static uniform float mpSPHLapViscosityCoef;
 
 
-export void sphUpdateConstants(uniform KernelParams &params)
+export void UpdateConstants(uniform KernelParams &params)
 {
 	mpParticleSize      = params.ParticleSize;
 	mpRcpParticleSize2  = 1.0f / (mpParticleSize*2.0f);
@@ -60,7 +60,7 @@ export void sphUpdateConstants(uniform KernelParams &params)
 	mpSPHLapViscosityCoef   = mpSPHParticleMass * mpSPHViscosity * 45.0f / (PI * pow(mpParticleSize, 6));
 }
 
-export void sphGetConstants(uniform KernelParams &params)
+export void GetConstants(uniform KernelParams &params)
 {
 	params.WorldCenter_x    = mpWorldCenter.x;
 	params.WorldCenter_y    = mpWorldCenter.y;
@@ -122,7 +122,7 @@ bool IsGridOverrapedAABB(uniform int32 xi, uniform int32 yi, uniform int32 zi, u
 	return true;
 }
 
-export void sphProcessCollision(
+export void ProcessCollision(
 	soa<8> Particle all_particles[],
 	soa<8> ParticleIMData imds[],
 	GridData uniform grid[],
@@ -208,7 +208,7 @@ export void sphProcessCollision(
 #undef repulse
 
 
-export void sphProcessExternalForce(
+export void ProcessExternalForce(
 	soa<8> Particle all_particles[],
 	soa<8> ParticleIMData imds[],
 	GridData uniform grid[],
