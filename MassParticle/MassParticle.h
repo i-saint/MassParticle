@@ -29,7 +29,7 @@ extern "C" EXPORT_API void          mpReloadShader();
 extern "C" EXPORT_API void          mpClearParticles();
 extern "C" EXPORT_API void          mpUpdate(float dt);
 
-extern "C" EXPORT_API void          mpSetViewProjectionMatrix(XMFLOAT4X4 view, XMFLOAT4X4 proj);
+extern "C" EXPORT_API void          mpSetViewProjectionMatrix(XMFLOAT4X4 view, XMFLOAT4X4 proj, XMFLOAT3 camerapos);
 extern "C" EXPORT_API ispc::KernelParams mpGetKernelParams();
 extern "C" EXPORT_API void          mpSetKernelParams(ispc::KernelParams *params);
 

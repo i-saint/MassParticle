@@ -131,7 +131,7 @@ public unsafe class mpWorld : MonoBehaviour {
 	{		
 		UnityEngine.Camera cam = UnityEngine.Camera.current;
 		if (cam) {
-			mp.mpSetViewProjectionMatrix(cam.worldToCameraMatrix, cam.projectionMatrix);
+			mp.mpSetViewProjectionMatrix(cam.worldToCameraMatrix, cam.projectionMatrix, cam.transform.position);
 		}
 		GL.IssuePluginEvent (1);
 	}

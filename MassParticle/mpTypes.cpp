@@ -3,6 +3,53 @@
 #include <algorithm>
 #include "mpTypes.h"
 
+
+mpKernelParams::mpKernelParams()
+{
+    (XMFLOAT3&)WorldCenter_x = XMFLOAT3(0.0f, 0.0f, 0.0f);
+    (XMFLOAT3&)WorldSize_x = XMFLOAT3(10.24f, 10.24f, 10.24f);
+    (XMFLOAT3&)Scale_x = XMFLOAT3(1.0f, 1.0f, 1.0f);
+
+    SolverType = mpSolver_Impulse;
+    LifeTime = 3600.0f;
+    Timestep = 0.01f;
+    Decelerate = 0.995f;
+    PressureStiffness = 500.0f;
+    WallStiffness = 1500.0f;
+    MaxParticles = 200000;
+    ParticleSize = 0.08f;
+
+    SPHRestDensity = 1000.0f;
+    SPHParticleMass = 0.002f;
+    SPHViscosity = 0.1f;
+}
+
+
+mpPerformanceCounter::mpPerformanceCounter()
+{
+    reset();
+}
+
+void mpPerformanceCounter::reset()
+{
+    ::QueryPerformanceCounter(&m_start);
+}
+
+float mpPerformanceCounter::getElapsedSecond()
+{
+    LARGE_INTEGER freq;
+    ::QueryPerformanceCounter(&m_end);
+    ::QueryPerformanceFrequency(&freq);
+    return ((float)(m_end.QuadPart - m_start.QuadPart) / (float)freq.QuadPart);
+}
+
+float mpPerformanceCounter::getElapsedMillisecond()
+{
+    return getElapsedSecond()*1000.0f;
+}
+
+
+
 mpWorld g_mpWorld;
 
 
@@ -137,6 +184,40 @@ mpWorld::mpWorld()
     clearParticles();
 }
 
+mpWorld::~mpWorld()
+{
+}
+
+void mpWorld::addParticles(mpParticle *p, int num)
+{
+    num = std::min<uint32_t>(num, m_params.MaxParticles - m_num_active_particles);
+    for (int i = 0; i<num; ++i) {
+        particles[m_num_active_particles+i] = p[i];
+        particles[m_num_active_particles+i].params.lifetime = m_params.LifeTime;
+    }
+    m_num_active_particles += num;
+}
+
+void mpWorld::addSphereColliders(ispc::SphereCollider *col, int num)
+{
+    collision_spheres.insert(collision_spheres.end(), col, col+num);
+}
+
+void mpWorld::addPlaneColliders(ispc::PlaneCollider *col, int num)
+{
+    collision_planes.insert(collision_planes.end(), col, col+num);
+}
+
+void mpWorld::addBoxColliders(ispc::BoxCollider *col, int num)
+{
+    collision_boxes.insert(collision_boxes.end(), col, col+num);
+}
+
+void mpWorld::addForces(ispc::Force *force, int num)
+{
+    forces.insert(forces.end(), force, force+num);
+}
+
 void mpWorld::clearParticles()
 {
     for (uint32 i = 0; i < particles.size(); ++i) {
@@ -152,15 +233,18 @@ void mpWorld::clearCollidersAndForces()
     forces.clear();
 }
 
-void mpWorld::addParticles(mpParticle *p, uint32_t num)
+void mpWorld::setViewProjection(const XMFLOAT4X4 &mat, const XMFLOAT3 &camerapos)
 {
-    num = std::min<uint32_t>(num, m_params.MaxParticles - m_num_active_particles);
-    for (uint32_t i = 0; i<num; ++i) {
-        particles[m_num_active_particles+i] = p[i];
-        particles[m_num_active_particles+i].params.lifetime = m_params.LifeTime;
-    }
-    m_num_active_particles += num;
+    m_mvp = mat;
+    m_camerapos = camerapos;
 }
+
+void mpWorld::getViewProjection(XMFLOAT4X4 &out_mat, XMFLOAT3 &out_camerapos)
+{
+    out_mat = m_mvp;
+    out_camerapos = m_camerapos;
+}
+
 
 void mpWorld::update(float32 dt)
 {
@@ -185,7 +269,7 @@ void mpWorld::update(float32 dt)
         t.WorldDivBits_x = mpMSB(p.WorldDiv_x);
         t.WorldDivBits_y = mpMSB(p.WorldDiv_y);
         t.WorldDivBits_z = mpMSB(p.WorldDiv_z);
-        rcpCell = XMFLOAT3(1.0f, 1.0f, 1.0f) / (wsize*2.0f / XMFLOAT3(p.WorldDiv_x, p.WorldDiv_y, p.WorldDiv_z));
+        rcpCell = XMFLOAT3(1.0f, 1.0f, 1.0f) / (wsize*2.0f / XMFLOAT3((float)p.WorldDiv_x, (float)p.WorldDiv_y, (float)p.WorldDiv_z));
         bl = wpos - wsize;
         ur = wpos + wsize;
 

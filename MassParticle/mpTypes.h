@@ -50,25 +50,7 @@ enum mpSolverType
 
 struct mpKernelParams : ispc::KernelParams
 {
-    mpKernelParams()
-    {
-        (XMFLOAT3&)WorldCenter_x = XMFLOAT3(0.0f, 0.0f, 0.0f);
-        (XMFLOAT3&)WorldSize_x = XMFLOAT3(10.24f, 10.24f, 10.24f);
-        (XMFLOAT3&)Scale_x = XMFLOAT3(1.0f, 1.0f, 1.0f);
-
-        SolverType = mpSolver_Impulse;
-        LifeTime = 3600.0f;
-        Timestep = 0.01f;
-        Decelerate = 0.995f;
-        PressureStiffness = 500.0f;
-        WallStiffness = 1500.0f;
-        MaxParticles = 200000;
-        ParticleSize = 0.08f;
-
-        SPHRestDensity = 1000.0f;
-        SPHParticleMass = 0.002f;
-        SPHViscosity = 0.1f;
-    }
+    mpKernelParams();
 };
 
 struct mpTempParams
@@ -101,106 +83,17 @@ struct mpParticle
 };
 
 
-class mpCamera
-{
-private:
-    XMMATRIX m_viewproj;
-    XMMATRIX m_view;
-    XMMATRIX m_proj;
-    XMVECTOR m_eye;
-    XMVECTOR m_focus;
-    XMVECTOR m_up;
-    FLOAT m_fovy;
-    FLOAT m_aspect;
-    FLOAT m_near;
-    FLOAT m_far;
-
-public:
-    mpCamera() {}
-
-    const XMMATRIX& getViewProjectionMatrix() const { return m_viewproj; }
-    const XMMATRIX& getViewMatrix() const           { return m_view; }
-    const XMMATRIX& getProjectionMatrix() const     { return m_proj; }
-    XMVECTOR getEye() const     { return m_eye; }
-    XMVECTOR getFocus() const   { return m_focus; }
-    XMVECTOR getUp() const      { return m_up; }
-    FLOAT getFovy() const       { return m_fovy; }
-    FLOAT getAspect() const     { return m_aspect; }
-    FLOAT getNear() const       { return m_near; }
-    FLOAT getFar() const        { return m_far; }
-
-    void setEye(XMVECTOR v) { m_eye = v; }
-
-    void setView(XMVECTOR eye, XMVECTOR focus, XMVECTOR up)
-    {
-        m_eye = eye;
-        m_focus = focus;
-        m_up = up;
-    }
-
-    void setProjection(FLOAT fovy, FLOAT aspect, FLOAT _near, FLOAT _far)
-    {
-        m_fovy = fovy;
-        m_aspect = aspect;
-        m_near = _near;
-        m_far = _far;
-    }
-
-    void updateMatrix()
-    {
-        m_view = XMMatrixLookAtLH(m_eye, m_focus, m_up);
-        m_proj = XMMatrixPerspectiveFovLH(m_fovy, m_aspect, m_near, m_far);
-        m_viewproj = XMMatrixMultiply(m_view, m_proj);
-    }
-
-    void forceSetMatrix(const XMFLOAT4X4 &view, const XMFLOAT4X4 &proj)
-    {
-        m_view = (FLOAT*)&view;
-        m_proj = (FLOAT*)&proj;
-
-        {
-            // see CalculateDeviceProjectionMatrix()
-            float *v = (float*)&m_proj;
-            v[4*0 + 2] = v[4*0 + 2] * 0.5f + v[4*0+3] * 0.5f;
-            v[4*1 + 2] = v[4*1 + 2] * 0.5f + v[4*1+3] * 0.5f;
-            v[4*2 + 2] = v[4*2 + 2] * 0.5f + v[4*2+3] * 0.5f;
-            v[4*3 + 2] = v[4*3 + 2] * 0.5f + v[4*3+3] * 0.5f;
-        }
-
-        m_viewproj = XMMatrixMultiply(m_view, m_proj);
-        m_eye = m_view.r[3];
-    }
-};
-
 class mpPerformanceCounter
 {
+public:
+    mpPerformanceCounter();
+    void reset();
+    float getElapsedSecond();
+    float getElapsedMillisecond();
+
 private:
     LARGE_INTEGER m_start;
     LARGE_INTEGER m_end;
-
-public:
-    mpPerformanceCounter()
-    {
-        reset();
-    }
-
-    void reset()
-    {
-        ::QueryPerformanceCounter(&m_start);
-    }
-
-    float getElapsedSecond()
-    {
-        LARGE_INTEGER freq;
-        ::QueryPerformanceCounter(&m_end);
-        ::QueryPerformanceFrequency(&freq);
-        return ((float)(m_end.QuadPart - m_start.QuadPart) / (float)freq.QuadPart);
-    }
-
-    float getElapsedMillisecond()
-    {
-        return getElapsedSecond()*1000.0f;
-    }
 };
 
 template<typename T>
@@ -260,6 +153,21 @@ mpRenderer* mpCreateRendererOpenGL(void *dev, mpWorld &world);
 class mpWorld
 {
 public:
+    mpWorld();
+    ~mpWorld();
+    void update(float32 dt);
+    void addParticles(mpParticle *p, int num);
+    void addSphereColliders(ispc::SphereCollider *col, int num);
+    void addPlaneColliders(ispc::PlaneCollider *col, int num);
+    void addBoxColliders(ispc::BoxCollider *col, int num);
+    void addForces(ispc::Force *force, int num);
+    void clearParticles();
+    void clearCollidersAndForces();
+
+    void setViewProjection(const XMFLOAT4X4 &mat, const XMFLOAT3 &camerapos);
+    void getViewProjection(XMFLOAT4X4 &out_mat, XMFLOAT3 &out_camerapos);
+
+public:
     mpParticleVector particles;
     mpParticleSOA8Vector particles_soa;
     mpsphParticleIMDSOA88Vector particles_imd;
@@ -274,15 +182,9 @@ public:
     std::mutex m_mutex;
     mpKernelParams m_params;
     mpTempParams m_tmp;
-    mpCamera m_camera;
+    XMFLOAT4X4 m_mvp;
+    XMFLOAT3 m_camerapos;
     mpRenderer *m_renderer;
-
-public:
-    mpWorld();
-    void clearParticles();
-    void clearCollidersAndForces();
-    void addParticles(mpParticle *p, uint32_t num_particles);
-    void update(float32 dt);
 };
 
 inline int mpMSB(int a)

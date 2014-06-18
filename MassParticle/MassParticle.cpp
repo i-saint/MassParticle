@@ -48,9 +48,21 @@ extern "C" EXPORT_API void mpSetKernelParams(ispc::KernelParams *params)
     g_mpWorld.m_params = *(mpKernelParams*)params;
 }
 
-extern "C" EXPORT_API void mpSetViewProjectionMatrix(XMFLOAT4X4 view, XMFLOAT4X4 proj)
+extern "C" EXPORT_API void mpSetViewProjectionMatrix(XMFLOAT4X4 view_, XMFLOAT4X4 proj_, XMFLOAT3 camerapos)
 {
-    g_mpWorld.m_camera.forceSetMatrix(view, proj);
+	XMMATRIX view = (FLOAT*)&view_;
+	XMMATRIX proj = (FLOAT*)&proj_;
+	{
+		float *v = (float*)&proj;
+		v[4*0 + 2] = v[4*0 + 2] * 0.5f + v[4*0 + 3] * 0.5f;
+		v[4*1 + 2] = v[4*1 + 2] * 0.5f + v[4*1 + 3] * 0.5f;
+		v[4*2 + 2] = v[4*2 + 2] * 0.5f + v[4*2 + 3] * 0.5f;
+		v[4*3 + 2] = v[4*3 + 2] * 0.5f + v[4*3 + 3] * 0.5f;
+	}
+
+	XMMATRIX viewproj = XMMatrixMultiply(view, proj);
+	
+	g_mpWorld.setViewProjection((XMFLOAT4X4&)viewproj, camerapos);
 }
 
 extern "C" EXPORT_API uint32_t mpGetNumParticles()

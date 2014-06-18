@@ -272,10 +272,6 @@ bool mpRendererD3D11::initializeDevice(void *_dev)
         }
     }
 
-    mpCamera &camera = m_world->m_camera;
-    camera.setProjection(XMConvertToRadians(45.0f), 1.0f, 0.1f, 100.0f);
-    camera.setView(XMVectorSet(0.0f, 10.0f, -12.5f, 0.0f), XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f), XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f));
-
     return true;
 }
 
@@ -389,10 +385,10 @@ void mpRendererD3D11::render()
             g_pCubeInstanceBuffer = CreateVertexBuffer(&m_world->particles[0], sizeof(mpParticle) * num_particles);
         }
 
-        mpCamera &camera = m_world->m_camera;
         mpCBCData cb;
-        XMVECTOR eye = camera.getEye();
-        XMMATRIX vp = camera.getViewProjectionMatrix();
+        XMVECTOR eye = XMVectorSet(1.0f, 1.0f, 1.0f, 1.0f);
+        XMMATRIX vp;
+        m_world->getViewProjection((XMFLOAT4X4&)vp, (XMFLOAT3&)eye);
 
         cb.ViewProjection = XMMatrixTranspose(vp);
         cb.CameraPos = (FLOAT*)&eye;

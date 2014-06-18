@@ -73,7 +73,7 @@ public class mp {
 	}
 
 
-	[DllImport ("MassParticle")] public static extern void mpSetViewProjectionMatrix(Matrix4x4 view, Matrix4x4 proj);
+	[DllImport ("MassParticle")] public static extern void mpSetViewProjectionMatrix(Matrix4x4 view, Matrix4x4 proj, Vector3 cameraPos);
 	[DllImport ("MassParticle")] public static extern void mpClearParticles();
 	[DllImport ("MassParticle")] public static extern void mpReloadShader ();
 	[DllImport ("MassParticle")] public static extern mpKernelParams mpGetKernelParams();
