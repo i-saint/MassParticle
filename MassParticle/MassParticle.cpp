@@ -19,12 +19,21 @@ extern "C" EXPORT_API void mpReloadShader()
 	}
 }
 
+extern "C" EXPORT_API void mpGeneratePointMesh(int mi, mpMeshData *mds)
+{
+	g_mpWorld.generatePointMesh(mi, mds);
+}
+
+extern "C" EXPORT_API void mpGenerateCubeMesh(int mi, mpMeshData *mds)
+{
+	g_mpWorld.generateCubeMesh(mi, mds);
+}
 
 extern "C" EXPORT_API void mpUpdate(float dt)
 {
 	{
 		std::unique_lock<std::mutex> lock(g_mpWorld.getMutex());
-		g_mpWorld.update(1.0f);
+		g_mpWorld.update(dt);
 	}
 }
 

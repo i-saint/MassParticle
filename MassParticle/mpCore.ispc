@@ -36,9 +36,9 @@ export void UpdateConstants(uniform KernelParams &params)
 	mpWorldCenter.x     = params.WorldCenter_x;
 	mpWorldCenter.y     = params.WorldCenter_y;
 	mpWorldCenter.z     = params.WorldCenter_z;
-	mpWorldSize.x       = params.WorldSize_x;
-	mpWorldSize.y       = params.WorldSize_y;
-	mpWorldSize.z       = params.WorldSize_z;
+	mpWorldSize.x       = params.WorldExtent_x;
+	mpWorldSize.y       = params.WorldExtent_y;
+	mpWorldSize.z       = params.WorldExtent_z;
 	mpWorldDiv.x        = params.WorldDiv_x;
 	mpWorldDiv.y        = params.WorldDiv_y;
 	mpWorldDiv.z        = params.WorldDiv_z;
@@ -65,9 +65,9 @@ export void GetConstants(uniform KernelParams &params)
 	params.WorldCenter_x    = mpWorldCenter.x;
 	params.WorldCenter_y    = mpWorldCenter.y;
 	params.WorldCenter_z    = mpWorldCenter.z;
-	params.WorldSize_x      = mpWorldSize.x;
-	params.WorldSize_y      = mpWorldSize.y;
-	params.WorldSize_z      = mpWorldSize.z;
+	params.WorldExtent_x      = mpWorldSize.x;
+	params.WorldExtent_y      = mpWorldSize.y;
+	params.WorldExtent_z      = mpWorldSize.z;
 	params.WorldDiv_x       = mpWorldDiv.x;
 	params.WorldDiv_y       = mpWorldDiv.y;
 	params.WorldDiv_z       = mpWorldDiv.z;

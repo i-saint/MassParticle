@@ -20,9 +20,9 @@ typedef float           float32;
 
 using ist::simdvec4;
 using ist::simdvec8;
-using ist::soavec24;
-using ist::soavec34;
-using ist::soavec44;
+using ist::vec4soa2;
+using ist::vec4soa3;
+using ist::vec4soa4;
 
 typedef ispc::Particle_SOA8			mpParticleSOA8;
 typedef ispc::ParticleIMData_SOA8	mpParticleIMDSOA8;
@@ -51,6 +51,13 @@ enum mpSolverType
 	mpSolver_NoInteraction,
 };
 
+enum mpRendererType
+{
+	mpRenderer_Cube,
+	mpRenderer_Line,
+	mpRenderer_Sprite,
+};
+
 struct mpKernelParams : ispc::KernelParams
 {
 	mpKernelParams();
@@ -64,6 +71,15 @@ struct mpTempParams
 	int WorldDivBits_x;
 	int WorldDivBits_y;
 	int WorldDivBits_z;
+};
+
+struct mpMeshData
+{
+	XMFLOAT3 *vertices;
+	XMFLOAT3 *normals;
+	XMFLOAT2 *texcoords;
+	XMFLOAT4 *colors;
+	int *indices;
 };
 
 
@@ -99,7 +115,7 @@ private:
 	LARGE_INTEGER m_end;
 };
 
-template<typename T>
+template<typename T, int Align=32>
 class mpAlignedAllocator {
 public:
 	typedef T value_type;
@@ -117,7 +133,7 @@ public:
 	~mpAlignedAllocator() {}
 	pointer address(reference r) { return &r; }
 	const_pointer address(const_reference r) { return &r; }
-	pointer allocate(size_type cnt, const void *p = nullptr) { p; return (pointer)_aligned_malloc(cnt * sizeof(T), 16); }
+	pointer allocate(size_type cnt, const void *p = nullptr) { p; return (pointer)_aligned_malloc(cnt * sizeof(T), Align); }
 	void deallocate(pointer p, size_type) { _aligned_free(p); }
 	size_type max_size() const { return std::numeric_limits<size_type>::max() / sizeof(T); }
 	void construct(pointer p, const T& t) { new(p)T(t); }
@@ -175,6 +191,9 @@ public:
 	int getNumParticles() { return m_num_active_particles; }
 	mpParticle* getParticles() { return m_particles.empty() ? nullptr : &m_particles[0]; }
 	std::mutex& getMutex() { return m_mutex;  }
+
+	void generatePointMesh(int mi, mpMeshData *mds);
+	void generateCubeMesh(int mi, mpMeshData *mds);
 
 private:
 	mpParticleCont			m_particles;

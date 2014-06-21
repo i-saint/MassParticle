@@ -34,8 +34,8 @@ struct PS_OUT
 
 PS_INPUT VS( VS_INPUT input )
 {
-    float scaleByLifetime = min(input.InstanceParams.w*0.05, 1.0);
-    float ei = max(input.InstanceVel.w-2.5, 0.0) * 1.0;
+    float scaleByLifetime = min(input.InstanceParams.w*3.0, 1.0);
+    float ei = max(input.InstanceVel.w-2.5, 0.0) * 0.5;
 
     PS_INPUT output = (PS_INPUT)0;
     output.LsPos    = float4(input.Pos, 0.0f) * g_params.x * scaleByLifetime + input.InstancePos;

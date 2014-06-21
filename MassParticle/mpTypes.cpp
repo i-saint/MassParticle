@@ -7,11 +7,11 @@
 mpKernelParams::mpKernelParams()
 {
 	(XMFLOAT3&)WorldCenter_x = XMFLOAT3(0.0f, 0.0f, 0.0f);
-	(XMFLOAT3&)WorldSize_x = XMFLOAT3(10.24f, 10.24f, 10.24f);
+	(XMFLOAT3&)WorldExtent_x = XMFLOAT3(10.24f, 10.24f, 10.24f);
 	(XMFLOAT3&)Scale_x = XMFLOAT3(1.0f, 1.0f, 1.0f);
 
 	SolverType = mpSolver_Impulse;
-	LifeTime = 3600.0f;
+	LifeTime = 30.0f;
 	Timestep = 0.01f;
 	Decelerate = 0.995f;
 	PressureStiffness = 500.0f;
@@ -78,7 +78,7 @@ void mpSoAnize( int32 num, const mpParticle *particles, ispc::Particle_SOA8 *out
 	int32 blocks = soa_blocks(num);
 	for(int32 bi=0; bi<blocks; ++bi) {
 		int32 i = SIMD_LANES*bi;
-		ist::soavec34 soav;
+		ist::vec4soa3 soav;
 		soav = ist::soa_transpose34(particles[i+0].position, particles[i+1].position, particles[i+2].position, particles[i+3].position);
 		simd_store(out[bi].x+0, soav.x());
 		simd_store(out[bi].y+0, soav.y());
@@ -113,7 +113,7 @@ void mpAoSnize( int32 num, const ispc::Particle_SOA8 *particles, mpParticle *out
 	int32 blocks = soa_blocks(num);
 	for(int32 bi=0; bi<blocks; ++bi) {
 		int32 i = 8*bi;
-		ist::soavec44 aos_pos[2] = {
+		ist::vec4soa4 aos_pos[2] = {
 			ist::soa_transpose44(
 				_mm_load_ps(particles[bi].x + 0),
 				_mm_load_ps(particles[bi].y + 0),
@@ -125,7 +125,7 @@ void mpAoSnize( int32 num, const ispc::Particle_SOA8 *particles, mpParticle *out
 				_mm_load_ps(particles[bi].z + 4),
 				_mm_set1_ps(1.0f) ),
 		};
-		ist::soavec44 aos_vel[2] = {
+		ist::vec4soa4 aos_vel[2] = {
 			ist::soa_transpose44(
 				_mm_load_ps(particles[bi].vx + 0),
 				_mm_load_ps(particles[bi].vy + 0),
@@ -181,6 +181,9 @@ mpWorld::mpWorld()
 	m_sphere_colliders.reserve(64);
 
 	m_particles.resize(m_kparams.MaxParticles);
+	for (size_t i = 0; i < m_particles.size(); ++i) {
+		m_particles[i].params.hash = 0x80000000;
+	}
 	clearParticles();
 }
 
@@ -220,8 +223,10 @@ void mpWorld::addForces(ispc::Force *force, int num)
 
 void mpWorld::clearParticles()
 {
+	m_num_active_particles = 0;
 	for (uint32 i = 0; i < m_particles.size(); ++i) {
 		m_particles[i].params.lifetime = 0.0f;
+		m_particles[i].params.hash = 0x80000000;
 	}
 }
 
@@ -248,6 +253,8 @@ void mpWorld::setViewProjection(const XMFLOAT4X4 &mat, const XMFLOAT3 &camerapos
 
 void mpWorld::update(float32 dt)
 {
+	if (m_num_active_particles == 0) { return; }
+
 	mpKernelParams &p = m_kparams;
 	mpTempParams &t = m_tparams;
 	int cell_num = p.WorldDiv_x*p.WorldDiv_y*p.WorldDiv_z;
@@ -256,7 +263,7 @@ void mpWorld::update(float32 dt)
 
 	{
 		XMFLOAT3 &wpos = (XMFLOAT3&)p.WorldCenter_x;
-		XMFLOAT3 &wsize = (XMFLOAT3&)p.WorldSize_x;
+		XMFLOAT3 &wsize = (XMFLOAT3&)p.WorldExtent_x;
 		XMFLOAT3 &rcpCell = (XMFLOAT3&)t.RcpCellSize;
 		XMFLOAT3 &bl = (XMFLOAT3&)t.WorldBBBL;
 		XMFLOAT3 &ur = (XMFLOAT3&)t.WorldBBUR;
@@ -306,7 +313,7 @@ void mpWorld::update(float32 dt)
 				if (ppos.x<bl.x || ppos.y<bl.y || ppos.z<bl.z ||
 					ppos.x>ur.x || ppos.y>ur.y || ppos.z>ur.z)
 				{
-					m_particles[i].params.lifetime = std::min<float>(m_particles[i].params.lifetime, 20.0f);
+					m_particles[i].params.lifetime = std::min<float>(m_particles[i].params.lifetime, 0.333f);
 				}
 				m_particles[i].params.lifetime = std::max<float32>(m_particles[i].params.lifetime - dt, 0.0f);
 				m_particles[i].params.hash = mpGenHash(*this, m_particles[i]);
@@ -541,4 +548,115 @@ void mpWorld::update(float32 dt)
 				}
 			}
 	});
+}
+
+
+void mpWorld::generatePointMesh(int mi, mpMeshData *mds)
+{
+	const int chunkSize = 65000;
+	int num_meshes = m_num_active_particles / chunkSize + (m_num_active_particles % chunkSize == 0 ? 0 : 1);
+	{
+		mpMeshData &md = *mds;
+		int begin = std::min<int>(mi * chunkSize, m_num_active_particles);
+		int end = std::min<int>((mi + 1) * chunkSize, m_num_active_particles);
+		int end2 = (mi + 1) * chunkSize;
+		for (int ii = begin; ii != end; ++ii) {
+			int si = ii - begin;
+			md.vertices[si] = (XMFLOAT3&)m_particles[ii].position;
+			md.indices[si] = si;
+		}
+		for (int ii = end; ii != end2; ++ii) {
+			int si = ii - begin;
+			md.indices[si] = 0;
+		}
+
+		if (md.colors) {
+			for (int ii = begin; ii != end; ++ii) {
+				int si = ii - begin;
+				md.colors[si] = (XMFLOAT4&)m_particles[ii].velocity;
+			}
+		}
+	}
+}
+
+void mpWorld::generateCubeMesh(int mi, mpMeshData *mds)
+{
+	const float s = m_kparams.ParticleSize;
+	const float p = 1.0f;
+	const float n = -1.0f;
+	const float z = 0.0f;
+	const XMFLOAT3 c_vertices[] =
+	{
+		XMFLOAT3(-s,-s, s), XMFLOAT3( s,-s, s), XMFLOAT3( s, s, s), XMFLOAT3(-s, s, s),
+		XMFLOAT3(-s, s,-s), XMFLOAT3( s, s,-s), XMFLOAT3( s, s, s), XMFLOAT3(-s, s, s),
+		XMFLOAT3(-s,-s,-s), XMFLOAT3( s,-s,-s), XMFLOAT3( s,-s, s), XMFLOAT3(-s,-s, s),
+		XMFLOAT3(-s,-s, s), XMFLOAT3(-s,-s,-s), XMFLOAT3(-s, s,-s), XMFLOAT3(-s, s, s),
+		XMFLOAT3( s,-s, s), XMFLOAT3( s,-s,-s), XMFLOAT3( s, s,-s), XMFLOAT3( s, s, s),
+		XMFLOAT3(-s,-s,-s), XMFLOAT3( s,-s,-s), XMFLOAT3( s, s,-s), XMFLOAT3(-s, s,-s),
+	};
+	const XMFLOAT3 c_normals[] = {
+		XMFLOAT3(z, n, z), XMFLOAT3(z, n, z), XMFLOAT3(z, n, z), XMFLOAT3(z, n, z),
+		XMFLOAT3(z, p, z), XMFLOAT3(z, p, z), XMFLOAT3(z, p, z), XMFLOAT3(z, p, z),
+		XMFLOAT3(p, z, z), XMFLOAT3(p, z, z), XMFLOAT3(p, z, z), XMFLOAT3(p, z, z),
+		XMFLOAT3(n, z, z), XMFLOAT3(n, z, z), XMFLOAT3(n, z, z), XMFLOAT3(n, z, z),
+		XMFLOAT3(z, z, p), XMFLOAT3(z, z, p), XMFLOAT3(z, z, p), XMFLOAT3(z, z, p),
+		XMFLOAT3(z, z, n), XMFLOAT3(z, z, n), XMFLOAT3(z, z, n), XMFLOAT3(z, z, n),
+	};
+	const int c_indices[] =
+	{
+		0,1,3, 3,1,2,
+		5,4,6, 6,4,7,
+		8,9,11, 11,9,10,
+		13,12,14, 14,12,15,
+		16,17,19, 19,17,18,
+		21,20,22, 22,20,23,
+	};
+
+	int num_meshes = m_num_active_particles / 2500 + (m_num_active_particles%2500==0 ? 0 : 1);
+	{
+		mpMeshData &md = *mds;
+		int begin = std::min<int>(mi * 2500, m_num_active_particles);
+		int end = std::min<int>((mi + 1) * 2500, m_num_active_particles);
+		int end2 = (mi + 1) * 2500;
+		for (int ii = begin; ii != end; ++ii) {
+			int si = ii - begin;
+			for (int vi = 0; vi < 24; ++vi) {
+				md.vertices[24 * si + vi] = c_vertices[vi] + (XMFLOAT3&)m_particles[ii].position;
+			}
+			for (int vi = 0; vi < 36; ++vi) {
+				md.indices[36 * si + vi] = 24 * si + c_indices[vi];
+			}
+		}
+		for (int ii = end; ii != end2; ++ii) {
+			int si = ii - begin;
+			for (int vi = 0; vi < 24; ++vi) {
+				md.indices[36 * si + vi] = 0;
+			}
+		}
+
+		if (md.normals) {
+			for (int ii = begin; ii != end; ++ii) {
+				int si = ii - begin;
+				for (int vi = 0; vi < 24; ++vi) {
+					md.normals[24 * si + vi] = c_normals[vi];
+				}
+			}
+		}
+		if (md.texcoords) {
+			for (int ii = begin; ii != end; ++ii) {
+				int si = ii - begin;
+				for (int vi = 0; vi < 24; ++vi) {
+					// todo
+				}
+			}
+		}
+		if (md.colors) {
+			for (int ii = begin; ii != end; ++ii) {
+				int si = ii - begin;
+				for (int vi = 0; vi < 24; ++vi) {
+					md.colors[24 * si + vi] = (XMFLOAT4&)m_particles[ii].velocity;
+				}
+			}
+		}
+	}
 }

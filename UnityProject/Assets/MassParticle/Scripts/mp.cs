@@ -66,18 +66,30 @@ public class mp {
 	[StructLayout(LayoutKind.Explicit)]
 	public struct mpForceParams
 	{
-		[FieldOffset( 0)] public Vector3 pos;
-		[FieldOffset( 0)] public Vector3 dir;
+		[FieldOffset( 0)] public Vector3 pos; // union
+		[FieldOffset( 0)] public Vector3 dir; // 
 		[FieldOffset(12)] public float strength;
 		[FieldOffset(16)] public float strengthRandomDiffuse;
 	}
 
+	[StructLayout(LayoutKind.Explicit)]
+	public unsafe struct mpMeshData
+	{
+		[FieldOffset( 0)] public Vector3* vertices;
+		[FieldOffset( 4)] public Vector3* normals;
+		[FieldOffset( 8)] public Vector2* uv;
+		[FieldOffset(12)] public Color* colors;
+		[FieldOffset(16)] public int* indices;
+	};
+
+	[DllImport ("MassParticle")] unsafe public static extern void mpGeneratePointMesh(int i, ref mpMeshData md);
+	[DllImport ("MassParticle")] unsafe public static extern void mpGenerateCubeMesh(int i, ref mpMeshData md);
+	[DllImport ("MassParticle")] public static extern void mpReloadShader ();
 
 	[DllImport ("MassParticle")] public static extern void mpUpdate (float dt);
 	[DllImport ("MassParticle")] public static extern void mpClearParticles();
 	[DllImport ("MassParticle")] public static extern void mpClearCollidersAndForces();
 	[DllImport ("MassParticle")] public static extern void mpSetViewProjectionMatrix(Matrix4x4 view, Matrix4x4 proj, Vector3 cameraPos);
-	[DllImport ("MassParticle")] public static extern void mpReloadShader ();
 	[DllImport ("MassParticle")] public static extern mpKernelParams mpGetKernelParams();
 	[DllImport ("MassParticle")] public static extern void mpSetKernelParams(ref mpKernelParams p);
 

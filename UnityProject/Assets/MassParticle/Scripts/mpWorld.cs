@@ -120,21 +120,12 @@ public unsafe class mpWorld : MonoBehaviour {
 			}
 		}
 
-		mp.mpUpdate (Time.timeSinceLevelLoad);
+		mp.mpUpdate (Time.deltaTime);
 		mp.mpClearCollidersAndForces();
 		if (particleHandler!=null)
 		{
 			particleHandler(mp.mpGetNumParticles(), mp.mpGetParticles());
 		}
-	}
-	
-	void OnRenderObject()
-	{		
-		UnityEngine.Camera cam = UnityEngine.Camera.current;
-		if (cam) {
-			mp.mpSetViewProjectionMatrix(cam.worldToCameraMatrix, cam.projectionMatrix, cam.transform.position);
-		}
-		GL.IssuePluginEvent (1);
 	}
 
 	void OnDrawGizmos()
