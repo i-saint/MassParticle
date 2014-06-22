@@ -75,11 +75,10 @@ struct mpTempParams
 
 struct mpMeshData
 {
+	int *indices;
 	XMFLOAT3 *vertices;
 	XMFLOAT3 *normals;
 	XMFLOAT2 *texcoords;
-	XMFLOAT4 *colors;
-	int *indices;
 };
 
 
@@ -161,15 +160,19 @@ public:
 	virtual ~mpRenderer() {}
 	virtual void render(mpWorld &world) = 0;
 	virtual void reloadShader() = 0;
+	virtual void updateDataTexture(void *tex, const void *data, size_t data_size) = 0;
 };
 mpRenderer* mpCreateRendererD3D9(void *dev);
 mpRenderer* mpCreateRendererD3D11(void *dev);
 mpRenderer* mpCreateRendererOpenGL(void *dev);
 
+const int mpDataTextureWidth = 3072;
+const int mpDataTextureHeight = 2048;
 
 class mpWorld
 {
 public:
+
 	mpWorld();
 	~mpWorld();
 	void update(float dt);
@@ -194,6 +197,7 @@ public:
 
 	void generatePointMesh(int mi, mpMeshData *mds);
 	void generateCubeMesh(int mi, mpMeshData *mds);
+	void updateDataTexture(void *tex);
 
 private:
 	mpParticleCont			m_particles;

@@ -42,6 +42,7 @@ public:
 	virtual ~mpRendererD3D11();
 	virtual void render(mpWorld &world);
 	virtual void reloadShader();
+	virtual void updateDataTexture(void *tex, const void *data, size_t data_size);
 
 private:
 	bool initializeDevice(void *dev);
@@ -50,20 +51,20 @@ private:
 	ID3D11Buffer* CreateVertexBuffer(const void *data, UINT size);
 
 private:
-	ID3D11Device            *g_pd3dDevice;
-	ID3D11DeviceContext     *g_pImmediateContext;
-	ID3D11DepthStencilState *g_pDepthStencilState;
-	ID3D11RasterizerState   *g_pRasterState;
-	ID3D11BlendState        *g_pBlendState;
+	ID3D11Device            *m_pDevice;
+	ID3D11DeviceContext     *m_pImmediateContext;
+	ID3D11DepthStencilState *m_pDepthStencilState;
+	ID3D11RasterizerState   *m_pRasterState;
+	ID3D11BlendState        *m_pBlendState;
 
-	ID3D11VertexShader      *g_pCubeVertexShader;
-	ID3D11InputLayout       *g_pCubeVertexLayout;
-	ID3D11PixelShader       *g_pCubePixelShader;
-	ID3D11Buffer            *g_pCubeVertexBuffer;
-	ID3D11Buffer            *g_pCubeInstanceBuffer;
-	ID3D11Buffer            *g_pCubeIndexBuffer;
-	ID3D11Buffer            *g_pCBChangesEveryFrame;
-	XMFLOAT4                g_MeshColor;
+	ID3D11VertexShader      *m_pCubeVertexShader;
+	ID3D11InputLayout       *m_pCubeVertexLayout;
+	ID3D11PixelShader       *m_pCubePixelShader;
+	ID3D11Buffer            *m_pCubeVertexBuffer;
+	ID3D11Buffer            *m_pCubeInstanceBuffer;
+	ID3D11Buffer            *m_pCubeIndexBuffer;
+	ID3D11Buffer            *m_pCBChangesEveryFrame;
+	XMFLOAT4                m_MeshColor;
 
 	int m_num_particles;
 };
@@ -121,7 +122,7 @@ ID3D11Buffer* mpRendererD3D11::CreateVertexBuffer(const void *data, UINT size)
 	InitData.pSysMem = data;
 
 	ID3D11Buffer *buffer;
-	HRESULT hr = g_pd3dDevice->CreateBuffer( &bd, &InitData, &buffer );
+	HRESULT hr = m_pDevice->CreateBuffer( &bd, &InitData, &buffer );
 	if( FAILED( hr ) ) {
 		return nullptr;
 	}
@@ -130,20 +131,20 @@ ID3D11Buffer* mpRendererD3D11::CreateVertexBuffer(const void *data, UINT size)
 
 
 mpRendererD3D11::mpRendererD3D11(void *_dev)
-: g_pd3dDevice(nullptr)
-, g_pImmediateContext(nullptr)
-, g_pDepthStencilState(nullptr)
-, g_pRasterState(nullptr)
-, g_pBlendState(nullptr)
+: m_pDevice(nullptr)
+, m_pImmediateContext(nullptr)
+, m_pDepthStencilState(nullptr)
+, m_pRasterState(nullptr)
+, m_pBlendState(nullptr)
 
-, g_pCubeVertexShader(nullptr)
-, g_pCubeVertexLayout(nullptr)
-, g_pCubePixelShader(nullptr)
-, g_pCubeVertexBuffer(nullptr)
-, g_pCubeInstanceBuffer(nullptr)
-, g_pCubeIndexBuffer(nullptr)
-, g_pCBChangesEveryFrame(nullptr)
-, g_MeshColor(0.7f, 0.7f, 0.7f, 1.0f)
+, m_pCubeVertexShader(nullptr)
+, m_pCubeVertexLayout(nullptr)
+, m_pCubePixelShader(nullptr)
+, m_pCubeVertexBuffer(nullptr)
+, m_pCubeInstanceBuffer(nullptr)
+, m_pCubeIndexBuffer(nullptr)
+, m_pCBChangesEveryFrame(nullptr)
+, m_MeshColor(0.7f, 0.7f, 0.7f, 1.0f)
 , m_num_particles(0)
 {
 	initializeDevice(_dev);
@@ -160,8 +161,8 @@ bool mpRendererD3D11::initializeDevice(void *_dev)
 	ID3D11Device *dev = (ID3D11Device*)_dev;
 	HRESULT hr = S_OK;
 
-	g_pd3dDevice = dev;
-	g_pd3dDevice->GetImmediateContext(&g_pImmediateContext);
+	m_pDevice = dev;
+	m_pDevice->GetImmediateContext(&m_pImmediateContext);
 
 	{
 		D3D11_RASTERIZER_DESC rsdesc;
@@ -170,20 +171,20 @@ bool mpRendererD3D11::initializeDevice(void *_dev)
 		rsdesc.CullMode = D3D11_CULL_BACK;
 		rsdesc.DepthClipEnable = TRUE;
 		rsdesc.MultisampleEnable = TRUE;
-		g_pd3dDevice->CreateRasterizerState(&rsdesc, &g_pRasterState);
+		m_pDevice->CreateRasterizerState(&rsdesc, &m_pRasterState);
 
 		D3D11_DEPTH_STENCIL_DESC dsdesc;
 		memset(&dsdesc, 0, sizeof(dsdesc));
 		dsdesc.DepthEnable = TRUE;
 		dsdesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
 		dsdesc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
-		g_pd3dDevice->CreateDepthStencilState(&dsdesc, &g_pDepthStencilState);
+		m_pDevice->CreateDepthStencilState(&dsdesc, &m_pDepthStencilState);
 
 		D3D11_BLEND_DESC bdesc;
 		memset(&bdesc, 0, sizeof(bdesc));
 		bdesc.RenderTarget[0].BlendEnable = FALSE;
 		bdesc.RenderTarget[0].RenderTargetWriteMask = 0xF;
-		g_pd3dDevice->CreateBlendState(&bdesc, &g_pBlendState);
+		m_pDevice->CreateBlendState(&bdesc, &m_pBlendState);
 	}
 	reloadShader();
 
@@ -222,7 +223,7 @@ bool mpRendererD3D11::initializeDevice(void *_dev)
 			{ XMFLOAT3( 1.0f, 1.0f, 1.0f),  XMFLOAT3( 0.0f, 0.0f, 1.0f ) },
 			{ XMFLOAT3(-1.0f, 1.0f, 1.0f),  XMFLOAT3( 0.0f, 0.0f, 1.0f ) },
 		};
-		g_pCubeVertexBuffer = CreateVertexBuffer(vertices, sizeof(mpVertex)*ARRAYSIZE(vertices));
+		m_pCubeVertexBuffer = CreateVertexBuffer(vertices, sizeof(mpVertex)*ARRAYSIZE(vertices));
 	}
 
 	// Create index buffer
@@ -247,7 +248,7 @@ bool mpRendererD3D11::initializeDevice(void *_dev)
 		D3D11_SUBRESOURCE_DATA InitData;
 		ZeroMemory( &InitData, sizeof(InitData) );
 		InitData.pSysMem = indices;
-		hr = g_pd3dDevice->CreateBuffer( &bd, &InitData, &g_pCubeIndexBuffer );
+		hr = m_pDevice->CreateBuffer( &bd, &InitData, &m_pCubeIndexBuffer );
 		if (FAILED(hr)) {
 			return false;
 		}
@@ -261,7 +262,7 @@ bool mpRendererD3D11::initializeDevice(void *_dev)
 		bd.ByteWidth = sizeof(mpCBCData);
 		bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 		bd.CPUAccessFlags = 0;
-		hr = g_pd3dDevice->CreateBuffer( &bd, nullptr, &g_pCBChangesEveryFrame );
+		hr = m_pDevice->CreateBuffer( &bd, nullptr, &m_pCBChangesEveryFrame );
 		if (FAILED(hr)) {
 			return false;
 		}
@@ -272,19 +273,19 @@ bool mpRendererD3D11::initializeDevice(void *_dev)
 
 void mpRendererD3D11::finalizeDevice()
 {
-	mpSafeRelease(g_pCBChangesEveryFrame);
-	mpSafeRelease(g_pCubeInstanceBuffer);
-	mpSafeRelease(g_pCubeVertexBuffer);
-	mpSafeRelease(g_pCubeIndexBuffer);
-	mpSafeRelease(g_pCubeVertexLayout);
-	mpSafeRelease(g_pCubeVertexShader);
-	mpSafeRelease(g_pCubePixelShader);
+	mpSafeRelease(m_pCBChangesEveryFrame);
+	mpSafeRelease(m_pCubeInstanceBuffer);
+	mpSafeRelease(m_pCubeVertexBuffer);
+	mpSafeRelease(m_pCubeIndexBuffer);
+	mpSafeRelease(m_pCubeVertexLayout);
+	mpSafeRelease(m_pCubeVertexShader);
+	mpSafeRelease(m_pCubePixelShader);
 
-	mpSafeRelease(g_pDepthStencilState);
-	mpSafeRelease(g_pRasterState);
-	mpSafeRelease(g_pBlendState);
+	mpSafeRelease(m_pDepthStencilState);
+	mpSafeRelease(m_pRasterState);
+	mpSafeRelease(m_pBlendState);
 
-	mpSafeRelease(g_pImmediateContext);
+	mpSafeRelease(m_pImmediateContext);
 }
 
 void mpRendererD3D11::reloadShader()
@@ -306,7 +307,7 @@ void mpRendererD3D11::reloadShader()
 		}
 
 		// Create the vertex shader
-		hr = g_pd3dDevice->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), nullptr, &pCubeVertexShader);
+		hr = m_pDevice->CreateVertexShader(pVSBlob->GetBufferPointer(), pVSBlob->GetBufferSize(), nullptr, &pCubeVertexShader);
 		if (FAILED(hr))
 		{
 			pVSBlob->Release();
@@ -324,7 +325,7 @@ void mpRendererD3D11::reloadShader()
 		};
 		UINT numElements = ARRAYSIZE(layout);
 
-		hr = g_pd3dDevice->CreateInputLayout(layout, numElements, pVSBlob->GetBufferPointer(),
+		hr = m_pDevice->CreateInputLayout(layout, numElements, pVSBlob->GetBufferPointer(),
 			pVSBlob->GetBufferSize(), &pCubeVertexLayout);
 		pVSBlob->Release();
 		if (FAILED(hr)) {
@@ -344,19 +345,19 @@ void mpRendererD3D11::reloadShader()
 		}
 
 		// Create the pixel shader
-		hr = g_pd3dDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &pCubePixelShader);
+		hr = m_pDevice->CreatePixelShader(pPSBlob->GetBufferPointer(), pPSBlob->GetBufferSize(), nullptr, &pCubePixelShader);
 		pPSBlob->Release();
 		if (FAILED(hr)) {
 			goto on_failed;
 		}
 	}
 
-	mpSafeRelease(g_pCubeVertexLayout);
-	mpSafeRelease(g_pCubeVertexShader);
-	mpSafeRelease(g_pCubePixelShader);
-	g_pCubeVertexLayout = pCubeVertexLayout;
-	g_pCubeVertexShader = pCubeVertexShader;
-	g_pCubePixelShader = pCubePixelShader;
+	mpSafeRelease(m_pCubeVertexLayout);
+	mpSafeRelease(m_pCubeVertexShader);
+	mpSafeRelease(m_pCubePixelShader);
+	m_pCubeVertexLayout = pCubeVertexLayout;
+	m_pCubeVertexShader = pCubeVertexShader;
+	m_pCubePixelShader = pCubePixelShader;
 	return;
 
 on_failed:
@@ -378,8 +379,8 @@ void mpRendererD3D11::render(mpWorld &world)
 
 		if (m_num_particles < num_particles) {
 			m_num_particles = num_particles;
-			mpSafeRelease(g_pCubeInstanceBuffer);
-			g_pCubeInstanceBuffer = CreateVertexBuffer(particles, sizeof(mpParticle) * m_num_particles);
+			mpSafeRelease(m_pCubeInstanceBuffer);
+			m_pCubeInstanceBuffer = CreateVertexBuffer(particles, sizeof(mpParticle) * m_num_particles);
 		}
 
 		mpCBCData cb;
@@ -393,40 +394,53 @@ void mpRendererD3D11::render(mpWorld &world)
 		cb.LightColor = XMFLOAT4(0.9f, 0.9f, 0.9f, 1.0f);
 		cb.MeshShininess = 200.0f;
 		cb.ParticleSize = world.getKernelParams().ParticleSize;
-		g_pImmediateContext->UpdateSubresource(g_pCBChangesEveryFrame, 0, nullptr, &cb, 0, 0);
-		g_pImmediateContext->UpdateSubresource(g_pCubeInstanceBuffer, 0, nullptr, particles, 0, 0);
+		m_pImmediateContext->UpdateSubresource(m_pCBChangesEveryFrame, 0, nullptr, &cb, 0, 0);
+		m_pImmediateContext->UpdateSubresource(m_pCubeInstanceBuffer, 0, nullptr, particles, 0, 0);
 	}
 	{
-		ID3D11Buffer *buffers[] = {g_pCubeVertexBuffer, g_pCubeInstanceBuffer};
+		ID3D11Buffer *buffers[] = {m_pCubeVertexBuffer, m_pCubeInstanceBuffer};
 		UINT strides[] = {sizeof(mpVertex), sizeof(mpParticle), };
 		UINT offsets[] = {0, 0};
-		g_pImmediateContext->IASetVertexBuffers( 0, ARRAYSIZE(buffers), buffers, strides, offsets );
+		m_pImmediateContext->IASetVertexBuffers( 0, ARRAYSIZE(buffers), buffers, strides, offsets );
 	}
-	g_pImmediateContext->IASetInputLayout( g_pCubeVertexLayout );
-	g_pImmediateContext->IASetIndexBuffer( g_pCubeIndexBuffer, DXGI_FORMAT_R16_UINT, 0 );
-	g_pImmediateContext->IASetPrimitiveTopology( D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST );
+	m_pImmediateContext->IASetInputLayout( m_pCubeVertexLayout );
+	m_pImmediateContext->IASetIndexBuffer( m_pCubeIndexBuffer, DXGI_FORMAT_R16_UINT, 0 );
+	m_pImmediateContext->IASetPrimitiveTopology( D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST );
 
-	g_pImmediateContext->VSSetShader( g_pCubeVertexShader, nullptr, 0 );
-	g_pImmediateContext->VSSetConstantBuffers( 0, 1, &g_pCBChangesEveryFrame );
-	g_pImmediateContext->PSSetShader( g_pCubePixelShader, nullptr, 0 );
-	g_pImmediateContext->PSSetConstantBuffers( 0, 1, &g_pCBChangesEveryFrame );
+	m_pImmediateContext->VSSetShader( m_pCubeVertexShader, nullptr, 0 );
+	m_pImmediateContext->VSSetConstantBuffers( 0, 1, &m_pCBChangesEveryFrame );
+	m_pImmediateContext->PSSetShader( m_pCubePixelShader, nullptr, 0 );
+	m_pImmediateContext->PSSetConstantBuffers( 0, 1, &m_pCBChangesEveryFrame );
 
 
 	ID3D11RasterizerState *rs_old;
 	ID3D11DepthStencilState *ds_old;
 	UINT ds_stencil_ref;
-	g_pImmediateContext->RSGetState(&rs_old);
-	g_pImmediateContext->OMGetDepthStencilState(&ds_old, &ds_stencil_ref);
+	m_pImmediateContext->RSGetState(&rs_old);
+	m_pImmediateContext->OMGetDepthStencilState(&ds_old, &ds_stencil_ref);
 
-	g_pImmediateContext->OMSetDepthStencilState(g_pDepthStencilState, ds_stencil_ref);
-	g_pImmediateContext->OMSetBlendState(g_pBlendState, nullptr, 0xFFFFFFFF);
-	g_pImmediateContext->RSSetState(g_pRasterState);
+	m_pImmediateContext->OMSetDepthStencilState(m_pDepthStencilState, ds_stencil_ref);
+	m_pImmediateContext->OMSetBlendState(m_pBlendState, nullptr, 0xFFFFFFFF);
+	m_pImmediateContext->RSSetState(m_pRasterState);
 
 	// Render cubes
-	g_pImmediateContext->DrawIndexedInstanced( 36, (UINT)num_particles, 0, 0, 0 );
+	m_pImmediateContext->DrawIndexedInstanced( 36, (UINT)num_particles, 0, 0, 0 );
 
-	g_pImmediateContext->OMSetDepthStencilState(ds_old, ds_stencil_ref);
-	g_pImmediateContext->RSSetState(rs_old);
+	m_pImmediateContext->OMSetDepthStencilState(ds_old, ds_stencil_ref);
+	m_pImmediateContext->RSSetState(rs_old);
 	rs_old->Release();
 	ds_old->Release();
+}
+
+void mpRendererD3D11::updateDataTexture(void *texptr, const void *data, size_t data_size)
+{
+	D3D11_BOX box;
+	box.left = 0;
+	box.right = mpDataTextureWidth;
+	box.top = 0;
+	box.bottom = (data_size/16) / mpDataTextureWidth;
+	box.front = 0;
+	box.back = 1;
+	ID3D11Texture2D *tex = (ID3D11Texture2D*)texptr;
+	m_pImmediateContext->UpdateSubresource(tex, 0, &box, data, mpDataTextureWidth * 16, 0);
 }

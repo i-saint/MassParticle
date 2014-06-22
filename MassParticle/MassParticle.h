@@ -27,6 +27,7 @@ enum mpForceDirection
 extern "C" EXPORT_API void          mpReloadShader();
 extern "C" EXPORT_API void          mpGeneratePointMesh(int mi, mpMeshData *mds);
 extern "C" EXPORT_API void          mpGenerateCubeMesh(int mi, mpMeshData *mds);
+extern "C" EXPORT_API void          mpUpdateDataTexture(void *tex);
 
 extern "C" EXPORT_API void          mpUpdate(float dt);
 extern "C" EXPORT_API void          mpClearParticles();

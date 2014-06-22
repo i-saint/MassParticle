@@ -551,40 +551,39 @@ void mpWorld::update(float32 dt)
 }
 
 
+inline XMFLOAT2 mpComputeDataTextureCoord(int nth)
+{
+	static const float xd = 1.0f / mpDataTextureWidth;
+	static const float yd = 1.0f / mpDataTextureHeight;
+	int xi = (nth * 3) % mpDataTextureWidth;
+	int yi = (nth * 3) / mpDataTextureWidth;
+	return XMFLOAT2(xd*xi + xd*0.5f, yd*yi + yd*0.5f);
+}
+
 void mpWorld::generatePointMesh(int mi, mpMeshData *mds)
 {
-	const int chunkSize = 65000;
-	int num_meshes = m_num_active_particles / chunkSize + (m_num_active_particles % chunkSize == 0 ? 0 : 1);
-	{
-		mpMeshData &md = *mds;
-		int begin = std::min<int>(mi * chunkSize, m_num_active_particles);
-		int end = std::min<int>((mi + 1) * chunkSize, m_num_active_particles);
-		int end2 = (mi + 1) * chunkSize;
-		for (int ii = begin; ii != end; ++ii) {
-			int si = ii - begin;
-			md.vertices[si] = (XMFLOAT3&)m_particles[ii].position;
-			md.indices[si] = si;
-		}
-		for (int ii = end; ii != end2; ++ii) {
-			int si = ii - begin;
-			md.indices[si] = 0;
-		}
+	const int batch_size = 65000;
 
-		if (md.colors) {
-			for (int ii = begin; ii != end; ++ii) {
-				int si = ii - begin;
-				md.colors[si] = (XMFLOAT4&)m_particles[ii].velocity;
-			}
-		}
+	mpMeshData &md = *mds;
+	int begin = batch_size * mi;
+	int end = batch_size * (mi+1);
+	for (int pi = begin; pi != end; ++pi) {
+		int si = pi - begin;
+		XMFLOAT2 t = mpComputeDataTextureCoord(pi);
+		md.vertices[si] = XMFLOAT3(0.0f,0.0f,0.0f);
+		md.texcoords[si] = t;
+		md.indices[si] = si;
 	}
 }
 
 void mpWorld::generateCubeMesh(int mi, mpMeshData *mds)
 {
-	const float s = m_kparams.ParticleSize;
+	const int batch_size = 2700;
+	const float s = 0.01f;
 	const float p = 1.0f;
 	const float n = -1.0f;
 	const float z = 0.0f;
+
 	const XMFLOAT3 c_vertices[] =
 	{
 		XMFLOAT3(-s,-s, s), XMFLOAT3( s,-s, s), XMFLOAT3( s, s, s), XMFLOAT3(-s, s, s),
@@ -612,51 +611,27 @@ void mpWorld::generateCubeMesh(int mi, mpMeshData *mds)
 		21,20,22, 22,20,23,
 	};
 
-	int num_meshes = m_num_active_particles / 2500 + (m_num_active_particles%2500==0 ? 0 : 1);
-	{
-		mpMeshData &md = *mds;
-		int begin = std::min<int>(mi * 2500, m_num_active_particles);
-		int end = std::min<int>((mi + 1) * 2500, m_num_active_particles);
-		int end2 = (mi + 1) * 2500;
-		for (int ii = begin; ii != end; ++ii) {
-			int si = ii - begin;
-			for (int vi = 0; vi < 24; ++vi) {
-				md.vertices[24 * si + vi] = c_vertices[vi] + (XMFLOAT3&)m_particles[ii].position;
-			}
-			for (int vi = 0; vi < 36; ++vi) {
-				md.indices[36 * si + vi] = 24 * si + c_indices[vi];
-			}
+	mpMeshData &md = *mds;
+	int begin = batch_size * mi;
+	int end = batch_size * (mi+1);
+	for (int pi = begin; pi != end; ++pi) {
+		int si = pi - begin;
+		XMFLOAT2 t = mpComputeDataTextureCoord(pi);
+		for (int vi = 0; vi < 24; ++vi) {
+			md.vertices[24 * si + vi] = c_vertices[vi];
+			md.normals[24 * si + vi] = c_normals[vi];
+			md.texcoords[24 * si + vi] = t;
 		}
-		for (int ii = end; ii != end2; ++ii) {
-			int si = ii - begin;
-			for (int vi = 0; vi < 24; ++vi) {
-				md.indices[36 * si + vi] = 0;
-			}
+		for (int vi = 0; vi < 36; ++vi) {
+			md.indices[36 * si + vi] = 24 * si + c_indices[vi];
 		}
+	}
+}
 
-		if (md.normals) {
-			for (int ii = begin; ii != end; ++ii) {
-				int si = ii - begin;
-				for (int vi = 0; vi < 24; ++vi) {
-					md.normals[24 * si + vi] = c_normals[vi];
-				}
-			}
-		}
-		if (md.texcoords) {
-			for (int ii = begin; ii != end; ++ii) {
-				int si = ii - begin;
-				for (int vi = 0; vi < 24; ++vi) {
-					// todo
-				}
-			}
-		}
-		if (md.colors) {
-			for (int ii = begin; ii != end; ++ii) {
-				int si = ii - begin;
-				for (int vi = 0; vi < 24; ++vi) {
-					md.colors[24 * si + vi] = (XMFLOAT4&)m_particles[ii].velocity;
-				}
-			}
-		}
+
+void mpWorld::updateDataTexture(void *tex)
+{
+	if (g_mpRenderer && !m_particles.empty()) {
+		g_mpRenderer->updateDataTexture(tex, &m_particles[0], sizeof(mpParticle)*m_particles.size());
 	}
 }

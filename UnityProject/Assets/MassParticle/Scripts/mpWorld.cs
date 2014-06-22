@@ -26,7 +26,6 @@ public unsafe class mpWorld : MonoBehaviour {
 	public int maxParticleNum = 200000;
 
 	public ParticleHandler particleHandler;
-
 	public Collider[] colliders3d;
 	public Collider2D[] colliders2d;
 

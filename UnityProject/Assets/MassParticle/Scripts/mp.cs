@@ -72,18 +72,17 @@ public class mp {
 		[FieldOffset(16)] public float strengthRandomDiffuse;
 	}
 
-	[StructLayout(LayoutKind.Explicit)]
 	public unsafe struct mpMeshData
 	{
-		[FieldOffset( 0)] public Vector3* vertices;
-		[FieldOffset( 4)] public Vector3* normals;
-		[FieldOffset( 8)] public Vector2* uv;
-		[FieldOffset(12)] public Color* colors;
-		[FieldOffset(16)] public int* indices;
+		public int* indices;
+		public Vector3* vertices;
+		public Vector3* normals;
+		public Vector2* uv;
 	};
 
 	[DllImport ("MassParticle")] unsafe public static extern void mpGeneratePointMesh(int i, ref mpMeshData md);
 	[DllImport ("MassParticle")] unsafe public static extern void mpGenerateCubeMesh(int i, ref mpMeshData md);
+	[DllImport ("MassParticle")] unsafe public static extern void mpUpdateDataTexture(IntPtr tex);
 	[DllImport ("MassParticle")] public static extern void mpReloadShader ();
 
 	[DllImport ("MassParticle")] public static extern void mpUpdate (float dt);

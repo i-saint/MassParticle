@@ -29,6 +29,12 @@ extern "C" EXPORT_API void mpGenerateCubeMesh(int mi, mpMeshData *mds)
 	g_mpWorld.generateCubeMesh(mi, mds);
 }
 
+extern "C" EXPORT_API void mpUpdateDataTexture(void *tex)
+{
+	g_mpWorld.updateDataTexture(tex);
+}
+
+
 extern "C" EXPORT_API void mpUpdate(float dt)
 {
 	{

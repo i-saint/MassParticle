@@ -6,16 +6,6 @@ using System.Runtime.InteropServices;
 
 public unsafe class mpRenderer : MonoBehaviour
 {
-	public struct ChildMeshData
-	{
-		public Vector3[] vertices;
-		public Vector3[] normals;
-		public Vector2[] uv;
-		public Color[] colors;
-		public int[] indices;
-		public GameObject obj;
-	}
-
 	public enum RenderMode {
 		Plugin,
 		Points,
@@ -23,11 +13,16 @@ public unsafe class mpRenderer : MonoBehaviour
 	}
 
 	mp.mpMeshData meshData;
-	List<ChildMeshData> children;
+	List<GameObject> children;
 	public RenderMode renderMode;
 	public GameObject childPrefab;
 	public Material material;
 	RenderMode renderModePrev;
+
+	const int dataTextureWidth = 3072;
+	const int dataTextureHeight = 2048;
+	RenderTexture dataTexture;
+
 
 	mpRenderer()
 	{
@@ -35,15 +30,24 @@ public unsafe class mpRenderer : MonoBehaviour
 
 	void Start () {
 		meshData = new mp.mpMeshData();
-		children = new List<ChildMeshData>();
+		children = new List<GameObject>();
+		dataTexture = new RenderTexture(dataTextureWidth, dataTextureHeight, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Default);
+		dataTexture.isPowerOfTwo = false;
+		dataTexture.filterMode = FilterMode.Point;
+		dataTexture.Create();
+		if (material)
+		{
+			material.SetTexture("_DataTex", dataTexture);
+			material.SetFloat("_DataTexPitch", 1.0f / dataTextureWidth);
+		}
 	}
 
 	void Update()
 	{
 		if (renderMode != renderModePrev)
 		{
-			foreach(ChildMeshData cmd in children) {
-				Destroy(cmd.obj);
+			foreach(GameObject child in children) {
+				Destroy(child);
 			}
 			children.Clear();
 		}
@@ -56,9 +60,11 @@ public unsafe class mpRenderer : MonoBehaviour
 		{
 			case RenderMode.Points:
 				UpdatePointMeshes();
+				mp.mpUpdateDataTexture(dataTexture.GetNativeTexturePtr());
 				break;
 			case RenderMode.Cubes:
 				UpdateCubeMeshes();
+				mp.mpUpdateDataTexture(dataTexture.GetNativeTexturePtr());
 				break;
 		}
 	}
@@ -66,47 +72,41 @@ public unsafe class mpRenderer : MonoBehaviour
 	void UpdateCubeMeshes()
 	{
 		int numParticles = mp.mpGetNumParticles();
-		int numChildren = numParticles / 2500 + (numParticles % 2500 == 0 ? 0 : 1);
+		int numChildren = numParticles / 2700 + (numParticles % 2700 == 0 ? 0 : 1);
 		while (children.Count < numChildren)
 		{
-			ChildMeshData child = new ChildMeshData();
-			child.vertices = new Vector3[60000];
-			child.normals = new Vector3[60000];
-			child.uv = new Vector2[60000];
-			child.colors = new Color[60000];
-			child.indices = new int[90000];
-			child.obj = (GameObject)Instantiate(childPrefab, Vector3.zero, Quaternion.identity);
+			GameObject child = (GameObject)Instantiate(childPrefab, Vector3.zero, Quaternion.identity);
+			Vector3[] vertices = new Vector3[64800];
+			Vector3[] normals = new Vector3[64800];
+			Vector2[] uv = new Vector2[64800];
+			int[] indices = new int[97200];
+			fixed (Vector3* v = vertices) {
+			fixed (Vector3* n = normals) {
+			fixed (Vector2* t = uv) {
+			fixed (int* idx = indices) {
+				meshData.vertices = v;
+				meshData.normals = n;
+				meshData.uv = t;
+				meshData.indices = idx;
+				mp.mpGenerateCubeMesh(children.Count, ref meshData);
+			}}}}
+			Mesh mesh = child.GetComponent<MeshFilter>().mesh;
+			mesh.vertices = vertices;
+			mesh.normals = normals;
+			mesh.uv = uv;
+			mesh.SetIndices(indices, MeshTopology.Triangles, 0);
 			children.Add(child);
 		}
 		for (int i = 0; i < numChildren; ++i)
 		{
-			ChildMeshData child = children[i];
-			fixed (Vector3* v = child.vertices) {
-			fixed (Vector3* n = child.normals) {
-			fixed (Vector2* t = child.uv) {
-			fixed (Color* c = child.colors) {
-			fixed (int* idx = child.indices) {
-				meshData.vertices = v;
-				meshData.normals = n;
-				meshData.uv = t;
-				meshData.colors = c;
-				meshData.indices = idx;
-				mp.mpGenerateCubeMesh(i, ref meshData);
-			}}}}}
-			Mesh mesh = child.obj.GetComponent<MeshFilter>().mesh;
-			mesh.vertices = child.vertices;
-			mesh.normals = child.normals;
-			//mesh.uv = child.uv;
-			//mesh.colors = child.colors;
-			mesh.SetIndices(child.indices, MeshTopology.Triangles, 0);
-
-			MeshRenderer renderer = child.obj.GetComponent<MeshRenderer>();
+			GameObject child = children[i];
+			MeshRenderer renderer = child.GetComponent<MeshRenderer>();
 			renderer.enabled = true;
 			renderer.material = material;
 		}
 		for (int i = numChildren; i < children.Count; ++i)
 		{
-			children[i].obj.GetComponent<MeshRenderer>().enabled = false;
+			children[i].GetComponent<MeshRenderer>().enabled = false;
 		}
 	}
 
@@ -116,44 +116,34 @@ public unsafe class mpRenderer : MonoBehaviour
 		int numChildren = numParticles / 65000 + (numParticles % 65000 == 0 ? 0 : 1);
 		while (children.Count < numChildren)
 		{
-			ChildMeshData child = new ChildMeshData();
-			child.vertices = new Vector3[65000];
-			child.normals = new Vector3[65000];
-			child.uv = new Vector2[65000];
-			child.colors = new Color[65000];
-			child.indices = new int[65000];
-			child.obj = (GameObject)Instantiate(childPrefab, Vector3.zero, Quaternion.identity);
+			GameObject child = (GameObject)Instantiate(childPrefab, Vector3.zero, Quaternion.identity);
+			Vector3[] vertices = new Vector3[65000];
+			Vector2[] uv = new Vector2[65000];
+			int[] indices = new int[65000];
+			fixed (Vector3* v = vertices) {
+			fixed (Vector2* t = uv) {
+			fixed (int* idx = indices) {
+				meshData.vertices = v;
+				meshData.uv = t;
+				meshData.indices = idx;
+				mp.mpGeneratePointMesh(children.Count, ref meshData);
+			}}}
+			Mesh mesh = child.GetComponent<MeshFilter>().mesh;
+			mesh.vertices = vertices;
+			mesh.uv = uv;
+			mesh.SetIndices(indices, MeshTopology.Points, 0);
 			children.Add(child);
 		}
 		for (int i = 0; i < numChildren; ++i)
 		{
-			ChildMeshData child = children[i];
-			fixed (Vector3* v = child.vertices) {
-			fixed (Vector3* n = child.normals) {
-			fixed (Vector2* t = child.uv) {
-			fixed (Color* c = child.colors) {
-			fixed (int* idx = child.indices) {
-				meshData.vertices = v;
-				meshData.normals = n;
-				meshData.uv = t;
-				meshData.colors = c;
-				meshData.indices = idx;
-				mp.mpGeneratePointMesh(i, ref meshData);
-			}}}}}
-			Mesh mesh = child.obj.GetComponent<MeshFilter>().mesh;
-			mesh.vertices = child.vertices;
-			mesh.normals = child.normals;
-			//mesh.uv = child.uv;
-			//mesh.colors = child.colors;
-			mesh.SetIndices(child.indices, MeshTopology.Points, 0);
-
-			MeshRenderer renderer = child.obj.GetComponent<MeshRenderer>();
+			GameObject child = children[i];
+			MeshRenderer renderer = child.GetComponent<MeshRenderer>();
 			renderer.enabled = true;
 			renderer.material = material;
 		}
 		for (int i = numChildren; i < children.Count; ++i)
 		{
-			children[i].obj.GetComponent<MeshRenderer>().enabled = false;
+			children[i].GetComponent<MeshRenderer>().enabled = false;
 		}
 	}
 
