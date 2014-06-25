@@ -22,6 +22,8 @@ public unsafe class mpRenderer : MonoBehaviour
 	const int dataTextureWidth = 3072;
 	const int dataTextureHeight = 2048;
 	RenderTexture dataTexture;
+	GameObject meshes;
+	Transform trans;
 
 
 	mpRenderer()
@@ -29,6 +31,9 @@ public unsafe class mpRenderer : MonoBehaviour
 	}
 
 	void Start () {
+		trans = gameObject.GetComponent<Transform>();
+		meshes = new GameObject("mpMeshes");
+
 		meshData = new mp.mpMeshData();
 		children = new List<GameObject>();
 		dataTexture = new RenderTexture(dataTextureWidth, dataTextureHeight, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Default);
@@ -69,13 +74,25 @@ public unsafe class mpRenderer : MonoBehaviour
 		}
 	}
 
+	GameObject CreateChildMesh()
+	{
+		GameObject child = new GameObject("mpMesh");
+		child.transform.parent = meshes.transform;
+		child.AddComponent<MeshFilter>();
+		child.AddComponent<MeshRenderer>();
+		Vector3 min = trans.position - trans.localScale;
+		Vector3 max = trans.position + trans.localScale;
+		child.GetComponent<MeshFilter>().mesh.bounds.SetMinMax(min, max);
+		return child;
+	}
+
 	void UpdateCubeMeshes()
 	{
 		int numParticles = mp.mpGetNumParticles();
 		int numChildren = numParticles / 2700 + (numParticles % 2700 == 0 ? 0 : 1);
 		while (children.Count < numChildren)
 		{
-			GameObject child = (GameObject)Instantiate(childPrefab, Vector3.zero, Quaternion.identity);
+			GameObject child = CreateChildMesh();
 			Vector3[] vertices = new Vector3[64800];
 			Vector3[] normals = new Vector3[64800];
 			Vector2[] uv = new Vector2[64800];
@@ -116,7 +133,7 @@ public unsafe class mpRenderer : MonoBehaviour
 		int numChildren = numParticles / 65000 + (numParticles % 65000 == 0 ? 0 : 1);
 		while (children.Count < numChildren)
 		{
-			GameObject child = (GameObject)Instantiate(childPrefab, Vector3.zero, Quaternion.identity);
+			GameObject child = CreateChildMesh();
 			Vector3[] vertices = new Vector3[65000];
 			Vector2[] uv = new Vector2[65000];
 			int[] indices = new int[65000];
