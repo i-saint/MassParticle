@@ -31,6 +31,7 @@ public unsafe class mpWorld : MonoBehaviour {
 
 	mpWorld()
 	{
+		mp.mphInitialize();
 		particleHandler = (a, b) => DefaultParticleHandler(a, b);
 	}
 

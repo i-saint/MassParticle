@@ -80,6 +80,8 @@ public class mp {
 		public Vector2* uv;
 	};
 
+	[DllImport ("MassParticleHelper")] unsafe public static extern void mphInitialize();
+
 	[DllImport ("MassParticle")] unsafe public static extern void mpGeneratePointMesh(int i, ref mpMeshData md);
 	[DllImport ("MassParticle")] unsafe public static extern void mpGenerateCubeMesh(int i, ref mpMeshData md);
 	[DllImport ("MassParticle")] unsafe public static extern void mpUpdateDataTexture(IntPtr tex);
