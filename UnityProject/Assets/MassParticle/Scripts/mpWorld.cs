@@ -84,10 +84,18 @@ public unsafe class mpWorld : MonoBehaviour {
 				Collider col = colliders3d[i];
 				if (col.isTrigger) { continue; }
 
+				bool recv = false;
+				var attr = col.gameObject.GetComponent<mpColliderAttribute>();
+				if (attr)
+				{
+					if (!attr.sendCollision) { continue; }
+					recv = attr.receiveCollision;
+				}
+
 				SphereCollider sphere = col as SphereCollider;
 				CapsuleCollider capsule = col as CapsuleCollider;
 				BoxCollider box = col as BoxCollider;
-				int ownerid = i;
+				int ownerid = recv ? i : -1;
 				if (sphere)
 				{
 					mp.mpAddSphereCollider(ownerid, sphere.transform.position, sphere.radius * col.gameObject.transform.localScale.magnitude * 0.5f);
@@ -124,9 +132,17 @@ public unsafe class mpWorld : MonoBehaviour {
 				Collider2D col = colliders2d[i];
 				if (col.isTrigger) { continue; }
 
+				bool recv = false;
+				var attr = col.gameObject.GetComponent<mpColliderAttribute>();
+				if (attr)
+				{
+					if (!attr.sendCollision) { continue; }
+					recv = attr.receiveCollision;
+				}
+
 				CircleCollider2D sphere = col as CircleCollider2D;
 				BoxCollider2D box = col as BoxCollider2D;
-				int ownerid = i;
+				int ownerid = recv ? i : -1;
 				if (sphere)
 				{
 					mp.mpAddSphereCollider(ownerid, sphere.transform.position, sphere.radius * col.gameObject.transform.localScale.x);
