@@ -3,12 +3,12 @@ using System.Collections;
 
 public unsafe class ParticleHandler : MonoBehaviour {
 
-	mpWorld mpw;
+	MPWorld mpw;
 
 
 	void Start()
 	{
-		mpw = GetComponentInParent<mpWorld>();
+		mpw = GetComponentInParent<MPWorld>();
 		if (mpw)
 		{
 			mpw.particleHandler = (a, b) => Handler(a, b);
@@ -20,7 +20,7 @@ public unsafe class ParticleHandler : MonoBehaviour {
 	
 	}
 
-	void Handler(int numParticles, mp.mpParticle* particles)
+	void Handler(int numParticles, MPParticle* particles)
 	{
 		for (int i = 0; i < numParticles; ++i)
 		{

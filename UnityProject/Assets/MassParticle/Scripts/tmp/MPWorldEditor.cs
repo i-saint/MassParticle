@@ -4,8 +4,8 @@ using System.Collections;
 using UnityEditor;
 using System.Runtime.InteropServices;
 
-[CustomEditor(typeof(mpWorld))]
-public class mpWorldEditor : Editor {
+[CustomEditor(typeof(MPWorld))]
+public class MPWorldEditor : Editor {
 
 	public override void OnInspectorGUI()
 	{
@@ -13,7 +13,7 @@ public class mpWorldEditor : Editor {
 
 		if(GUILayout.Button("Reload Shader"))
 		{
-			mp.mpReloadShader();
+			MPNative.mpReloadShader();
 		}
 	}
 }

@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
 
-public unsafe class mpRenderer : MonoBehaviour
+public unsafe class MPRenderer : MonoBehaviour
 {
 	public enum RenderMode {
 		Plugin,
@@ -12,7 +12,7 @@ public unsafe class mpRenderer : MonoBehaviour
 		Cubes
 	}
 
-	mp.mpMeshData meshData;
+	MPMeshData meshData;
 	List<GameObject> children;
 	public RenderMode renderMode;
 	public Material material;
@@ -27,19 +27,19 @@ public unsafe class mpRenderer : MonoBehaviour
 	GameObject meshes;
 	Transform trans;
 	Bounds bounds;
-	mpWorld world;
+	MPWorld world;
 
 
-	mpRenderer()
+	MPRenderer()
 	{
 	}
 
 	void Start () {
 		trans = gameObject.GetComponent<Transform>();
-		world = gameObject.GetComponent<mpWorld>();
+		world = gameObject.GetComponent<MPWorld>();
 		meshes = new GameObject("mpMeshes");
 
-		meshData = new mp.mpMeshData();
+		meshData = new MPMeshData();
 		children = new List<GameObject>();
 		dataTexture = new RenderTexture(dataTextureWidth, dataTextureHeight, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Default);
 		dataTexture.isPowerOfTwo = false;
@@ -68,7 +68,7 @@ public unsafe class mpRenderer : MonoBehaviour
 		bounds.SetMinMax(min, max);
 		material.SetFloat("_ParticleSize", world.particleSize * scale);
 
-		int num = mp.mpGetNumParticles();
+		int num = MPNative.mpGetNumParticles();
 		if (num == 0) { return; }
 
 		switch (renderMode)
@@ -78,11 +78,11 @@ public unsafe class mpRenderer : MonoBehaviour
 
 			case RenderMode.Points:
 				UpdatePointMeshes();
-				mp.mpUpdateDataTexture(dataTexture.GetNativeTexturePtr());
+				MPNative.mpUpdateDataTexture(dataTexture.GetNativeTexturePtr());
 				break;
 			case RenderMode.Cubes:
 				UpdateCubeMeshes();
-				mp.mpUpdateDataTexture(dataTexture.GetNativeTexturePtr());
+				MPNative.mpUpdateDataTexture(dataTexture.GetNativeTexturePtr());
 				break;
 		}
 	}
@@ -98,7 +98,7 @@ public unsafe class mpRenderer : MonoBehaviour
 
 	void UpdateCubeMeshes()
 	{
-		int numParticles = mp.mpGetNumParticles();
+		int numParticles = MPNative.mpGetNumParticles();
 		int numActiveChildren = numParticles / 2700 + (numParticles % 2700 == 0 ? 0 : 1);
 		while (children.Count < numActiveChildren)
 		{
@@ -115,7 +115,7 @@ public unsafe class mpRenderer : MonoBehaviour
 				meshData.normals = n;
 				meshData.uv = t;
 				meshData.indices = idx;
-				mp.mpGenerateCubeMesh(children.Count, ref meshData);
+				MPNative.mpGenerateCubeMesh(children.Count, ref meshData);
 			}}}}
 			Mesh mesh = child.GetComponent<MeshFilter>().mesh;
 			mesh.vertices = vertices;
@@ -129,7 +129,7 @@ public unsafe class mpRenderer : MonoBehaviour
 
 	void UpdatePointMeshes()
 	{
-		int numParticles = mp.mpGetNumParticles();
+		int numParticles = MPNative.mpGetNumParticles();
 		int numActiveChildren = numParticles / 65000 + (numParticles % 65000 == 0 ? 0 : 1);
 		while (children.Count < numActiveChildren)
 		{
@@ -143,7 +143,7 @@ public unsafe class mpRenderer : MonoBehaviour
 				meshData.vertices = v;
 				meshData.uv = t;
 				meshData.indices = idx;
-				mp.mpGeneratePointMesh(children.Count, ref meshData);
+				MPNative.mpGeneratePointMesh(children.Count, ref meshData);
 			}}}
 			Mesh mesh = child.GetComponent<MeshFilter>().mesh;
 			mesh.vertices = vertices;
@@ -180,7 +180,7 @@ public unsafe class mpRenderer : MonoBehaviour
 			UnityEngine.Camera cam = UnityEngine.Camera.current;
 			if (cam)
 			{
-				mp.mpSetViewProjectionMatrix(cam.worldToCameraMatrix, cam.projectionMatrix, cam.transform.position);
+				MPNative.mpSetViewProjectionMatrix(cam.worldToCameraMatrix, cam.projectionMatrix, cam.transform.position);
 			}
 			GL.IssuePluginEvent(1);
 		}

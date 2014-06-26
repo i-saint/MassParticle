@@ -4,19 +4,19 @@ using System;
 
 public unsafe class ParticleProcessor : MonoBehaviour {
 
-	mpWorld mpw;
+	MPWorld mpw;
 	public float damageThreshold = 3.0f;
 
 
 	// Use this for initialization
 	void Start () {
-		mpw = GetComponentInParent<mpWorld>();
+		mpw = GetComponentInParent<MPWorld>();
 		if(mpw) {
 			mpw.particleHandler = (a, b) => Handler(a, b);
 		}
 	}
 
-	unsafe void Handler(int numParticles, mp.mpParticle* particles)
+	unsafe void Handler(int numParticles, MPParticle* particles)
 	{
 		for (int i = 0; i < numParticles; ++i)
 		{

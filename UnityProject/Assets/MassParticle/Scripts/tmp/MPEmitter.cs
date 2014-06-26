@@ -4,8 +4,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
-public class mpEmitter : MonoBehaviour {
-
+public class MPEmitter : MonoBehaviour {
 
 	public enum Shape {
 		Sphere,
@@ -25,11 +24,11 @@ public class mpEmitter : MonoBehaviour {
 	{
 		switch (shape) {
 		case Shape.Sphere:
-			mp.mpScatterParticlesSphereTransform (transform.localToWorldMatrix, emitCount, velosityBase, velosityDiffuse);
+			MPNative.mpScatterParticlesSphereTransform (transform.localToWorldMatrix, emitCount, velosityBase, velosityDiffuse);
 			break;
 
 		case Shape.Box:
-			mp.mpScatterParticlesBoxTransform (transform.localToWorldMatrix, emitCount, velosityBase, velosityDiffuse);
+			MPNative.mpScatterParticlesBoxTransform (transform.localToWorldMatrix, emitCount, velosityBase, velosityDiffuse);
 			break;
 		}
 	}

@@ -5,11 +5,11 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
 
-public unsafe class mpWorld : MonoBehaviour {
+public unsafe class MPWorld : MonoBehaviour {
 
-	public delegate void ParticleHandler(int numParticles, mp.mpParticle* particles);
+	public delegate void ParticleHandler(int numParticles, MPParticle* particles);
 
-	public mp.mpSolverType solverType;
+	public MPSolverType solverType;
 	public float force = 1.0f;
 	public float particleLifeTime;
 	public float timeStep;
@@ -29,18 +29,18 @@ public unsafe class mpWorld : MonoBehaviour {
 	public Collider[] colliders3d;
 	public Collider2D[] colliders2d;
 
-	mpWorld()
+	MPWorld()
 	{
-		mp.mphInitialize();
+		MPNative.mphInitialize();
 		particleHandler = (a, b) => DefaultParticleHandler(a, b);
 	}
 
 	void Reset()
 	{
-		mp.mpKernelParams p = mp.mpGetKernelParams();
+		MPKernelParams p = MPNative.mpGetKernelParams();
 		transform.position = p.WorldCenter;
 		transform.localScale = p.WorldSize;
-		solverType 			= (mp.mpSolverType)p.SolverType;
+		solverType 			= (MPSolverType)p.SolverType;
 		particleLifeTime 	= p.LifeTime;
 		timeStep 			= p.Timestep;
 		deceleration 		= p.Decelerate;
@@ -52,13 +52,13 @@ public unsafe class mpWorld : MonoBehaviour {
 	}
 
 	void Start () {
-		mp.mpClearParticles();
+		MPNative.mpClearParticles();
 	}
 
 	unsafe void Update()
 	{
 		{
-			mp.mpKernelParams p = mp.mpGetKernelParams();
+			MPKernelParams p = MPNative.mpGetKernelParams();
 			p.WorldCenter = transform.position;
 			p.WorldSize = transform.localScale;
 			p.WorldDiv_x = divX;
@@ -73,7 +73,7 @@ public unsafe class mpWorld : MonoBehaviour {
 			p.Scaler = coordScale;
 			p.ParticleSize = particleSize;
 			p.MaxParticles = maxParticleNum;
-			mp.mpSetKernelParams(ref p);
+			MPNative.mpSetKernelParams(ref p);
 		}
 
 		if (include3DColliders)
@@ -85,7 +85,7 @@ public unsafe class mpWorld : MonoBehaviour {
 				if (col.isTrigger) { continue; }
 
 				bool recv = false;
-				var attr = col.gameObject.GetComponent<mpColliderAttribute>();
+				var attr = col.gameObject.GetComponent<MPColliderAttribute>();
 				if (attr)
 				{
 					if (!attr.sendCollision) { continue; }
@@ -98,7 +98,7 @@ public unsafe class mpWorld : MonoBehaviour {
 				int ownerid = recv ? i : -1;
 				if (sphere)
 				{
-					mp.mpAddSphereCollider(ownerid, sphere.transform.position, sphere.radius * col.gameObject.transform.localScale.magnitude * 0.5f);
+					MPNative.mpAddSphereCollider(ownerid, sphere.transform.position, sphere.radius * col.gameObject.transform.localScale.magnitude * 0.5f);
 				}
 				else if (capsule)
 				{
@@ -115,11 +115,11 @@ public unsafe class mpWorld : MonoBehaviour {
 					Vector4 pos2 = new Vector4(-e.x, -e.y, -e.z, 1.0f);
 					pos1 = capsule.transform.localToWorldMatrix * pos1;
 					pos2 = capsule.transform.localToWorldMatrix * pos2;
-					mp.mpAddCapsuleCollider(ownerid, pos1, pos2, r);
+					MPNative.mpAddCapsuleCollider(ownerid, pos1, pos2, r);
 				}
 				else if (box)
 				{
-					mp.mpAddBoxCollider(ownerid, box.transform.localToWorldMatrix, box.size);
+					MPNative.mpAddBoxCollider(ownerid, box.transform.localToWorldMatrix, box.size);
 				}
 			}
 		}
@@ -133,7 +133,7 @@ public unsafe class mpWorld : MonoBehaviour {
 				if (col.isTrigger) { continue; }
 
 				bool recv = false;
-				var attr = col.gameObject.GetComponent<mpColliderAttribute>();
+				var attr = col.gameObject.GetComponent<MPColliderAttribute>();
 				if (attr)
 				{
 					if (!attr.sendCollision) { continue; }
@@ -145,20 +145,20 @@ public unsafe class mpWorld : MonoBehaviour {
 				int ownerid = recv ? i : -1;
 				if (sphere)
 				{
-					mp.mpAddSphereCollider(ownerid, sphere.transform.position, sphere.radius * col.gameObject.transform.localScale.x);
+					MPNative.mpAddSphereCollider(ownerid, sphere.transform.position, sphere.radius * col.gameObject.transform.localScale.x);
 				}
 				else if (box)
 				{
-					mp.mpAddBoxCollider(ownerid, box.transform.localToWorldMatrix, new Vector3(box.size.x, box.size.y, box.size.x));
+					MPNative.mpAddBoxCollider(ownerid, box.transform.localToWorldMatrix, new Vector3(box.size.x, box.size.y, box.size.x));
 				}
 			}
 		}
 
-		mp.mpUpdate (Time.deltaTime);
-		mp.mpClearCollidersAndForces();
+		MPNative.mpUpdate (Time.deltaTime);
+		MPNative.mpClearCollidersAndForces();
 		if (particleHandler!=null)
 		{
-			particleHandler(mp.mpGetNumParticles(), mp.mpGetParticles());
+			particleHandler(MPNative.mpGetNumParticles(), MPNative.mpGetParticles());
 		}
 	}
 
@@ -169,7 +169,7 @@ public unsafe class mpWorld : MonoBehaviour {
 	}
 
 
-	unsafe void DefaultParticleHandler(int numParticles, mp.mpParticle* particles)
+	unsafe void DefaultParticleHandler(int numParticles, MPParticle* particles)
 	{
 		if (force == 0.0f) { return; }
 		for (int i = 0; i < numParticles; ++i)

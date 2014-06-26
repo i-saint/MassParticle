@@ -5,15 +5,15 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
 
-public class mpForce : MonoBehaviour {
+public class MPForce : MonoBehaviour {
 
-	public mp.mpForceShape regionType;
-	public mp.mpForceDirection directionType; 
+	public MPForceShape regionType;
+	public MPForceDirection directionType; 
 
 	public float strength = 10.0f;
 	public Vector3 direction = new Vector3(0.0f,-1.0f,0.0f);
 
-	mp.mpForceParams forceParams;
+	MPForceParams forceParams;
 
 	void Start () {
 	}
@@ -23,15 +23,15 @@ public class mpForce : MonoBehaviour {
 		forceParams.strength = strength;
 		
 		switch(directionType) {
-		case mp.mpForceDirection.Directional:
+		case MPForceDirection.Directional:
 			forceParams.pos = direction;
 			break;
-			
-		case mp.mpForceDirection.Radial:
+
+		case MPForceDirection.Radial:
 			forceParams.pos = transform.position;
 			break;
 		}
-		mp.mpAddForce (regionType, transform.localToWorldMatrix, directionType, forceParams);
+		MPNative.mpAddForce (regionType, transform.localToWorldMatrix, directionType, forceParams);
 	}
 	
 	
@@ -56,11 +56,11 @@ public class mpForce : MonoBehaviour {
 			Gizmos.color = Color.yellow;
 			Gizmos.matrix = transform.localToWorldMatrix;
 			switch(regionType) {
-			case mp.mpForceShape.Sphere:
+			case MPForceShape.Sphere:
 				Gizmos.DrawWireSphere(Vector3.zero, 0.5f);
 				break;
-				
-			case mp.mpForceShape.Box:
+
+			case MPForceShape.Box:
 				Gizmos.color = Color.yellow;
 				Gizmos.DrawWireCube(Vector3.zero, Vector3.one);
 				break;

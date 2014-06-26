@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-public class mpCollider : mpColliderAttribute
+public class MPCollider : MPColliderAttribute
 {
 	public enum Shape {
 		Sphere,
@@ -34,16 +34,16 @@ public class mpCollider : mpColliderAttribute
 			switch (shape)
 			{
 			case Shape.Sphere:
-					mp.mpAddSphereCollider(-1, trans.position, trans.localScale.magnitude * 0.25f);
+					MPNative.mpAddSphereCollider(-1, trans.position, trans.localScale.magnitude * 0.25f);
 				break;
 			case Shape.Capsule:
 				{
 					UpdateCapsule();
-					mp.mpAddCapsuleCollider(-1, pos1, pos2, radius);
+					MPNative.mpAddCapsuleCollider(-1, pos1, pos2, radius);
 				}
 				break;
 			case Shape.Box:
-				mp.mpAddBoxCollider(-1, trans.localToWorldMatrix, Vector3.one);
+				MPNative.mpAddBoxCollider(-1, trans.localToWorldMatrix, Vector3.one);
 				break;
 			}
 		}

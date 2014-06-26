@@ -3,7 +3,7 @@ using System.Collections;
 
 public class Player : MonoBehaviour {
 
-	mp.mpForceParams forceParams;
+	MPForceParams forceParams;
 	Matrix4x4 blowMatrix;
 	public GameObject playerBullet;
 
@@ -57,7 +57,7 @@ public class Player : MonoBehaviour {
 
 		forceParams.strength = strength;
 		forceParams.pos = pos - (transform.forward*6.0f);
-		mp.mpAddForce (mp.mpForceShape.Box, blowMatrix, mp.mpForceDirection.Radial, forceParams);
+		MPNative.mpAddForce (MPForceShape.Box, blowMatrix, MPForceDirection.Radial, forceParams);
 	}
 	
 	void OnDrawGizmos()
