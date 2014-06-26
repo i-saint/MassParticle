@@ -5,7 +5,6 @@
 #include <d3d11.h>
 #include <d3dx11.h>
 #include <d3dcompiler.h>
-#include <xnamath.h>
 #include <cstdio>
 #include "resource.h"
 
@@ -18,20 +17,20 @@
 
 struct mpVertex
 {
-	XMFLOAT3 Pos;
-	XMFLOAT3 Normal;
+	vec3 Pos;
+	vec3 Normal;
 };
 
 struct mpCBCData
 {
-	XMMATRIX ViewProjection;
-	XMFLOAT4 CameraPos;
-	XMFLOAT4 LightPos;
-	XMFLOAT4 LightColor;
-	XMFLOAT4 MeshColor;
-	FLOAT    ParticleSize;
-	FLOAT    MeshShininess;
-	FLOAT    padding[2];
+	mat4 ViewProjection;
+	vec4 CameraPos;
+	vec4 LightPos;
+	vec4 LightColor;
+	vec4 MeshColor;
+	float ParticleSize;
+	float MeshShininess;
+	float padding[2];
 };
 
 
@@ -51,20 +50,20 @@ private:
 	ID3D11Buffer* CreateVertexBuffer(const void *data, UINT size);
 
 private:
-	ID3D11Device            *m_pDevice;
-	ID3D11DeviceContext     *m_pImmediateContext;
-	ID3D11DepthStencilState *m_pDepthStencilState;
-	ID3D11RasterizerState   *m_pRasterState;
-	ID3D11BlendState        *m_pBlendState;
+	ID3D11Device			*m_pDevice;
+	ID3D11DeviceContext		*m_pImmediateContext;
+	ID3D11DepthStencilState	*m_pDepthStencilState;
+	ID3D11RasterizerState	*m_pRasterState;
+	ID3D11BlendState		*m_pBlendState;
 
-	ID3D11VertexShader      *m_pCubeVertexShader;
-	ID3D11InputLayout       *m_pCubeVertexLayout;
-	ID3D11PixelShader       *m_pCubePixelShader;
-	ID3D11Buffer            *m_pCubeVertexBuffer;
-	ID3D11Buffer            *m_pCubeInstanceBuffer;
-	ID3D11Buffer            *m_pCubeIndexBuffer;
-	ID3D11Buffer            *m_pCBChangesEveryFrame;
-	XMFLOAT4                m_MeshColor;
+	ID3D11VertexShader		*m_pCubeVertexShader;
+	ID3D11InputLayout		*m_pCubeVertexLayout;
+	ID3D11PixelShader		*m_pCubePixelShader;
+	ID3D11Buffer			*m_pCubeVertexBuffer;
+	ID3D11Buffer			*m_pCubeInstanceBuffer;
+	ID3D11Buffer			*m_pCubeIndexBuffer;
+	ID3D11Buffer			*m_pCBChangesEveryFrame;
+	vec4					m_MeshColor;
 
 	int m_num_particles;
 };
@@ -193,35 +192,35 @@ bool mpRendererD3D11::initializeDevice(void *_dev)
 	{
 		mpVertex vertices[] =
 		{
-			{ XMFLOAT3(-1.0f, 1.0f,-1.0f),  XMFLOAT3( 0.0f, 1.0f, 0.0f) },
-			{ XMFLOAT3( 1.0f, 1.0f,-1.0f),  XMFLOAT3( 0.0f, 1.0f, 0.0f) },
-			{ XMFLOAT3( 1.0f, 1.0f, 1.0f),  XMFLOAT3( 0.0f, 1.0f, 0.0f) },
-			{ XMFLOAT3(-1.0f, 1.0f, 1.0f),  XMFLOAT3( 0.0f, 1.0f, 0.0f) },
+			{ vec3(-1.0f, 1.0f,-1.0f),  vec3( 0.0f, 1.0f, 0.0f) },
+			{ vec3( 1.0f, 1.0f,-1.0f),  vec3( 0.0f, 1.0f, 0.0f) },
+			{ vec3( 1.0f, 1.0f, 1.0f),  vec3( 0.0f, 1.0f, 0.0f) },
+			{ vec3(-1.0f, 1.0f, 1.0f),  vec3( 0.0f, 1.0f, 0.0f) },
 
-			{ XMFLOAT3(-1.0f,-1.0f,-1.0f),  XMFLOAT3( 0.0f,-1.0f, 0.0f) },
-			{ XMFLOAT3( 1.0f,-1.0f,-1.0f),  XMFLOAT3( 0.0f,-1.0f, 0.0f) },
-			{ XMFLOAT3( 1.0f,-1.0f, 1.0f),  XMFLOAT3( 0.0f,-1.0f, 0.0f) },
-			{ XMFLOAT3(-1.0f,-1.0f, 1.0f),  XMFLOAT3( 0.0f,-1.0f, 0.0f) },
+			{ vec3(-1.0f,-1.0f,-1.0f),  vec3( 0.0f,-1.0f, 0.0f) },
+			{ vec3( 1.0f,-1.0f,-1.0f),  vec3( 0.0f,-1.0f, 0.0f) },
+			{ vec3( 1.0f,-1.0f, 1.0f),  vec3( 0.0f,-1.0f, 0.0f) },
+			{ vec3(-1.0f,-1.0f, 1.0f),  vec3( 0.0f,-1.0f, 0.0f) },
 
-			{ XMFLOAT3(-1.0f,-1.0f, 1.0f),  XMFLOAT3(-1.0f, 0.0f, 0.0f) },
-			{ XMFLOAT3(-1.0f,-1.0f,-1.0f),  XMFLOAT3(-1.0f, 0.0f, 0.0f) },
-			{ XMFLOAT3(-1.0f, 1.0f,-1.0f),  XMFLOAT3(-1.0f, 0.0f, 0.0f) },
-			{ XMFLOAT3(-1.0f, 1.0f, 1.0f),  XMFLOAT3(-1.0f, 0.0f, 0.0f) },
+			{ vec3(-1.0f,-1.0f, 1.0f),  vec3(-1.0f, 0.0f, 0.0f) },
+			{ vec3(-1.0f,-1.0f,-1.0f),  vec3(-1.0f, 0.0f, 0.0f) },
+			{ vec3(-1.0f, 1.0f,-1.0f),  vec3(-1.0f, 0.0f, 0.0f) },
+			{ vec3(-1.0f, 1.0f, 1.0f),  vec3(-1.0f, 0.0f, 0.0f) },
 
-			{ XMFLOAT3( 1.0f,-1.0f, 1.0f),  XMFLOAT3( 1.0f, 0.0f, 0.0f) },
-			{ XMFLOAT3( 1.0f,-1.0f,-1.0f),  XMFLOAT3( 1.0f, 0.0f, 0.0f) },
-			{ XMFLOAT3( 1.0f, 1.0f,-1.0f),  XMFLOAT3( 1.0f, 0.0f, 0.0f) },
-			{ XMFLOAT3( 1.0f, 1.0f, 1.0f),  XMFLOAT3( 1.0f, 0.0f, 0.0f) },
+			{ vec3( 1.0f,-1.0f, 1.0f),  vec3( 1.0f, 0.0f, 0.0f) },
+			{ vec3( 1.0f,-1.0f,-1.0f),  vec3( 1.0f, 0.0f, 0.0f) },
+			{ vec3( 1.0f, 1.0f,-1.0f),  vec3( 1.0f, 0.0f, 0.0f) },
+			{ vec3( 1.0f, 1.0f, 1.0f),  vec3( 1.0f, 0.0f, 0.0f) },
 
-			{ XMFLOAT3(-1.0f,-1.0f,-1.0f),  XMFLOAT3( 0.0f, 0.0f,-1.0f ) },
-			{ XMFLOAT3( 1.0f,-1.0f,-1.0f),  XMFLOAT3( 0.0f, 0.0f,-1.0f ) },
-			{ XMFLOAT3( 1.0f, 1.0f,-1.0f),  XMFLOAT3( 0.0f, 0.0f,-1.0f ) },
-			{ XMFLOAT3(-1.0f, 1.0f,-1.0f),  XMFLOAT3( 0.0f, 0.0f,-1.0f ) },
+			{ vec3(-1.0f,-1.0f,-1.0f),  vec3( 0.0f, 0.0f,-1.0f ) },
+			{ vec3( 1.0f,-1.0f,-1.0f),  vec3( 0.0f, 0.0f,-1.0f ) },
+			{ vec3( 1.0f, 1.0f,-1.0f),  vec3( 0.0f, 0.0f,-1.0f ) },
+			{ vec3(-1.0f, 1.0f,-1.0f),  vec3( 0.0f, 0.0f,-1.0f ) },
 
-			{ XMFLOAT3(-1.0f,-1.0f, 1.0f),  XMFLOAT3( 0.0f, 0.0f, 1.0f ) },
-			{ XMFLOAT3( 1.0f,-1.0f, 1.0f),  XMFLOAT3( 0.0f, 0.0f, 1.0f ) },
-			{ XMFLOAT3( 1.0f, 1.0f, 1.0f),  XMFLOAT3( 0.0f, 0.0f, 1.0f ) },
-			{ XMFLOAT3(-1.0f, 1.0f, 1.0f),  XMFLOAT3( 0.0f, 0.0f, 1.0f ) },
+			{ vec3(-1.0f,-1.0f, 1.0f),  vec3( 0.0f, 0.0f, 1.0f ) },
+			{ vec3( 1.0f,-1.0f, 1.0f),  vec3( 0.0f, 0.0f, 1.0f ) },
+			{ vec3( 1.0f, 1.0f, 1.0f),  vec3( 0.0f, 0.0f, 1.0f ) },
+			{ vec3(-1.0f, 1.0f, 1.0f),  vec3( 0.0f, 0.0f, 1.0f ) },
 		};
 		m_pCubeVertexBuffer = CreateVertexBuffer(vertices, sizeof(mpVertex)*ARRAYSIZE(vertices));
 	}
@@ -384,14 +383,14 @@ void mpRendererD3D11::render(mpWorld &world)
 		}
 
 		mpCBCData cb;
-		XMVECTOR eye = XMVectorSet(1.0f, 1.0f, 1.0f, 1.0f);
-		XMMATRIX vp;
-		world.getViewProjection((XMFLOAT4X4&)vp, (XMFLOAT3&)eye);
+		vec4 eye(1.0f, 1.0f, 1.0f, 1.0f);
+		mat4 vp;
+		world.getViewProjection(vp, (vec3&)eye);
 
-		cb.ViewProjection = XMMatrixTranspose(vp);
-		cb.CameraPos = (FLOAT*)&eye;
-		cb.LightPos = XMFLOAT4(10.0f, 10.0f, -10.0f, 1.0f);
-		cb.LightColor = XMFLOAT4(0.9f, 0.9f, 0.9f, 1.0f);
+		cb.ViewProjection = glm::transpose(vp);
+		cb.CameraPos = eye;
+		cb.LightPos = vec4(10.0f, 10.0f, -10.0f, 1.0f);
+		cb.LightColor = vec4(0.9f, 0.9f, 0.9f, 1.0f);
 		cb.MeshShininess = 200.0f;
 		cb.ParticleSize = world.getKernelParams().ParticleSize;
 		m_pImmediateContext->UpdateSubresource(m_pCBChangesEveryFrame, 0, nullptr, &cb, 0, 0);

@@ -6,9 +6,9 @@
 
 mpKernelParams::mpKernelParams()
 {
-	(XMFLOAT3&)WorldCenter_x = XMFLOAT3(0.0f, 0.0f, 0.0f);
-	(XMFLOAT3&)WorldExtent_x = XMFLOAT3(10.24f, 10.24f, 10.24f);
-	(XMFLOAT3&)Scale_x = XMFLOAT3(1.0f, 1.0f, 1.0f);
+	(vec3&)WorldCenter_x = vec3(0.0f, 0.0f, 0.0f);
+	(vec3&)WorldExtent_x = vec3(10.24f, 10.24f, 10.24f);
+	(vec3&)Scale_x = vec3(1.0f, 1.0f, 1.0f);
 
 	SolverType = mpSolver_Impulse;
 	LifeTime = 30.0f;
@@ -70,7 +70,7 @@ int32 soa_blocks(int32 i)
 template<class T>
 inline void simd_store(void *address, T v)
 {
-	_mm_store_ps((float*)address, (const simdvec4&)v);
+	_mm_store_ps((float*)address, (const simd128&)v);
 }
 
 void mpSoAnize( int32 num, const mpParticle *particles, ispc::Particle_SOA8 *out )
@@ -153,9 +153,9 @@ inline uint32 mpGenHash(mpWorld &world, const mpParticle &particle)
 {
 	const mpKernelParams &p = world.getKernelParams();
 	mpTempParams &t = world.getTempParams();
-	XMFLOAT3 &bl = (XMFLOAT3&)t.WorldBBBL;
-	XMFLOAT3 &rcpCell = (XMFLOAT3&)t.RcpCellSize;
-	XMFLOAT3 &ppos = (XMFLOAT3&)particle.position;
+	vec3 &bl = (vec3&)t.WorldBBBL;
+	vec3 &rcpCell = (vec3&)t.RcpCellSize;
+	vec3 &ppos = (vec3&)particle.position;
 
 	uint32 r =  clamp<int32>(int32((ppos.x-bl.x)*rcpCell.x), 0, p.WorldDiv_x-1) |
 			   (clamp<int32>(int32((ppos.z-bl.z)*rcpCell.z), 0, p.WorldDiv_z-1) << (t.WorldDivBits_x)) |
@@ -245,13 +245,13 @@ void mpWorld::clearCollidersAndForces()
 	m_forces.clear();
 }
 
-void mpWorld::getViewProjection(XMFLOAT4X4 &out_mat, XMFLOAT3 &out_camerapos)
+void mpWorld::getViewProjection(mat4 &out_mat, vec3 &out_camerapos)
 {
 	out_mat = m_viewproj;
 	out_camerapos = m_camerapos;
 }
 
-void mpWorld::setViewProjection(const XMFLOAT4X4 &mat, const XMFLOAT3 &camerapos)
+void mpWorld::setViewProjection(const mat4 &mat, const vec3 &camerapos)
 {
 	m_viewproj = mat;
 	m_camerapos = camerapos;
@@ -269,11 +269,11 @@ void mpWorld::update(float32 dt)
 	int cells_par_task = 256;
 
 	{
-		XMFLOAT3 &wpos = (XMFLOAT3&)p.WorldCenter_x;
-		XMFLOAT3 &wsize = (XMFLOAT3&)p.WorldExtent_x;
-		XMFLOAT3 &rcpCell = (XMFLOAT3&)t.RcpCellSize;
-		XMFLOAT3 &bl = (XMFLOAT3&)t.WorldBBBL;
-		XMFLOAT3 &ur = (XMFLOAT3&)t.WorldBBUR;
+		vec3 &wpos = (vec3&)p.WorldCenter_x;
+		vec3 &wsize = (vec3&)p.WorldExtent_x;
+		vec3 &rcpCell = (vec3&)t.RcpCellSize;
+		vec3 &bl = (vec3&)t.WorldBBBL;
+		vec3 &ur = (vec3&)t.WorldBBUR;
 		p.ParticleSize = std::max<float>(p.ParticleSize, 0.00001f);
 		p.MaxParticles = std::max<int>(p.MaxParticles, 128);
 		m_num_active_particles = std::min<int>(m_num_active_particles, p.MaxParticles);
@@ -283,7 +283,7 @@ void mpWorld::update(float32 dt)
 		t.WorldDivBits_x = mpMSB(p.WorldDiv_x);
 		t.WorldDivBits_y = mpMSB(p.WorldDiv_y);
 		t.WorldDivBits_z = mpMSB(p.WorldDiv_z);
-		rcpCell = XMFLOAT3(1.0f, 1.0f, 1.0f) / (wsize*2.0f / XMFLOAT3((float)p.WorldDiv_x, (float)p.WorldDiv_y, (float)p.WorldDiv_z));
+		rcpCell = vec3(1.0f, 1.0f, 1.0f) / (wsize*2.0f / vec3((float)p.WorldDiv_x, (float)p.WorldDiv_y, (float)p.WorldDiv_z));
 		bl = wpos - wsize;
 		ur = wpos + wsize;
 
@@ -315,9 +315,9 @@ void mpWorld::update(float32 dt)
 	tbb::parallel_for(tbb::blocked_range<int>(0, (int32)m_num_active_particles, particles_par_task),
 		[&](const tbb::blocked_range<int> &r) {
 			for(int i=r.begin(); i!=r.end(); ++i) {
-				XMFLOAT3 &ppos = (XMFLOAT3&)m_particles[i].position;
-				XMFLOAT3 &bl = m_tparams.WorldBBBL;
-				XMFLOAT3 &ur = m_tparams.WorldBBUR;
+				vec3 &ppos = (vec3&)m_particles[i].position;
+				vec3 &bl = m_tparams.WorldBBBL;
+				vec3 &ur = m_tparams.WorldBBUR;
 				if (ppos.x<bl.x || ppos.y<bl.y || ppos.z<bl.z ||
 					ppos.x>ur.x || ppos.y>ur.y || ppos.z>ur.z)
 				{
@@ -562,13 +562,13 @@ void mpWorld::update(float32 dt)
 }
 
 
-inline XMFLOAT2 mpComputeDataTextureCoord(int nth)
+inline vec2 mpComputeDataTextureCoord(int nth)
 {
 	static const float xd = 1.0f / mpDataTextureWidth;
 	static const float yd = 1.0f / mpDataTextureHeight;
 	int xi = (nth * 3) % mpDataTextureWidth;
 	int yi = (nth * 3) / mpDataTextureWidth;
-	return XMFLOAT2(xd*xi + xd*0.5f, yd*yi + yd*0.5f);
+	return vec2(xd*xi + xd*0.5f, yd*yi + yd*0.5f);
 }
 
 void mpWorld::generatePointMesh(int mi, mpMeshData *mds)
@@ -580,8 +580,8 @@ void mpWorld::generatePointMesh(int mi, mpMeshData *mds)
 	int end = batch_size * (mi+1);
 	for (int pi = begin; pi != end; ++pi) {
 		int si = pi - begin;
-		XMFLOAT2 t = mpComputeDataTextureCoord(pi);
-		md.vertices[si] = XMFLOAT3(0.0f,0.0f,0.0f);
+		vec2 t = mpComputeDataTextureCoord(pi);
+		md.vertices[si] = vec3(0.0f,0.0f,0.0f);
 		md.texcoords[si] = t;
 		md.indices[si] = si;
 	}
@@ -595,22 +595,22 @@ void mpWorld::generateCubeMesh(int mi, mpMeshData *mds)
 	const float n = -1.0f;
 	const float z = 0.0f;
 
-	const XMFLOAT3 c_vertices[] =
+	const vec3 c_vertices[] =
 	{
-		XMFLOAT3(-s,-s, s), XMFLOAT3( s,-s, s), XMFLOAT3( s, s, s), XMFLOAT3(-s, s, s),
-		XMFLOAT3(-s, s,-s), XMFLOAT3( s, s,-s), XMFLOAT3( s, s, s), XMFLOAT3(-s, s, s),
-		XMFLOAT3(-s,-s,-s), XMFLOAT3( s,-s,-s), XMFLOAT3( s,-s, s), XMFLOAT3(-s,-s, s),
-		XMFLOAT3(-s,-s, s), XMFLOAT3(-s,-s,-s), XMFLOAT3(-s, s,-s), XMFLOAT3(-s, s, s),
-		XMFLOAT3( s,-s, s), XMFLOAT3( s,-s,-s), XMFLOAT3( s, s,-s), XMFLOAT3( s, s, s),
-		XMFLOAT3(-s,-s,-s), XMFLOAT3( s,-s,-s), XMFLOAT3( s, s,-s), XMFLOAT3(-s, s,-s),
+		vec3(-s,-s, s), vec3( s,-s, s), vec3( s, s, s), vec3(-s, s, s),
+		vec3(-s, s,-s), vec3( s, s,-s), vec3( s, s, s), vec3(-s, s, s),
+		vec3(-s,-s,-s), vec3( s,-s,-s), vec3( s,-s, s), vec3(-s,-s, s),
+		vec3(-s,-s, s), vec3(-s,-s,-s), vec3(-s, s,-s), vec3(-s, s, s),
+		vec3( s,-s, s), vec3( s,-s,-s), vec3( s, s,-s), vec3( s, s, s),
+		vec3(-s,-s,-s), vec3( s,-s,-s), vec3( s, s,-s), vec3(-s, s,-s),
 	};
-	const XMFLOAT3 c_normals[] = {
-		XMFLOAT3(z, n, z), XMFLOAT3(z, n, z), XMFLOAT3(z, n, z), XMFLOAT3(z, n, z),
-		XMFLOAT3(z, p, z), XMFLOAT3(z, p, z), XMFLOAT3(z, p, z), XMFLOAT3(z, p, z),
-		XMFLOAT3(p, z, z), XMFLOAT3(p, z, z), XMFLOAT3(p, z, z), XMFLOAT3(p, z, z),
-		XMFLOAT3(n, z, z), XMFLOAT3(n, z, z), XMFLOAT3(n, z, z), XMFLOAT3(n, z, z),
-		XMFLOAT3(z, z, p), XMFLOAT3(z, z, p), XMFLOAT3(z, z, p), XMFLOAT3(z, z, p),
-		XMFLOAT3(z, z, n), XMFLOAT3(z, z, n), XMFLOAT3(z, z, n), XMFLOAT3(z, z, n),
+	const vec3 c_normals[] = {
+		vec3(z, n, z), vec3(z, n, z), vec3(z, n, z), vec3(z, n, z),
+		vec3(z, p, z), vec3(z, p, z), vec3(z, p, z), vec3(z, p, z),
+		vec3(p, z, z), vec3(p, z, z), vec3(p, z, z), vec3(p, z, z),
+		vec3(n, z, z), vec3(n, z, z), vec3(n, z, z), vec3(n, z, z),
+		vec3(z, z, p), vec3(z, z, p), vec3(z, z, p), vec3(z, z, p),
+		vec3(z, z, n), vec3(z, z, n), vec3(z, z, n), vec3(z, z, n),
 	};
 	const int c_indices[] =
 	{
@@ -627,7 +627,7 @@ void mpWorld::generateCubeMesh(int mi, mpMeshData *mds)
 	int end = batch_size * (mi+1);
 	for (int pi = begin; pi != end; ++pi) {
 		int si = pi - begin;
-		XMFLOAT2 t = mpComputeDataTextureCoord(pi);
+		vec2 t = mpComputeDataTextureCoord(pi);
 		for (int vi = 0; vi < 24; ++vi) {
 			md.vertices[24 * si + vi] = c_vertices[vi];
 			md.normals[24 * si + vi] = c_normals[vi];

@@ -63,21 +63,15 @@ extern "C" EXPORT_API void mpSetKernelParams(ispc::KernelParams *params)
 	g_mpWorld.setKernelParams(*(mpKernelParams*)params);
 }
 
-extern "C" EXPORT_API void mpSetViewProjectionMatrix(XMFLOAT4X4 view_, XMFLOAT4X4 proj_, XMFLOAT3 camerapos)
+extern "C" EXPORT_API void mpSetViewProjectionMatrix(mat4 view, mat4 proj, vec3 camerapos)
 {
-	XMMATRIX view = (FLOAT*)&view_;
-	XMMATRIX proj = (FLOAT*)&proj_;
-	{
-		float *v = (float*)&proj;
-		v[4*0 + 2] = v[4*0 + 2] * 0.5f + v[4*0 + 3] * 0.5f;
-		v[4*1 + 2] = v[4*1 + 2] * 0.5f + v[4*1 + 3] * 0.5f;
-		v[4*2 + 2] = v[4*2 + 2] * 0.5f + v[4*2 + 3] * 0.5f;
-		v[4*3 + 2] = v[4*3 + 2] * 0.5f + v[4*3 + 3] * 0.5f;
-	}
+	proj[0][2] = proj[0][2]*0.5f + proj[0][3]*0.5f;
+	proj[1][2] = proj[1][2]*0.5f + proj[1][3]*0.5f;
+	proj[2][2] = proj[2][2]*0.5f + proj[2][3]*0.5f;
+	proj[3][2] = proj[3][2]*0.5f + proj[3][3]*0.5f;
 
-	XMMATRIX viewproj = XMMatrixMultiply(view, proj);
-	
-	g_mpWorld.setViewProjection((XMFLOAT4X4&)viewproj, camerapos);
+	mat4 viewproj = proj*view;
+	g_mpWorld.setViewProjection(viewproj, camerapos);
 }
 
 extern "C" EXPORT_API uint32_t mpGetNumParticles()
@@ -100,228 +94,194 @@ extern "C" EXPORT_API void mpWriteParticles(const mpParticle *from)
 }
 
 
-inline XMVECTOR ComputeVelosity(XMFLOAT3 base, float vel_diffuse)
-{
-	XMVECTOR r = { base.x + mpGenRand()*vel_diffuse, base.y + mpGenRand()*vel_diffuse, base.z + mpGenRand()*vel_diffuse, 0.0f };
-	return r;
-}
-
-extern "C" EXPORT_API void mpScatterParticlesSphere(XMFLOAT3 center, float radius, int32_t num, XMFLOAT3 vel_base, float vel_diffuse)
+extern "C" EXPORT_API void mpScatterParticlesSphere(vec3 center, float radius, int32_t num, vec3 vel_base, float vel_diffuse)
 {
 	if (num <= 0) { return; }
 
 	mpParticleCont particles(num);
 	for (size_t i = 0; i < particles.size(); ++i) {
 		float l = mpGenRand()*radius;
-		XMVECTOR dir = { mpGenRand(), mpGenRand(), mpGenRand(), 0.0f };
-		dir = XMVector3Normalize(dir);
-		XMVECTOR pos = ist::simdvec4_set(center.x, center.y, center.z, 1.0f);
-		pos = XMVectorAdd(pos, XMVectorMultiply(dir, ist::simdvec4_set(l, l, l, 0.0f)));
-		XMVECTOR vel = ComputeVelosity(vel_base, vel_diffuse);
+		vec3 dir = glm::normalize(vec3(mpGenRand(), mpGenRand(), mpGenRand()));
+		vec3 pos = center + dir*l;
+		vec3 vel = vec3(
+			vel_base.x + mpGenRand()*vel_diffuse,
+			vel_base.y + mpGenRand()*vel_diffuse,
+			vel_base.z + mpGenRand()*vel_diffuse );
 
-		particles[i].position = pos;
-		particles[i].velocity = vel;
+		(vec3&)particles[i].velocity = vel;
+		(vec3&)particles[i].position = pos;
 	}
 	g_mpWorld.addParticles(&particles[0], particles.size());
 }
 
-extern "C" EXPORT_API void mpScatterParticlesBox(XMFLOAT3 center, XMFLOAT3 size, int32_t num, XMFLOAT3 vel_base, float vel_diffuse)
+extern "C" EXPORT_API void mpScatterParticlesBox(vec3 center, vec3 size, int32_t num, vec3 vel_base, float vel_diffuse)
 {
 	if (num <= 0) { return; }
 
 	mpParticleCont particles(num);
 	for (size_t i = 0; i < particles.size(); ++i) {
-		XMVECTOR pos = { center.x + mpGenRand()*size.x, center.y + mpGenRand()*size.y, center.z + mpGenRand()*size.z, 1.0f };
-		XMVECTOR vel = ComputeVelosity(vel_base, vel_diffuse);
+		vec3 pos = center + vec3(mpGenRand()*size.x, mpGenRand()*size.y, mpGenRand()*size.z);
+		vec3 vel = vec3(
+			vel_base.x + mpGenRand()*vel_diffuse,
+			vel_base.y + mpGenRand()*vel_diffuse,
+			vel_base.z + mpGenRand()*vel_diffuse);
 
-		particles[i].position = pos;
-		particles[i].velocity = vel;
+		(vec3&)particles[i].position = pos;
+		(vec3&)particles[i].velocity = vel;
 	}
 	g_mpWorld.addParticles(&particles[0], particles.size());
 }
 
 
-extern "C" EXPORT_API void mpScatterParticlesSphereTransform(XMFLOAT4X4 transform, int32_t num, XMFLOAT3 vel_base, float vel_diffuse)
+extern "C" EXPORT_API void mpScatterParticlesSphereTransform(mat4 transform, int32_t num, vec3 vel_base, float vel_diffuse)
 {
 	if (num <= 0) { return; }
 
 	mpParticleCont particles(num);
-	XMMATRIX mat = XMMATRIX((float*)&transform);
+	simdmat4 mat(transform);
 	for (size_t i = 0; i < particles.size(); ++i) {
-		XMVECTOR dir = { mpGenRand(), mpGenRand(), mpGenRand(), 0.0f };
-		dir = XMVector3Normalize(dir);
-		dir.m128_f32[3] = 1.0f;
+		vec3 dir = glm::normalize(vec3(mpGenRand(), mpGenRand(), mpGenRand()));
 		float l = mpGenRand()*0.5f;
-		XMVECTOR pos = XMVectorMultiply(dir, ist::simdvec4_set(l, l, l, 1.0f));
-		pos = XMVector4Transform(pos, mat);
-		XMVECTOR vel = ComputeVelosity(vel_base, vel_diffuse);
+		simdvec4 pos = simdvec4(dir*l, 1.0f);
+		pos = mat * pos;
+		vec3 vel = vec3(
+			vel_base.x + mpGenRand()*vel_diffuse,
+			vel_base.y + mpGenRand()*vel_diffuse,
+			vel_base.z + mpGenRand()*vel_diffuse);
 
-		particles[i].position = pos;
-		particles[i].velocity = vel;
+		(vec3&)particles[i].position = (vec3&)pos;
+		(vec3&)particles[i].velocity = vel;
 	}
 	g_mpWorld.addParticles(&particles[0], particles.size());
 }
 
-extern "C" EXPORT_API void mpScatterParticlesBoxTransform(XMFLOAT4X4 transform, int32_t num, XMFLOAT3 vel_base, float vel_diffuse)
+extern "C" EXPORT_API void mpScatterParticlesBoxTransform(mat4 transform, int32_t num, vec3 vel_base, float vel_diffuse)
 {
 	if (num <= 0) { return; }
 
 	mpParticleCont particles(num);
-	XMMATRIX mat = XMMATRIX((float*)&transform);
+	simdmat4 mat(transform);
 	for (size_t i = 0; i < particles.size(); ++i) {
-		XMVECTOR pos = { mpGenRand()*0.5f, mpGenRand()*0.5f, mpGenRand()*0.5f, 1.0f };
-		pos = XMVector4Transform(pos, mat);
-		XMVECTOR vel = ComputeVelosity(vel_base, vel_diffuse);
+		simdvec4 pos(mpGenRand()*0.5f, mpGenRand()*0.5f, mpGenRand()*0.5f, 1.0f);
+		pos = mat * pos;
+		vec3 vel = vec3(
+			vel_base.x + mpGenRand()*vel_diffuse,
+			vel_base.y + mpGenRand()*vel_diffuse,
+			vel_base.z + mpGenRand()*vel_diffuse);
 
-		particles[i].position = pos;
-		particles[i].velocity = vel;
+		(vec3&)particles[i].position = (vec3&)pos;
+		(vec3&)particles[i].velocity = vel;
 	}
 	g_mpWorld.addParticles(&particles[0], particles.size());
 }
 
 
 
-inline void mpBuildBoxCollider(mpBoxCollider &o, int32_t owner, XMFLOAT4X4 transform, XMFLOAT3 size)
+inline void mpBuildBoxCollider(mpBoxCollider &o, int32_t owner, mat4 transform, vec3 size)
 {
 	float psize = g_mpWorld.getKernelParams().ParticleSize;
 	size.x = size.x * 0.5f;
 	size.y = size.y * 0.5f;
 	size.z = size.z * 0.5f;
 
-	XMMATRIX st = XMMATRIX((float*)&transform);
-	XMVECTOR vertices[] = {
-		{ size.x, size.y, size.z, 0.0f },
-		{ -size.x, size.y, size.z, 0.0f },
-		{ -size.x, -size.y, size.z, 0.0f },
-		{ size.x, -size.y, size.z, 0.0f },
-		{ size.x, size.y, -size.z, 0.0f },
-		{ -size.x, size.y, -size.z, 0.0f },
-		{ -size.x, -size.y, -size.z, 0.0f },
-		{ size.x, -size.y, -size.z, 0.0f },
+	simdmat4 st = simdmat4(transform);
+	simdvec4 vertices[] = {
+		simdvec4(size.x, size.y, size.z, 0.0f),
+		simdvec4(-size.x, size.y, size.z, 0.0f),
+		simdvec4(-size.x, -size.y, size.z, 0.0f),
+		simdvec4(size.x, -size.y, size.z, 0.0f),
+		simdvec4(size.x, size.y, -size.z, 0.0f),
+		simdvec4(-size.x, size.y, -size.z, 0.0f),
+		simdvec4(-size.x, -size.y, -size.z, 0.0f),
+		simdvec4(size.x, -size.y, -size.z, 0.0f),
 	};
 	for (int i = 0; i < _countof(vertices); ++i) {
-		vertices[i] = XMVector4Transform(vertices[i], st);
+		vertices[i] = st * vertices[i];
 	}
 
-	XMVECTOR normals[6] = {
-		XMVector3Normalize(XMVector3Cross(XMVectorSubtract(vertices[3], vertices[0]), XMVectorSubtract(vertices[4], vertices[0]))),
-		XMVector3Normalize(XMVector3Cross(XMVectorSubtract(vertices[5], vertices[1]), XMVectorSubtract(vertices[2], vertices[1]))),
-		XMVector3Normalize(XMVector3Cross(XMVectorSubtract(vertices[7], vertices[3]), XMVectorSubtract(vertices[2], vertices[3]))),
-		XMVector3Normalize(XMVector3Cross(XMVectorSubtract(vertices[1], vertices[0]), XMVectorSubtract(vertices[4], vertices[0]))),
-		XMVector3Normalize(XMVector3Cross(XMVectorSubtract(vertices[1], vertices[0]), XMVectorSubtract(vertices[3], vertices[0]))),
-		XMVector3Normalize(XMVector3Cross(XMVectorSubtract(vertices[7], vertices[4]), XMVectorSubtract(vertices[5], vertices[4]))),
+	simdvec4 normals[6] = {
+		glm::normalize(glm::cross(vertices[3] - vertices[0], vertices[4] - vertices[0])),
+		glm::normalize(glm::cross(vertices[5] - vertices[1], vertices[2] - vertices[1])),
+		glm::normalize(glm::cross(vertices[7] - vertices[3], vertices[2] - vertices[3])),
+		glm::normalize(glm::cross(vertices[1] - vertices[0], vertices[4] - vertices[0])),
+		glm::normalize(glm::cross(vertices[1] - vertices[0], vertices[3] - vertices[0])),
+		glm::normalize(glm::cross(vertices[7] - vertices[4], vertices[5] - vertices[4])),
 	};
-	float32 distances[6] = {
-		-(XMVector3Dot(vertices[0], normals[0]).m128_f32[0] + psize),
-		-(XMVector3Dot(vertices[1], normals[1]).m128_f32[0] + psize),
-		-(XMVector3Dot(vertices[0], normals[2]).m128_f32[0] + psize),
-		-(XMVector3Dot(vertices[3], normals[3]).m128_f32[0] + psize),
-		-(XMVector3Dot(vertices[0], normals[4]).m128_f32[0] + psize),
-		-(XMVector3Dot(vertices[4], normals[5]).m128_f32[0] + psize),
+	float distances[6] = {
+		-(glm::dot(vertices[0], normals[0]) + psize),
+		-(glm::dot(vertices[1], normals[1]) + psize),
+		-(glm::dot(vertices[0], normals[2]) + psize),
+		-(glm::dot(vertices[3], normals[3]) + psize),
+		-(glm::dot(vertices[0], normals[4]) + psize),
+		-(glm::dot(vertices[4], normals[5]) + psize),
 	};
-
 
 	o.id = owner;
-	o.x = transform.m[3][0];
-	o.y = transform.m[3][1];
-	o.z = transform.m[3][2];
+	(vec3&)o.x = (vec3&)transform[3][0];
 	for (int i = 0; i < 6; ++i) {
-		o.planes[i].nx = normals[i].m128_f32[0];
-		o.planes[i].ny = normals[i].m128_f32[1];
-		o.planes[i].nz = normals[i].m128_f32[2];
+		(vec3&)o.planes[i].nx = (vec3&)normals[i];
 		o.planes[i].distance = distances[i];
 	}
 	for (int i = 0; i < _countof(vertices); ++i) {
-		float x = o.x + vertices[i].m128_f32[0];
-		float y = o.y + vertices[i].m128_f32[1];
-		float z = o.z + vertices[i].m128_f32[2];
+		vec3 p = (vec3&)vertices[i];
 		if (i == 0) {
-			o.bb.bl_x = o.bb.ur_x = x;
-			o.bb.bl_y = o.bb.ur_y = y;
-			o.bb.bl_z = o.bb.ur_z = z;
+			(vec3&)o.bb.bl_x = p;
+			(vec3&)o.bb.ur_x = p;
 		}
-		o.bb.bl_x = std::min<float>(o.bb.bl_x, x-psize);
-		o.bb.bl_y = std::min<float>(o.bb.bl_y, y-psize);
-		o.bb.bl_z = std::min<float>(o.bb.bl_z, z-psize);
-		o.bb.ur_x = std::max<float>(o.bb.ur_x, x+psize);
-		o.bb.ur_y = std::max<float>(o.bb.ur_y, y+psize);
-		o.bb.ur_z = std::max<float>(o.bb.ur_z, z+psize);
+		(vec3&)o.bb.bl_x = glm::min((vec3&)o.bb.bl_x, p-psize);
+		(vec3&)o.bb.ur_x = glm::max((vec3&)o.bb.ur_x, p+psize);
 	}
 }
 
-inline void mpBuildSphereCollider(mpSphereCollider &o, int32_t owner, XMFLOAT3 center, float radius)
+inline void mpBuildSphereCollider(mpSphereCollider &o, int32_t owner, vec3 center, float radius)
 {
 	float psize = g_mpWorld.getKernelParams().ParticleSize;
 	float er = radius + psize;
 	o.id = owner;
-	o.x = center.x;
-	o.y = center.y;
-	o.z = center.z;
+	(vec3&)o.x = center;
 	o.radius = er;
-	o.bb.bl_x = center.x - er;
-	o.bb.bl_y = center.y - er;
-	o.bb.bl_z = center.z - er;
-	o.bb.ur_x = center.x + er;
-	o.bb.ur_y = center.y + er;
-	o.bb.ur_z = center.z + er;
+	(vec3&)o.bb.bl_x = center - er;
+	(vec3&)o.bb.ur_x = center + er;
 }
 
-inline void mpBuildCapsuleCollider(mpCapsuleCollider &o, int32_t owner, XMFLOAT3 pos1, XMFLOAT3 pos2, float radius)
+inline void mpBuildCapsuleCollider(mpCapsuleCollider &o, int32_t owner, vec3 pos1, vec3 pos2, float radius)
 {
 	float psize = g_mpWorld.getKernelParams().ParticleSize;
 	float er = radius + psize;
 	o.id = owner;
-	(XMFLOAT3&)o.x1 = pos1;
-	(XMFLOAT3&)o.x2 = pos2;
+	(vec3&)o.x1 = pos1;
+	(vec3&)o.x2 = pos2;
 	o.radius = er;
-	float len_sq = length_sq3((XMFLOAT3&)o.x2 - (XMFLOAT3&)o.x1);
+	float len_sq = glm::length_sq((vec3&)o.x2 - (vec3&)o.x1);
 	o.rcp_lensq = 1.0f / len_sq;
 
-	XMFLOAT3 bounds[] = {
-		XMFLOAT3(o.x1+er, o.y1+er, o.z1+er),
-		XMFLOAT3(o.x2+er, o.y2+er, o.z2+er),
-		XMFLOAT3(o.x1-er, o.y1-er, o.z1-er),
-		XMFLOAT3(o.x2-er, o.y2-er, o.z2-er),
-	};
-	for (int i = 0; i < _countof(bounds); ++i) {
-		XMFLOAT3 b = bounds[i];
-		if (i == 0) {
-			o.bb.bl_x = o.bb.ur_x = b.x;
-			o.bb.bl_y = o.bb.ur_y = b.y;
-			o.bb.bl_z = o.bb.ur_z = b.z;
-		}
-		o.bb.bl_x = std::min<float>(o.bb.bl_x, b.x);
-		o.bb.bl_y = std::min<float>(o.bb.bl_y, b.y);
-		o.bb.bl_z = std::min<float>(o.bb.bl_z, b.z);
-		o.bb.ur_x = std::max<float>(o.bb.ur_x, b.x);
-		o.bb.ur_y = std::max<float>(o.bb.ur_y, b.y);
-		o.bb.ur_z = std::max<float>(o.bb.ur_z, b.z);
-	}
+	(vec3&)o.bb.bl_x = glm::min((vec3&)o.x1-er, (vec3&)(o.x2)-er);
+	(vec3&)o.bb.ur_x = glm::max((vec3&)o.x1+er, (vec3&)(o.x2)+er);
 }
 
 
-extern "C" EXPORT_API void mpAddBoxCollider(int32_t owner, XMFLOAT4X4 transform, XMFLOAT3 size)
+extern "C" EXPORT_API void mpAddBoxCollider(int32_t owner, mat4 transform, vec3 size)
 {
 	mpBoxCollider col;
 	mpBuildBoxCollider(col, owner, transform, size);
 	g_mpWorld.addBoxColliders(&col, 1);
 }
 
-extern "C" EXPORT_API void mpAddSphereCollider(int32_t owner, XMFLOAT3 center, float radius)
+extern "C" EXPORT_API void mpAddSphereCollider(int32_t owner, vec3 center, float radius)
 {
 	mpSphereCollider col;
 	mpBuildSphereCollider(col, owner, center, radius);
 	g_mpWorld.addSphereColliders(&col, 1);
 }
 
-extern "C" EXPORT_API void mpAddCapsuleCollider(int32_t owner, XMFLOAT3 pos1, XMFLOAT3 pos2, float radius)
+extern "C" EXPORT_API void mpAddCapsuleCollider(int32_t owner, vec3 pos1, vec3 pos2, float radius)
 {
 	mpCapsuleCollider col;
 	mpBuildCapsuleCollider(col, owner, pos1, pos2, radius);
 	g_mpWorld.addCapsuleColliders(&col, 1);
 }
 
-extern "C" EXPORT_API void mpAddForce(int force_shape, XMFLOAT4X4 trans, int force_direction, ispc::ForceParams p)
+extern "C" EXPORT_API void mpAddForce(int force_shape, mat4 trans, int force_direction, ispc::ForceParams p)
 {
 	mpForce force;
 	force.shape_type = force_shape;
@@ -332,11 +292,9 @@ extern "C" EXPORT_API void mpAddForce(int force_shape, XMFLOAT4X4 trans, int for
 	case mpFS_Box:
 	{
 		mpBoxCollider col;
-		mpBuildBoxCollider(col, 0, trans, XMFLOAT3(1.0f, 1.0f, 1.0f));
+		mpBuildBoxCollider(col, 0, trans, vec3(1.0f, 1.0f, 1.0f));
 		force.bb = col.bb;
-		force.shape_box.x = col.x;
-		force.shape_box.y = col.y;
-		force.shape_box.z = col.z;
+		(vec3&)force.shape_box.x = (vec3&)col.x;
 		for (int i = 0; i < 6; ++i) {
 			force.shape_box.planes[i] = col.planes[i];
 		}
@@ -346,13 +304,11 @@ extern "C" EXPORT_API void mpAddForce(int force_shape, XMFLOAT4X4 trans, int for
 	case mpFS_Sphere:
 	{
 		mpSphereCollider col;
-		XMFLOAT3 pos = XMFLOAT3(trans.m[3][0], trans.m[3][1], trans.m[3][2]);
-		float radius = (trans.m[0][0] + trans.m[1][1] + trans.m[2][2]) * 0.3333333333f * 0.5f;
+		vec3 pos = (vec3&)trans[3];
+		float radius = (trans[0][0] + trans[1][1] + trans[2][2]) * 0.3333333333f * 0.5f;
 		mpBuildSphereCollider(col, 0, pos, radius);
 		force.bb = col.bb;
-		force.shape_sphere.x = col.x;
-		force.shape_sphere.y = col.y;
-		force.shape_sphere.z = col.z;
+		(vec3&)force.shape_sphere.x = (vec3&)col.x;
 		force.shape_sphere.radius = col.radius;
 	}
 		break;

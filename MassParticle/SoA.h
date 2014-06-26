@@ -4,7 +4,6 @@
 #include <pmmintrin.h>
 #include <tmmintrin.h>
 #include <windows.h>
-#include <xnamath.h>
 
 #define SSE_SHUFFLE(x,y,z,w) _MM_SHUFFLE(w,z,y,x)
 #define istForceInline __forceinline
@@ -72,17 +71,23 @@ istForceInline simdvec4 sqrt4(simdvec4 v1)
 
 istForceInline simdvec4 dot4(simdvec4 v1, simdvec4 v2)
 {
-	return XMVector4Dot(v1, v2);
+	simdvec4 t2 = v2;
+	simdvec4 t1 = _mm_mul_ps(v1, t2);
+	t2 = _mm_shuffle_ps(t2, t1, _MM_SHUFFLE(1, 0, 0, 0));
+	t2 = _mm_add_ps(t2, t1);
+	t1 = _mm_shuffle_ps(t1, t2, _MM_SHUFFLE(0, 3, 0, 0));
+	t1 = _mm_add_ps(t1, t2);
+	return _mm_shuffle_ps(t1, t1, _MM_SHUFFLE(2, 2, 2, 2));
 }
 
 istForceInline simdvec4 length_sq4(simdvec4 v1)
 {
-	return XMVector4LengthSq(v1);
+	return dot4(v1, v1);
 }
 
 istForceInline simdvec4 length4(simdvec4 v1)
 {
-	return XMVector4LengthEst(v1);
+	return _mm_sqrt_ps(dot4(v1, v1));
 }
 
 
