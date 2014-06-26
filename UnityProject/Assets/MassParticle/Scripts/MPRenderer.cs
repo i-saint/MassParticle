@@ -37,7 +37,7 @@ public unsafe class MPRenderer : MonoBehaviour
 	void Start () {
 		trans = gameObject.GetComponent<Transform>();
 		world = gameObject.GetComponent<MPWorld>();
-		meshes = new GameObject("mpMeshes");
+		meshes = new GameObject("MPMeshes");
 
 		meshData = new MPMeshData();
 		children = new List<GameObject>();
@@ -89,7 +89,7 @@ public unsafe class MPRenderer : MonoBehaviour
 
 	GameObject CreateChildMesh()
 	{
-		GameObject child = new GameObject("mpMesh");
+		GameObject child = new GameObject("MPMesh");
 		child.transform.parent = meshes.transform;
 		child.AddComponent<MeshFilter>();
 		child.AddComponent<MeshRenderer>();
