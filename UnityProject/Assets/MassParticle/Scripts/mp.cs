@@ -101,6 +101,7 @@ public class mp {
 
 
 	[DllImport ("MassParticle")] public static extern void mpAddSphereCollider(int owner, Vector3 center, float radius);
+	[DllImport ("MassParticle")] public static extern void mpAddCapsuleCollider(int owner, Vector3 pos1, Vector3 pos2, float radius);
 	[DllImport ("MassParticle")] public static extern void mpAddBoxCollider(int owner, Matrix4x4 transform, Vector3 size);
 	[DllImport ("MassParticle")] public static extern void mpScatterParticlesSphere(Vector3 center, float radius, int num, Vector3 velBase, float velDiffuse);
 	[DllImport ("MassParticle")] public static extern void mpScatterParticlesBox(Vector3 center, Vector3 size, int num, Vector3 velBase, float velDiffuse);

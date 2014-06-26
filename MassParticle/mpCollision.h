@@ -44,6 +44,7 @@ struct CapsuleCollider
 	float x1, y1, z1;
 	float x2, y2, z2;
 	float radius;
+	float rcp_lensq;
 };
 
 struct PlaneCollider
@@ -136,7 +137,7 @@ struct ParticleIMData
 	float distance_sq;
 };
 
-struct GridData
+struct Cell
 {
 	int begin, end;
 	int soai;

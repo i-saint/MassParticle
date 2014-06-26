@@ -85,11 +85,29 @@ public unsafe class mpWorld : MonoBehaviour {
 				if (col.isTrigger) { continue; }
 
 				SphereCollider sphere = col as SphereCollider;
+				CapsuleCollider capsule = col as CapsuleCollider;
 				BoxCollider box = col as BoxCollider;
 				int ownerid = i;
 				if (sphere)
 				{
 					mp.mpAddSphereCollider(ownerid, sphere.transform.position, sphere.radius * col.gameObject.transform.localScale.magnitude * 0.5f);
+				}
+				else if (capsule)
+				{
+					Vector3 e = Vector3.zero;
+					float h = Mathf.Max(0.0f, capsule.height - capsule.radius*2.0f);
+					float r = capsule.radius * capsule.transform.localScale.x;
+					switch (capsule.direction)
+					{
+						case 0: e.Set(h * 0.5f, 0.0f, 0.0f); break;
+						case 1: e.Set(0.0f, h * 0.5f, 0.0f); break;
+						case 2: e.Set(0.0f, 0.0f, h * 0.5f); break;
+					}
+					Vector4 pos1 = new Vector4(e.x, e.y, e.z, 1.0f);
+					Vector4 pos2 = new Vector4(-e.x, -e.y, -e.z, 1.0f);
+					pos1 = capsule.transform.localToWorldMatrix * pos1;
+					pos2 = capsule.transform.localToWorldMatrix * pos2;
+					mp.mpAddCapsuleCollider(ownerid, pos1, pos2, r);
 				}
 				else if (box)
 				{

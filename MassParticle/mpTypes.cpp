@@ -177,6 +177,7 @@ inline void mpGenIndex(mpWorld &world, uint32 hash, int32 &xi, int32 &yi, int32 
 
 mpWorld::mpWorld()
 	: m_num_active_particles(0)
+	, m_trail_enabled(false)
 {
 	m_sphere_colliders.reserve(64);
 
@@ -201,22 +202,27 @@ void mpWorld::addParticles(mpParticle *p, int num)
 	m_num_active_particles += num;
 }
 
-void mpWorld::addSphereColliders(ispc::SphereCollider *col, int num)
+void mpWorld::addPlaneColliders(mpPlaneCollider *col, int num)
+{
+	m_plane_colliders.insert(m_plane_colliders.end(), col, col + num);
+}
+
+void mpWorld::addSphereColliders(mpSphereCollider *col, int num)
 {
 	m_sphere_colliders.insert(m_sphere_colliders.end(), col, col+num);
 }
 
-void mpWorld::addPlaneColliders(ispc::PlaneCollider *col, int num)
+void mpWorld::addCapsuleColliders(mpCapsuleCollider *col, int num)
 {
-	m_plane_colliders.insert(m_plane_colliders.end(), col, col+num);
+	m_capsule_colliders.insert(m_capsule_colliders.end(), col, col+num);
 }
 
-void mpWorld::addBoxColliders(ispc::BoxCollider *col, int num)
+void mpWorld::addBoxColliders(mpBoxCollider *col, int num)
 {
 	m_box_colliders.insert(m_box_colliders.end(), col, col+num);
 }
 
-void mpWorld::addForces(ispc::Force *force, int num)
+void mpWorld::addForces(mpForce *force, int num)
 {
 	m_forces.insert(m_forces.end(), force, force+num);
 }
@@ -232,8 +238,9 @@ void mpWorld::clearParticles()
 
 void mpWorld::clearCollidersAndForces()
 {
-	m_sphere_colliders.clear();
 	m_plane_colliders.clear();
+	m_sphere_colliders.clear();
+	m_capsule_colliders.clear();
 	m_box_colliders.clear();
 	m_forces.clear();
 }
@@ -287,11 +294,12 @@ void mpWorld::update(float32 dt)
 		m_imd_soa.resize(SOADataNum);
 	}
 
-	mpGridData			*ce = &m_cells[0];
-	mpForce				*fs = m_forces.empty() ? nullptr : &m_forces[0];
-	mpSphereCollider	*point_c = m_sphere_colliders.empty() ? nullptr : &m_sphere_colliders[0];
-	mpPlaneCollider		*plane_c = m_plane_colliders.empty() ? nullptr : &m_plane_colliders[0];
-	mpBoxCollider		*box_c = m_box_colliders.empty() ? nullptr : &m_box_colliders[0];
+	mpCell				*ce = &m_cells[0];
+	mpForce				*forces = m_forces.empty() ? nullptr : &m_forces[0];
+	mpPlaneCollider		*planes = m_plane_colliders.empty() ? nullptr : &m_plane_colliders[0];
+	mpSphereCollider	*spheres = m_sphere_colliders.empty() ? nullptr : &m_sphere_colliders[0];
+	mpCapsuleCollider	*capsules = m_capsule_colliders.empty() ? nullptr : &m_capsule_colliders[0];
+	mpBoxCollider		*boxes = m_box_colliders.empty() ? nullptr : &m_box_colliders[0];
 
 	ispc::UpdateConstants(m_kparams);
 
@@ -388,7 +396,7 @@ void mpWorld::update(float32 dt)
 				if (n == 0) { continue; }
 				int xi, yi, zi;
 				mpGenIndex(*this, i, xi, yi, zi);
-				ispc::impUpdateVelocity(
+				ispc::impUpdatePressure(
 					(ispc::Particle*)&m_particles_soa[0],
 					(ispc::ParticleIMData*)&m_imd_soa[0],
 					ce, xi, yi, zi);
@@ -405,14 +413,15 @@ void mpWorld::update(float32 dt)
 					(ispc::Particle*)&m_particles_soa[0],
 					(ispc::ParticleIMData*)&m_imd_soa[0],
 					ce, xi, yi, zi,
-					fs, (int32)m_forces.size());
-				ispc::ProcessCollision(
+					forces, (int32)m_forces.size());
+				ispc::ProcessColliders(
 					(ispc::Particle*)&m_particles_soa[0],
 					(ispc::ParticleIMData*)&m_imd_soa[0],
 					ce, xi, yi, zi,
-					point_c, (int32)m_sphere_colliders.size(),
-					plane_c, (int32)m_plane_colliders.size(),
-					box_c, (int32)m_box_colliders.size());
+					planes, (int32)m_plane_colliders.size(),
+					spheres, (int32)m_sphere_colliders.size(),
+					capsules, (int32)m_capsule_colliders.size(),
+					boxes, (int32)m_box_colliders.size());
 				ispc::impIntegrate(
 					(ispc::Particle*)&m_particles_soa[0],
 					(ispc::ParticleIMData*)&m_imd_soa[0],
@@ -489,14 +498,15 @@ void mpWorld::update(float32 dt)
 					(ispc::Particle*)&m_particles_soa[0],
 					(ispc::ParticleIMData*)&m_imd_soa[0],
 					ce, xi, yi, zi,
-				   fs, (int32)m_forces.size());
-				ispc::ProcessCollision(
+				   forces, (int32)m_forces.size());
+				ispc::ProcessColliders(
 					(ispc::Particle*)&m_particles_soa[0],
 					(ispc::ParticleIMData*)&m_imd_soa[0],
 					ce, xi, yi, zi,
-					&m_sphere_colliders[0], (int32)m_sphere_colliders.size(),
-					&m_plane_colliders[0], (int32)m_plane_colliders.size(),
-					&m_box_colliders[0], (int32)m_box_colliders.size());
+					planes, (int32)m_plane_colliders.size(),
+					spheres, (int32)m_sphere_colliders.size(),
+					capsules, (int32)m_capsule_colliders.size(),
+					boxes, (int32)m_box_colliders.size());
 				ispc::sphIntegrate(
 					(ispc::Particle*)&m_particles_soa[0],
 					(ispc::ParticleIMData*)&m_imd_soa[0],
@@ -520,14 +530,15 @@ void mpWorld::update(float32 dt)
 					(ispc::Particle*)&m_particles_soa[0],
 					(ispc::ParticleIMData*)&m_imd_soa[0],
 					ce, xi, yi, zi,
-					fs, (int32)m_forces.size());
-				ispc::ProcessCollision(
+					forces, (int32)m_forces.size());
+				ispc::ProcessColliders(
 					(ispc::Particle*)&m_particles_soa[0],
 					(ispc::ParticleIMData*)&m_imd_soa[0],
 					ce, xi, yi, zi,
-					point_c, (int32)m_sphere_colliders.size(),
-					plane_c, (int32)m_plane_colliders.size(),
-					box_c, (int32)m_box_colliders.size());
+					planes, (int32)m_plane_colliders.size(),
+					spheres, (int32)m_sphere_colliders.size(),
+					capsules, (int32)m_capsule_colliders.size(),
+					boxes, (int32)m_box_colliders.size());
 				ispc::impIntegrate(
 					(ispc::Particle*)&m_particles_soa[0],
 					(ispc::ParticleIMData*)&m_imd_soa[0],

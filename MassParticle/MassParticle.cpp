@@ -181,7 +181,7 @@ extern "C" EXPORT_API void mpScatterParticlesBoxTransform(XMFLOAT4X4 transform, 
 
 
 
-inline void mpBuildBoxCollider(ispc::BoxCollider &o, uint32_t owner, XMFLOAT4X4 transform, XMFLOAT3 size)
+inline void mpBuildBoxCollider(mpBoxCollider &o, int32_t owner, XMFLOAT4X4 transform, XMFLOAT3 size)
 {
 	float psize = g_mpWorld.getKernelParams().ParticleSize;
 	size.x = size.x * 0.5f;
@@ -249,7 +249,7 @@ inline void mpBuildBoxCollider(ispc::BoxCollider &o, uint32_t owner, XMFLOAT4X4 
 	}
 }
 
-inline void mpBuildSphereCollider(ispc::SphereCollider &o, uint32_t owner, XMFLOAT3 center, float radius)
+inline void mpBuildSphereCollider(mpSphereCollider &o, int32_t owner, XMFLOAT3 center, float radius)
 {
 	float psize = g_mpWorld.getKernelParams().ParticleSize;
 	float er = radius + psize;
@@ -257,7 +257,7 @@ inline void mpBuildSphereCollider(ispc::SphereCollider &o, uint32_t owner, XMFLO
 	o.x = center.x;
 	o.y = center.y;
 	o.z = center.z;
-	o.radius = radius;
+	o.radius = er;
 	o.bb.bl_x = center.x - er;
 	o.bb.bl_y = center.y - er;
 	o.bb.bl_z = center.z - er;
@@ -266,24 +266,64 @@ inline void mpBuildSphereCollider(ispc::SphereCollider &o, uint32_t owner, XMFLO
 	o.bb.ur_z = center.z + er;
 }
 
+inline void mpBuildCapsuleCollider(mpCapsuleCollider &o, int32_t owner, XMFLOAT3 pos1, XMFLOAT3 pos2, float radius)
+{
+	float psize = g_mpWorld.getKernelParams().ParticleSize;
+	float er = radius + psize;
+	o.id = owner;
+	(XMFLOAT3&)o.x1 = pos1;
+	(XMFLOAT3&)o.x2 = pos2;
+	o.radius = er;
+	float len_sq = length_sq3((XMFLOAT3&)o.x2 - (XMFLOAT3&)o.x1);
+	o.rcp_lensq = 1.0f / len_sq;
+
+	XMFLOAT3 bounds[] = {
+		XMFLOAT3(o.x1+er, o.y1+er, o.z1+er),
+		XMFLOAT3(o.x2+er, o.y2+er, o.z2+er),
+		XMFLOAT3(o.x1-er, o.y1-er, o.z1-er),
+		XMFLOAT3(o.x2-er, o.y2-er, o.z2-er),
+	};
+	for (int i = 0; i < _countof(bounds); ++i) {
+		XMFLOAT3 b = bounds[i];
+		if (i == 0) {
+			o.bb.bl_x = o.bb.ur_x = b.x;
+			o.bb.bl_y = o.bb.ur_y = b.y;
+			o.bb.bl_z = o.bb.ur_z = b.z;
+		}
+		o.bb.bl_x = std::min<float>(o.bb.bl_x, b.x);
+		o.bb.bl_y = std::min<float>(o.bb.bl_y, b.y);
+		o.bb.bl_z = std::min<float>(o.bb.bl_z, b.z);
+		o.bb.ur_x = std::max<float>(o.bb.ur_x, b.x);
+		o.bb.ur_y = std::max<float>(o.bb.ur_y, b.y);
+		o.bb.ur_z = std::max<float>(o.bb.ur_z, b.z);
+	}
+}
+
 
 extern "C" EXPORT_API void mpAddBoxCollider(int32_t owner, XMFLOAT4X4 transform, XMFLOAT3 size)
 {
-	ispc::BoxCollider col;
+	mpBoxCollider col;
 	mpBuildBoxCollider(col, owner, transform, size);
 	g_mpWorld.addBoxColliders(&col, 1);
 }
 
 extern "C" EXPORT_API void mpAddSphereCollider(int32_t owner, XMFLOAT3 center, float radius)
 {
-	ispc::SphereCollider col;
+	mpSphereCollider col;
 	mpBuildSphereCollider(col, owner, center, radius);
 	g_mpWorld.addSphereColliders(&col, 1);
 }
 
+extern "C" EXPORT_API void mpAddCapsuleCollider(int32_t owner, XMFLOAT3 pos1, XMFLOAT3 pos2, float radius)
+{
+	mpCapsuleCollider col;
+	mpBuildCapsuleCollider(col, owner, pos1, pos2, radius);
+	g_mpWorld.addCapsuleColliders(&col, 1);
+}
+
 extern "C" EXPORT_API void mpAddForce(int force_shape, XMFLOAT4X4 trans, int force_direction, ispc::ForceParams p)
 {
-	ispc::Force force;
+	mpForce force;
 	force.shape_type = force_shape;
 	force.dir_type = force_direction;
 	force.params = p;
@@ -291,7 +331,7 @@ extern "C" EXPORT_API void mpAddForce(int force_shape, XMFLOAT4X4 trans, int for
 	switch (force.shape_type) {
 	case mpFS_Box:
 	{
-		ispc::BoxCollider col;
+		mpBoxCollider col;
 		mpBuildBoxCollider(col, 0, trans, XMFLOAT3(1.0f, 1.0f, 1.0f));
 		force.bb = col.bb;
 		force.shape_box.x = col.x;
@@ -305,7 +345,7 @@ extern "C" EXPORT_API void mpAddForce(int force_shape, XMFLOAT4X4 trans, int for
 
 	case mpFS_Sphere:
 	{
-		ispc::SphereCollider col;
+		mpSphereCollider col;
 		XMFLOAT3 pos = XMFLOAT3(trans.m[3][0], trans.m[3][1], trans.m[3][2]);
 		float radius = (trans.m[0][0] + trans.m[1][1] + trans.m[2][2]) * 0.3333333333f * 0.5f;
 		mpBuildSphereCollider(col, 0, pos, radius);

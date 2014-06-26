@@ -46,8 +46,9 @@ extern "C" EXPORT_API void          mpScatterParticlesSphere(XMFLOAT3 center, fl
 extern "C" EXPORT_API void          mpScatterParticlesBox(XMFLOAT3 center, XMFLOAT3 size, int32_t num, XMFLOAT3 vel, float vel_diffuse);
 extern "C" EXPORT_API void          mpScatterParticlesSphereTransform(XMFLOAT4X4 transform, int32_t num, XMFLOAT3 vel, float vel_diffuse);
 extern "C" EXPORT_API void          mpScatterParticlesBoxTransform(XMFLOAT4X4 transform, int32_t num, XMFLOAT3 vel, float vel_diffuse);
-extern "C" EXPORT_API void          mpAddBoxCollider(int32_t owner, XMFLOAT4X4 transform, XMFLOAT3 size);
 extern "C" EXPORT_API void          mpAddSphereCollider(int32_t owner, XMFLOAT3 center, float radius);
+extern "C" EXPORT_API void          mpAddCapsuleCollider(int32_t owner, XMFLOAT3 pos1, XMFLOAT3 pos2, float radius);
+extern "C" EXPORT_API void          mpAddBoxCollider(int32_t owner, XMFLOAT4X4 transform, XMFLOAT3 size);
 extern "C" EXPORT_API void          mpAddForce(int force_shape, XMFLOAT4X4 trans, int force_direction, ispc::ForceParams p);
 
 

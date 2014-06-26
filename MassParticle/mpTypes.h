@@ -26,9 +26,10 @@ using ist::vec4soa4;
 
 typedef ispc::Particle_SOA8			mpParticleSOA8;
 typedef ispc::ParticleIMData_SOA8	mpParticleIMDSOA8;
-typedef ispc::GridData				mpGridData;
-typedef ispc::SphereCollider		mpSphereCollider;
+typedef ispc::Cell					mpCell;
 typedef ispc::PlaneCollider			mpPlaneCollider;
+typedef ispc::SphereCollider		mpSphereCollider;
+typedef ispc::CapsuleCollider		mpCapsuleCollider;
 typedef ispc::BoxCollider			mpBoxCollider;
 typedef ispc::Force					mpForce;
 
@@ -42,6 +43,8 @@ inline XMFLOAT3 operator*(const XMFLOAT3 &l, const XMFLOAT3 &r) { return XMFLOAT
 inline XMFLOAT3 operator*(const XMFLOAT3 &l, float r) { return XMFLOAT3(l.x*r, l.y*r, l.z*r); }
 inline XMFLOAT3 operator/(const XMFLOAT3 &l, const XMFLOAT3 &r) { return XMFLOAT3(l.x/r.x, l.y/r.y, l.z/r.z); }
 inline XMFLOAT3 operator/(const XMFLOAT3 &l, float r) { return XMFLOAT3(l.x / r, l.y / r, l.z / r); }
+inline float dot3(const XMFLOAT3 &a, const XMFLOAT3 &b) { return a.x*b.x + a.y*b.y + a.z*b.z; }
+inline float length_sq3(const XMFLOAT3 &a) { return dot3(a,a); }
 
 enum mpSolverType
 {
@@ -146,11 +149,13 @@ template<class T, typename Alloc> inline bool operator!=(const mpAlignedAllocato
 typedef std::vector<mpParticle, mpAlignedAllocator<mpParticle> >				mpParticleCont;
 typedef std::vector<mpParticleSOA8, mpAlignedAllocator<mpParticleSOA8> >		mpParticleSOACont;
 typedef std::vector<mpParticleIMDSOA8, mpAlignedAllocator<mpParticleIMDSOA8> >	mpParticleIMDSOACont;
-typedef std::vector<mpGridData, mpAlignedAllocator<mpGridData> >				mpGridDataCont;
-typedef std::vector<mpSphereCollider, mpAlignedAllocator<mpSphereCollider> >	mpSphereColliderCont;
+typedef std::vector<mpCell, mpAlignedAllocator<mpCell> >						mpCellCont;
 typedef std::vector<mpPlaneCollider, mpAlignedAllocator<mpPlaneCollider> >		mpPlaneColliderCont;
+typedef std::vector<mpSphereCollider, mpAlignedAllocator<mpSphereCollider> >	mpSphereColliderCont;
+typedef std::vector<mpCapsuleCollider, mpAlignedAllocator<mpCapsuleCollider> >	mpCapsuleColliderCont;
 typedef std::vector<mpBoxCollider, mpAlignedAllocator<mpBoxCollider> >			mpBoxColliderCont;
 typedef std::vector<mpForce, mpAlignedAllocator<mpForce> >						mpForceCont;
+typedef std::vector<XMFLOAT4, mpAlignedAllocator<XMFLOAT4> >					mpTrailCont;
 
 class mpWorld;
 
@@ -179,10 +184,11 @@ public:
 	void render();
 
 	void addParticles(mpParticle *p, int num);
-	void addSphereColliders(ispc::SphereCollider *col, int num);
-	void addPlaneColliders(ispc::PlaneCollider *col, int num);
-	void addBoxColliders(ispc::BoxCollider *col, int num);
-	void addForces(ispc::Force *force, int num);
+	void addPlaneColliders(mpPlaneCollider *col, int num);
+	void addSphereColliders(mpSphereCollider *col, int num);
+	void addCapsuleColliders(mpCapsuleCollider *col, int num);
+	void addBoxColliders(mpBoxCollider *col, int num);
+	void addForces(mpForce *force, int num);
 	void clearParticles();
 	void clearCollidersAndForces();
 
@@ -203,11 +209,13 @@ private:
 	mpParticleCont			m_particles;
 	mpParticleSOACont		m_particles_soa;
 	mpParticleIMDSOACont	m_imd_soa;
-	mpGridDataCont			m_cells;
+	mpCellCont				m_cells;
 	int						m_num_active_particles;
+	bool					m_trail_enabled;
 
-	mpSphereColliderCont	m_sphere_colliders;
 	mpPlaneColliderCont		m_plane_colliders;
+	mpSphereColliderCont	m_sphere_colliders;
+	mpCapsuleColliderCont	m_capsule_colliders;
 	mpBoxColliderCont		m_box_colliders;
 	mpForceCont				m_forces;
 
@@ -217,6 +225,7 @@ private:
 
 	XMFLOAT4X4				m_viewproj;
 	XMFLOAT3				m_camerapos;
+	mpTrailCont				m_trail;
 };
 
 inline int mpMSB(int a)
