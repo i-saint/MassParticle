@@ -16,6 +16,7 @@ public unsafe class mpRenderer : MonoBehaviour
 	List<GameObject> children;
 	public RenderMode renderMode;
 	public Material material;
+	public float scale = 1.0f;
 	public bool castShadows = true;
 	public bool receiveShadows = true;
 	RenderMode renderModePrev;
@@ -26,6 +27,7 @@ public unsafe class mpRenderer : MonoBehaviour
 	GameObject meshes;
 	Transform trans;
 	Bounds bounds;
+	mpWorld world;
 
 
 	mpRenderer()
@@ -34,6 +36,7 @@ public unsafe class mpRenderer : MonoBehaviour
 
 	void Start () {
 		trans = gameObject.GetComponent<Transform>();
+		world = gameObject.GetComponent<mpWorld>();
 		meshes = new GameObject("mpMeshes");
 
 		meshData = new mp.mpMeshData();
@@ -63,6 +66,7 @@ public unsafe class mpRenderer : MonoBehaviour
 		Vector3 min = trans.position - trans.localScale;
 		Vector3 max = trans.position + trans.localScale;
 		bounds.SetMinMax(min, max);
+		material.SetFloat("_ParticleSize", world.particleSize * scale);
 
 		int num = mp.mpGetNumParticles();
 		if (num == 0) { return; }
