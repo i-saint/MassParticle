@@ -15,8 +15,9 @@ public unsafe class mpRenderer : MonoBehaviour
 	mp.mpMeshData meshData;
 	List<GameObject> children;
 	public RenderMode renderMode;
-	public GameObject childPrefab;
 	public Material material;
+	public bool castShadows = true;
+	public bool receiveShadows = true;
 	RenderMode renderModePrev;
 
 	const int dataTextureWidth = 3072;
@@ -24,6 +25,7 @@ public unsafe class mpRenderer : MonoBehaviour
 	RenderTexture dataTexture;
 	GameObject meshes;
 	Transform trans;
+	Bounds bounds;
 
 
 	mpRenderer()
@@ -58,11 +60,18 @@ public unsafe class mpRenderer : MonoBehaviour
 		}
 		renderModePrev = renderMode;
 
+		Vector3 min = trans.position - trans.localScale;
+		Vector3 max = trans.position + trans.localScale;
+		bounds.SetMinMax(min, max);
+
 		int num = mp.mpGetNumParticles();
 		if (num == 0) { return; }
 
 		switch (renderMode)
 		{
+			case RenderMode.Plugin:
+				break;
+
 			case RenderMode.Points:
 				UpdatePointMeshes();
 				mp.mpUpdateDataTexture(dataTexture.GetNativeTexturePtr());
@@ -80,17 +89,14 @@ public unsafe class mpRenderer : MonoBehaviour
 		child.transform.parent = meshes.transform;
 		child.AddComponent<MeshFilter>();
 		child.AddComponent<MeshRenderer>();
-		Vector3 min = trans.position - trans.localScale;
-		Vector3 max = trans.position + trans.localScale;
-		child.GetComponent<MeshFilter>().mesh.bounds.SetMinMax(min, max);
 		return child;
 	}
 
 	void UpdateCubeMeshes()
 	{
 		int numParticles = mp.mpGetNumParticles();
-		int numChildren = numParticles / 2700 + (numParticles % 2700 == 0 ? 0 : 1);
-		while (children.Count < numChildren)
+		int numActiveChildren = numParticles / 2700 + (numParticles % 2700 == 0 ? 0 : 1);
+		while (children.Count < numActiveChildren)
 		{
 			GameObject child = CreateChildMesh();
 			Vector3[] vertices = new Vector3[64800];
@@ -114,24 +120,14 @@ public unsafe class mpRenderer : MonoBehaviour
 			mesh.SetIndices(indices, MeshTopology.Triangles, 0);
 			children.Add(child);
 		}
-		for (int i = 0; i < numChildren; ++i)
-		{
-			GameObject child = children[i];
-			MeshRenderer renderer = child.GetComponent<MeshRenderer>();
-			renderer.enabled = true;
-			renderer.material = material;
-		}
-		for (int i = numChildren; i < children.Count; ++i)
-		{
-			children[i].GetComponent<MeshRenderer>().enabled = false;
-		}
+		UpdateChildMeshes(numActiveChildren);
 	}
 
 	void UpdatePointMeshes()
 	{
 		int numParticles = mp.mpGetNumParticles();
-		int numChildren = numParticles / 65000 + (numParticles % 65000 == 0 ? 0 : 1);
-		while (children.Count < numChildren)
+		int numActiveChildren = numParticles / 65000 + (numParticles % 65000 == 0 ? 0 : 1);
+		while (children.Count < numActiveChildren)
 		{
 			GameObject child = CreateChildMesh();
 			Vector3[] vertices = new Vector3[65000];
@@ -151,14 +147,23 @@ public unsafe class mpRenderer : MonoBehaviour
 			mesh.SetIndices(indices, MeshTopology.Points, 0);
 			children.Add(child);
 		}
-		for (int i = 0; i < numChildren; ++i)
+		UpdateChildMeshes(numActiveChildren);
+	}
+
+	void UpdateChildMeshes(int numActiveChildren)
+	{
+		for (int i = 0; i < numActiveChildren; ++i)
 		{
 			GameObject child = children[i];
+			Mesh mesh = child.GetComponent<MeshFilter>().mesh;
 			MeshRenderer renderer = child.GetComponent<MeshRenderer>();
 			renderer.enabled = true;
+			renderer.castShadows = castShadows;
+			renderer.receiveShadows = receiveShadows;
 			renderer.material = material;
+			mesh.bounds = bounds;
 		}
-		for (int i = numChildren; i < children.Count; ++i)
+		for (int i = numActiveChildren; i < children.Count; ++i)
 		{
 			children[i].GetComponent<MeshRenderer>().enabled = false;
 		}
