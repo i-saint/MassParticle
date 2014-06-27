@@ -157,32 +157,20 @@ struct Cell
 
 struct KernelParams
 {
-	float WorldCenter_x;
-	float WorldCenter_y;
-	float WorldCenter_z;
-	float WorldCenter_pad;
-	float WorldExtent_x;
-	float WorldExtent_y;
-	float WorldExtent_z;
-	float WorldExtent_pad;
-	int WorldDiv_x;
-	int WorldDiv_y;
-	int WorldDiv_z;
-	int WorldDiv_pad;
-	float Scale_x;
-	float Scale_y;
-	float Scale_z;
-	float Scale_pad;
+	vec3f world_center;
+	vec3f world_extent;
+	vec3i world_div;
+	vec3f coord_scaler;
 
-	int SolverType;
-	float LifeTime;
-	float Timestep;
-	float Decelerate;
-	float PressureStiffness;
-	float WallStiffness;
+	int solver_type;
+	float lifetime;
+	float timestep;
+	float decelerate;
+	float pressure_stiffness;
+	float wall_stiffness;
 
-	int MaxParticles;
-	float ParticleSize;
+	int max_particles;
+	float particle_size;
 
 	float SPHRestDensity;
 	float SPHParticleMass;

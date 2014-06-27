@@ -11,7 +11,7 @@ public unsafe class ParticleHandler : MonoBehaviour {
 		mpw = GetComponentInParent<MPWorld>();
 		if (mpw)
 		{
-			mpw.particleHandler = (a, b) => Handler(a, b);
+			mpw.particleProcessor = ParticleProcessor;
 		}
 	}
 	
@@ -20,32 +20,48 @@ public unsafe class ParticleHandler : MonoBehaviour {
 	
 	}
 
-	void Handler(int numParticles, MPParticle* particles)
+	public static void ParticleProcessor(MPWorld world, int numParticles, MPParticle* particles)
 	{
 		for (int i = 0; i < numParticles; ++i)
 		{
-			if (particles[i].hit != -1 && particles[i].hit != particles[i].hit_prev)
-			{
-				Collider col = mpw.colliders3d[particles[i].hit];
-				Vector3 vel = *(Vector3*)&particles[i].velocity;
+			if (particles[i].hit==-1 || particles[i].hit == particles[i].hit_prev) { continue; }
 
-				RedirectForceToParent cp = col.GetComponent<RedirectForceToParent>();
-				if (cp)
+			GameObject col = world.colliders[particles[i].hit];
+			RedirectForceToParent cp = col.GetComponent<RedirectForceToParent>();
+			if (cp)
+			{
+				Transform parent = col.transform.parent;
+				if (parent)
 				{
-					Rigidbody rb = cp.GetComponentInParent<Rigidbody>();
-					if (rb)
-					{
-						rb.AddForceAtPosition(vel * mpw.force, *(Vector3*)&particles[i].position);
-					}
+					MPUtils.CallParticleHitHandler(world, parent.gameObject, ref particles[i]);
 				}
-				else
+			}
+			else
+			{
+				MPUtils.CallParticleHitHandler(world, col, ref particles[i]);
+			}
+		}
+	}
+
+
+	public static unsafe void GatheredHitProcessor(MPWorld world, int numHits, MPHitData* hits)
+	{
+		for (int i = 0; i < numHits; ++i)
+		{
+			if (hits[i].num_hits == 0) { continue; }
+			GameObject col = world.colliders[i];
+			RedirectForceToParent cp = col.GetComponent<RedirectForceToParent>();
+			if (cp)
+			{
+				Transform parent = col.transform.parent;
+				if (parent)
 				{
-					Rigidbody rb = col.GetComponent<Rigidbody>();
-					if (rb)
-					{
-						rb.AddForceAtPosition(vel * mpw.force, *(Vector3*)&particles[i].position);
-					}
+					MPUtils.CallGathereditHandler(world, parent.gameObject, ref hits[i]);
 				}
+			}
+			else
+			{
+				MPUtils.CallGathereditHandler(world, col, ref hits[i]);
 			}
 		}
 	}

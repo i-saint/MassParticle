@@ -7,7 +7,8 @@ using System.Runtime.InteropServices;
 
 public unsafe class MPWorld : MonoBehaviour {
 
-	public delegate void ParticleHandler(int numParticles, MPParticle* particles);
+	public delegate void ParticleProcessor(MPWorld world, int numParticles, MPParticle* particles);
+	public delegate void GatheredHitProcessor(MPWorld world, int numColliders, MPHitData* hits);
 
 	public MPSolverType solverType;
 	public float force = 1.0f;
@@ -25,14 +26,18 @@ public unsafe class MPWorld : MonoBehaviour {
 	public float particleSize = 0.08f;
 	public int maxParticleNum = 200000;
 
-	public ParticleHandler particleHandler;
-	public Collider[] colliders3d;
-	public Collider2D[] colliders2d;
+	public bool enableParticleHitHandler = false;
+	public bool enableGatheredHitHandler = true;
+
+	public ParticleProcessor particleProcessor;
+	public GatheredHitProcessor gatheredHitProcessor;
+	public List<GameObject> colliders;
 
 	MPWorld()
 	{
 		MPAPI.mphInitialize();
-		particleHandler = (a, b) => DefaultParticleHandler(a, b);
+		particleProcessor = DefaultParticleProcessor;
+		gatheredHitProcessor = DefaultGatheredHitProcessor;
 	}
 
 	void Reset()
@@ -76,9 +81,11 @@ public unsafe class MPWorld : MonoBehaviour {
 			MPAPI.mpSetKernelParams(ref p);
 		}
 
+		colliders.Clear();
+
 		if (include3DColliders)
 		{
-			colliders3d = Physics.OverlapSphere(transform.position, transform.localScale.magnitude);
+			Collider[] colliders3d = Physics.OverlapSphere(transform.position, transform.localScale.magnitude);
 			for (int i = 0; i < colliders3d.Length; ++i)
 			{
 				Collider col = colliders3d[i];
@@ -90,6 +97,7 @@ public unsafe class MPWorld : MonoBehaviour {
 				if (attr)
 				{
 					if (!attr.sendCollision) { continue; }
+					attr.UpdateColliderProperties();
 					recv = attr.receiveCollision;
 					cprops = attr.cprops;
 				}
@@ -98,11 +106,13 @@ public unsafe class MPWorld : MonoBehaviour {
 					cprops = new MPColliderProperties();
 					cprops.SetDefaultValues();
 				}
+				int id = colliders.Count;
+				cprops.owner_id = recv ? id : -1;
+				colliders.Add(col.gameObject);
 
 				SphereCollider sphere = col as SphereCollider;
 				CapsuleCollider capsule = col as CapsuleCollider;
 				BoxCollider box = col as BoxCollider;
-				cprops.owner_id = recv ? i : -1;
 				if (sphere)
 				{
 					MPAPI.mpAddSphereCollider(ref cprops, sphere.transform.position, sphere.radius * col.gameObject.transform.localScale.magnitude * 0.5f);
@@ -130,10 +140,11 @@ public unsafe class MPWorld : MonoBehaviour {
 				}
 			}
 		}
+
 		if (include2DColliders)
 		{
 			Vector2 xy = new Vector2(transform.position.x, transform.position.y);
-			colliders2d = Physics2D.OverlapCircleAll(xy, transform.localScale.magnitude);
+			Collider2D[] colliders2d = Physics2D.OverlapCircleAll(xy, transform.localScale.magnitude);
 			for (int i = 0; i < colliders2d.Length; ++i)
 			{
 				Collider2D col = colliders2d[i];
@@ -145,6 +156,7 @@ public unsafe class MPWorld : MonoBehaviour {
 				if (attr)
 				{
 					if (!attr.sendCollision) { continue; }
+					attr.UpdateColliderProperties();
 					recv = attr.receiveCollision;
 					cprops = attr.cprops;
 				}
@@ -153,10 +165,12 @@ public unsafe class MPWorld : MonoBehaviour {
 					cprops = new MPColliderProperties();
 					cprops.SetDefaultValues();
 				}
+				int id = colliders.Count;
+				cprops.owner_id = recv ? id : -1;
+				colliders.Add(col.gameObject);
 
 				CircleCollider2D sphere = col as CircleCollider2D;
 				BoxCollider2D box = col as BoxCollider2D;
-				cprops.owner_id = recv ? i : -1;
 				if (sphere)
 				{
 					MPAPI.mpAddSphereCollider(ref cprops, sphere.transform.position, sphere.radius * col.gameObject.transform.localScale.x);
@@ -168,11 +182,25 @@ public unsafe class MPWorld : MonoBehaviour {
 			}
 		}
 
+		foreach (MPCollider col in MPCollider.instances)
+		{
+			if (!col.sendCollision) { continue; }
+			col.UpdateCollider();
+			int id = colliders.Count;
+			col.cprops.owner_id = id;
+			colliders.Add(col.gameObject);
+		}
+
 		MPAPI.mpUpdate (Time.deltaTime);
 		MPAPI.mpClearCollidersAndForces();
-		if (particleHandler!=null)
+
+		if (enableParticleHitHandler && particleProcessor!=null)
 		{
-			particleHandler(MPAPI.mpGetNumParticles(), MPAPI.mpGetParticles());
+			particleProcessor(this, MPAPI.mpGetNumParticles(), MPAPI.mpGetParticles());
+		}
+		if (enableGatheredHitHandler && gatheredHitProcessor!=null)
+		{
+			gatheredHitProcessor(this, MPAPI.mpGetNumHitData(), MPAPI.mpGetHitData());
 		}
 	}
 
@@ -183,19 +211,33 @@ public unsafe class MPWorld : MonoBehaviour {
 	}
 
 
-	unsafe void DefaultParticleHandler(int numParticles, MPParticle* particles)
+	public static unsafe void DefaultParticleProcessor(MPWorld world, int numParticles, MPParticle* particles)
 	{
-		if (force == 0.0f) { return; }
 		for (int i = 0; i < numParticles; ++i)
 		{
 			if (particles[i].hit != -1 && particles[i].hit != particles[i].hit_prev)
 			{
-				Collider col = colliders3d[particles[i].hit];
-				Vector3 vel = *(Vector3*)&particles[i].velocity;
-				Rigidbody rb = col.GetComponent<Rigidbody>();
-				if (rb)
+				GameObject col = world.colliders[particles[i].hit];
+				MPColliderAttribute cattr = col.GetComponent<MPColliderAttribute>();
+				if (cattr)
 				{
-					rb.AddForceAtPosition(vel * force, *(Vector3*)&particles[i].position);
+					cattr.particleHitHandler(world, col, ref particles[i]);
+				}
+			}
+		}
+	}
+
+	public static unsafe void DefaultGatheredHitProcessor(MPWorld world, int numColliders, MPHitData* hits)
+	{
+		for (int i = 0; i < numColliders; ++i)
+		{
+			if (hits[i].num_hits>0)
+			{
+				GameObject col = world.colliders[i];
+				MPColliderAttribute cattr = col.GetComponent<MPColliderAttribute>();
+				if (cattr)
+				{
+					cattr.gatheredHitHandler(world, col, ref hits[i]);
 				}
 			}
 		}

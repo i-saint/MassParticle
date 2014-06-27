@@ -392,7 +392,7 @@ void mpRendererD3D11::render(mpWorld &world)
 		cb.LightPos = vec4(10.0f, 10.0f, -10.0f, 1.0f);
 		cb.LightColor = vec4(0.9f, 0.9f, 0.9f, 1.0f);
 		cb.MeshShininess = 200.0f;
-		cb.ParticleSize = world.getKernelParams().ParticleSize;
+		cb.ParticleSize = world.getKernelParams().particle_size;
 		m_pImmediateContext->UpdateSubresource(m_pCBChangesEveryFrame, 0, nullptr, &cb, 0, 0);
 		m_pImmediateContext->UpdateSubresource(m_pCubeInstanceBuffer, 0, nullptr, particles, 0, 0);
 	}

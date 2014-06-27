@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 
 public class MPCollider : MPColliderAttribute
 {
@@ -9,16 +10,31 @@ public class MPCollider : MPColliderAttribute
 		Box,
 	}
 
+	static HashSet<MPCollider> _instances;
+	public static HashSet<MPCollider> instances
+	{
+		get
+		{
+			if (_instances == null) { _instances = new HashSet<MPCollider>(); }
+			return _instances;
+		}
+	}
+
 	public Shape shape = Shape.Box;
 	Transform trans;
 	Vector4 pos1;
 	Vector4 pos2;
 	float radius;
 
-	new void Start()
+	void OnEnable()
 	{
+		instances.Add(this);
 		trans = GetComponent<Transform>();
-		cprops = new MPColliderProperties();
+	}
+
+	void OnDisable()
+	{
+		instances.Remove(this);
 	}
 
 	void UpdateCapsule()
@@ -31,9 +47,9 @@ public class MPCollider : MPColliderAttribute
 		pos2 = trans.localToWorldMatrix * pos2;
 	}
 
-	new void Update()
+	public void UpdateCollider()
 	{
-		base.Update();
+		UpdateColliderProperties();
 		if (sendCollision) {
 			switch (shape)
 			{

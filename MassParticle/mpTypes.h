@@ -2,14 +2,16 @@
 #define _SPH_types_h_
 
 #include <vector>
-#include "mpCore_ispc.h"
-#include "SoA.h"
+#include <mutex>
 #include <glm/glm.hpp>
 #include <glm/ext.hpp>
 #include <glm/gtx/simd_vec4.hpp>
 #include <glm/gtx/simd_mat4.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <mutex>
+#include <tbb/tbb.h>
+#include <tbb/combinable.h>
+#include "mpCore_ispc.h"
+#include "SoA.h"
 
 #ifdef max
 #undef max
@@ -31,6 +33,9 @@ using ist::vec4soa4;
 using glm::vec2;
 using glm::vec3;
 using glm::vec4;
+using glm::ivec2;
+using glm::ivec3;
+using glm::ivec4;
 using glm::mat3;
 using glm::mat4;
 typedef glm::simdVec4 simdvec4;
@@ -60,10 +65,6 @@ namespace glm {
 	inline float length_sq(const vec4 &v) { return dot(v, v); }
 } // namespace glm
 
-#define set_xyz(v, _x, _y, _z)  v.x =_x; v.y =_y; v.z =_z;
-#define set_nxyz(v, _x, _y, _z) v.nx=_x; v.ny=_y; v.nz=_z;
-#define set_vxyz(v, _x, _y, _z) v.vx=_x; v.vy=_y; v.vz=_z;
-
 
 enum mpSolverType
 {
@@ -88,12 +89,10 @@ struct mpKernelParams : ispc::KernelParams
 
 struct mpTempParams
 {
-	vec3 RcpCellSize;
-	vec3 WorldBBBL;
-	vec3 WorldBBUR;
-	int WorldDivBits_x;
-	int WorldDivBits_y;
-	int WorldDivBits_z;
+	vec3 rcp_cell_size;
+	vec3 world_bounds_bl;
+	vec3 world_bounds_ur;
+	ivec3 world_div_bits;
 };
 
 struct mpMeshData
@@ -109,18 +108,24 @@ struct mpParticle
 {
 	simd128 position;
 	simd128 velocity;
+	float32 density;
 	union {
-		struct {
-			float32 density;
-			union {
-				uint32 hash;
-				int32 hit_prev;
-			};
-			int32 hit;
-			float32 lifetime;
-		} params;
-		simd128 paramsv;
+		uint32 hash;
+		int32 hit_prev;
 	};
+	int32 hit;
+	float32 lifetime;
+};
+
+struct mpHitData
+{
+	simd128 position;
+	simd128 velocity;
+	int num_hits;
+	int pad[3];
+
+	mpHitData() { clear(); }
+	void clear() { memset(this, 0, sizeof(*this));  }
 };
 
 
@@ -175,6 +180,8 @@ typedef std::vector<mpSphereCollider, mpAlignedAllocator<mpSphereCollider> >	mpS
 typedef std::vector<mpCapsuleCollider, mpAlignedAllocator<mpCapsuleCollider> >	mpCapsuleColliderCont;
 typedef std::vector<mpBoxCollider, mpAlignedAllocator<mpBoxCollider> >			mpBoxColliderCont;
 typedef std::vector<mpForce, mpAlignedAllocator<mpForce> >						mpForceCont;
+typedef std::vector<mpHitData, mpAlignedAllocator<mpHitData> >					mpHitDataCont;
+typedef tbb::combinable<mpHitDataCont>											mpHitDataConbinable;
 typedef std::vector<vec4, mpAlignedAllocator<vec4> >							mpTrailCont;
 
 class mpWorld;
@@ -217,8 +224,12 @@ public:
 	void setKernelParams(const mpKernelParams &v) { m_kparams = v; }
 	void getViewProjection(mat4 &out_mat, vec3 &out_camerapos);
 	void setViewProjection(const mat4 &mat, const vec3 &camerapos);
-	int getNumParticles() { return m_num_active_particles; }
-	mpParticle* getParticles() { return m_particles.empty() ? nullptr : &m_particles[0]; }
+
+	int			getNumHitData() const;
+	mpHitData*	getHitData();
+	int			getNumParticles() const	{ return m_num_active_particles; }
+	mpParticle*	getParticles()			{ return m_particles.empty() ? nullptr : &m_particles[0]; }
+
 	std::mutex& getMutex() { return m_mutex;  }
 
 	void generatePointMesh(int mi, mpMeshData *mds);
@@ -245,6 +256,11 @@ private:
 
 	mat4					m_viewproj;
 	vec3					m_camerapos;
+
+	bool					m_hitdata_needs_update;
+	mpHitDataCont			m_hitdata;
+	mpHitDataConbinable		m_hitdata_work;
+
 	mpTrailCont				m_trail;
 };
 

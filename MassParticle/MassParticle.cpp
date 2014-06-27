@@ -74,7 +74,18 @@ extern "C" EXPORT_API void mpSetViewProjectionMatrix(mat4 view, mat4 proj, vec3 
 	g_mpWorld.setViewProjection(viewproj, camerapos);
 }
 
-extern "C" EXPORT_API uint32_t mpGetNumParticles()
+
+extern "C" EXPORT_API int mpGetNumHitData()
+{
+	return g_mpWorld.getNumHitData();
+}
+
+extern "C" EXPORT_API mpHitData* mpGetHitData()
+{
+	return g_mpWorld.getHitData();
+}
+
+extern "C" EXPORT_API int mpGetNumParticles()
 {
 	return g_mpWorld.getNumParticles();
 }
@@ -179,7 +190,7 @@ extern "C" EXPORT_API void mpScatterParticlesBoxTransform(mat4 transform, int32_
 
 inline void mpBuildBoxCollider(mpBoxCollider &o, mat4 transform, vec3 size)
 {
-	float psize = g_mpWorld.getKernelParams().ParticleSize;
+	float psize = g_mpWorld.getKernelParams().particle_size;
 	size.x = size.x * 0.5f;
 	size.y = size.y * 0.5f;
 	size.z = size.z * 0.5f;
@@ -234,7 +245,7 @@ inline void mpBuildBoxCollider(mpBoxCollider &o, mat4 transform, vec3 size)
 
 inline void mpBuildSphereCollider(mpSphereCollider &o, vec3 center, float radius)
 {
-	float psize = g_mpWorld.getKernelParams().ParticleSize;
+	float psize = g_mpWorld.getKernelParams().particle_size;
 	float er = radius + psize;
 	(vec3&)o.shape.center = center;
 	o.shape.radius = er;
@@ -244,7 +255,7 @@ inline void mpBuildSphereCollider(mpSphereCollider &o, vec3 center, float radius
 
 inline void mpBuildCapsuleCollider(mpCapsuleCollider &o, vec3 pos1, vec3 pos2, float radius)
 {
-	float psize = g_mpWorld.getKernelParams().ParticleSize;
+	float psize = g_mpWorld.getKernelParams().particle_size;
 	float er = radius + psize;
 
 	ispc::Capsule &shape = o.shape;

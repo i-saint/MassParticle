@@ -21,25 +21,38 @@ public struct MPParticle
 };
 
 [StructLayout(LayoutKind.Explicit)]
+public struct MPHitData
+{
+	[FieldOffset(0)]  public Vector4 position;	// union
+	[FieldOffset(0)]  public Vector3 position3; // 
+	[FieldOffset(16)] public Vector4 velocity;	// union
+	[FieldOffset(16)] public Vector3 velocity3;	// 
+	[FieldOffset(32)] public int num_hits;
+	[FieldOffset(36)] public int pad1;
+	[FieldOffset(40)] public int pad2;
+	[FieldOffset(44)] public int pad3;
+}
+
+
 public struct MPKernelParams
 {
-	[FieldOffset(0)]   public Vector3 WorldCenter;
-	[FieldOffset(16)]  public Vector3 WorldSize;
-	[FieldOffset(32)]  public int WorldDiv_x;
-	[FieldOffset(36)]  public int WorldDiv_y;
-	[FieldOffset(40)]  public int WorldDiv_z;
-	[FieldOffset(48)]  public Vector3 Scaler;
-	[FieldOffset(64)]  public int SolverType;
-	[FieldOffset(68)]  public float LifeTime;
-	[FieldOffset(72)]  public float Timestep;
-	[FieldOffset(76)]  public float Decelerate;
-	[FieldOffset(80)]  public float PressureStiffness;
-	[FieldOffset(84)]  public float WallStiffness;
-	[FieldOffset(88)]  public int MaxParticles;
-	[FieldOffset(92)]  public float ParticleSize;
-	[FieldOffset(96)]  public float SPHRestDensity;
-	[FieldOffset(100)] public float SPHParticleMass;
-	[FieldOffset(104)] public float SPHViscosity;
+	public Vector3 WorldCenter;
+	public Vector3 WorldSize;
+	public int WorldDiv_x;
+	public int WorldDiv_y;
+	public int WorldDiv_z;
+	public Vector3 Scaler;
+	public int SolverType;
+	public float LifeTime;
+	public float Timestep;
+	public float Decelerate;
+	public float PressureStiffness;
+	public float WallStiffness;
+	public int MaxParticles;
+	public float ParticleSize;
+	public float SPHRestDensity;
+	public float SPHParticleMass;
+	public float SPHViscosity;
 };
 
 public enum MPSolverType
@@ -136,6 +149,8 @@ public class MPAPI {
 	[DllImport ("MassParticle")] public static extern MPKernelParams mpGetKernelParams();
 	[DllImport ("MassParticle")] public static extern void mpSetKernelParams(ref MPKernelParams p);
 
+	[DllImport ("MassParticle")] public static extern int mpGetNumHitData();
+	[DllImport ("MassParticle")] unsafe public static extern MPHitData* mpGetHitData();
 	[DllImport ("MassParticle")] public static extern int mpGetNumParticles();
 	[DllImport ("MassParticle")] unsafe public static extern MPParticle* mpGetParticles();
 	[DllImport ("MassParticle")] unsafe public static extern void mpCopyParticles (MPParticle *dst);
@@ -168,5 +183,23 @@ public class MPUtils
 		p.range_inner = 0.0f;
 		p.range_outer = radius;
 		MPAPI.mpAddForce(ref p, mat);
+	}
+
+	public static void CallParticleHitHandler(MPWorld world, GameObject obj, ref MPParticle particle)
+	{
+		var mpcattr = obj.GetComponent<MPColliderAttribute>();
+		if (mpcattr)
+		{
+			mpcattr.particleHitHandler(world, obj, ref particle);
+		}
+	}
+
+	public static void CallGathereditHandler(MPWorld world, GameObject obj, ref MPHitData hit)
+	{
+		var mpcattr = obj.GetComponent<MPColliderAttribute>();
+		if (mpcattr)
+		{
+			mpcattr.gatheredHitHandler(world, obj, ref hit);
+		}
 	}
 }

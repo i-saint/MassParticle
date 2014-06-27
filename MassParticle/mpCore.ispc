@@ -9,7 +9,7 @@
 #include "mpCollision.h"
 
 static uniform vec3  mpWorldCenter;
-static uniform vec3  mpWorldSize;
+static uniform vec3  mpWorldExtent;
 static uniform ivec3 mpWorldDiv;
 static uniform vec3  mpCoordScale;
 
@@ -30,54 +30,38 @@ static uniform float mpSPHLapViscosityCoef;
 
 export void UpdateConstants(uniform KernelParams &params)
 {
-	mpParticleSize      = params.ParticleSize;
-	mpRcpParticleSize2  = 1.0f / (mpParticleSize*2.0f);
-	mpWorldCenter.x     = params.WorldCenter_x;
-	mpWorldCenter.y     = params.WorldCenter_y;
-	mpWorldCenter.z     = params.WorldCenter_z;
-	mpWorldSize.x       = params.WorldExtent_x;
-	mpWorldSize.y       = params.WorldExtent_y;
-	mpWorldSize.z       = params.WorldExtent_z;
-	mpWorldDiv.x        = params.WorldDiv_x;
-	mpWorldDiv.y        = params.WorldDiv_y;
-	mpWorldDiv.z        = params.WorldDiv_z;
-	mpCoordScale.x      = params.Scale_x;
-	mpCoordScale.y      = params.Scale_y;
-	mpCoordScale.z      = params.Scale_z;
+	store3(mpWorldCenter,x,y,z, params.world_center);
+	store3(mpWorldExtent,x,y,z, params.world_extent);
+	store3(mpWorldDiv,x,y,z, params.world_div);
+	store3(mpCoordScale,x,y,z, params.coord_scaler);
+	mpParticleSize		= params.particle_size;
+	mpRcpParticleSize2	= 1.0f / (mpParticleSize*2.0f);
 
-	mpTimestep          = params.Timestep;
-	mpDecelerate        = params.Decelerate;
-	mpPressureStiffness = params.PressureStiffness;
-	mpWallStiffness     = params.WallStiffness;
+	mpTimestep			= params.timestep;
+	mpDecelerate		= params.decelerate;
+	mpPressureStiffness	= params.pressure_stiffness;
+	mpWallStiffness		= params.wall_stiffness;
 
-	mpSPHRestDensity    = params.SPHRestDensity;
-	mpSPHParticleMass   = params.SPHParticleMass;
-	mpSPHViscosity      = params.SPHViscosity;
+	mpSPHRestDensity	= params.SPHRestDensity;
+	mpSPHParticleMass	= params.SPHParticleMass;
+	mpSPHViscosity		= params.SPHViscosity;
 
-	mpSPHDensityCoef        = mpSPHParticleMass * 315.0f / (64.0f * PI * pow(mpParticleSize, 9));
-	mpSPHGradPressureCoef   = mpSPHParticleMass * -45.0f / (PI * pow(mpParticleSize, 6));
-	mpSPHLapViscosityCoef   = mpSPHParticleMass * mpSPHViscosity * 45.0f / (PI * pow(mpParticleSize, 6));
+	mpSPHDensityCoef		= mpSPHParticleMass * 315.0f / (64.0f * PI * pow(mpParticleSize, 9));
+	mpSPHGradPressureCoef	= mpSPHParticleMass * -45.0f / (PI * pow(mpParticleSize, 6));
+	mpSPHLapViscosityCoef	= mpSPHParticleMass * mpSPHViscosity * 45.0f / (PI * pow(mpParticleSize, 6));
 }
 
 export void GetConstants(uniform KernelParams &params)
 {
-	params.WorldCenter_x    = mpWorldCenter.x;
-	params.WorldCenter_y    = mpWorldCenter.y;
-	params.WorldCenter_z    = mpWorldCenter.z;
-	params.WorldExtent_x    = mpWorldSize.x;
-	params.WorldExtent_y    = mpWorldSize.y;
-	params.WorldExtent_z    = mpWorldSize.z;
-	params.WorldDiv_x       = mpWorldDiv.x;
-	params.WorldDiv_y       = mpWorldDiv.y;
-	params.WorldDiv_z       = mpWorldDiv.z;
-	params.Scale_x          = mpCoordScale.x;
-	params.Scale_y          = mpCoordScale.y;
-	params.Scale_z          = mpCoordScale.z;
+	store3(params.world_center,x,y,z, mpWorldCenter);
+	store3(params.world_extent,x,y,z, mpWorldExtent);
+	store3(params.world_div,x,y,z, mpWorldDiv);
+	store3(params.coord_scaler,x,y,z, mpCoordScale);
 
-	params.Timestep         = mpTimestep;
-	params.Decelerate       = mpDecelerate;
-	params.PressureStiffness= mpPressureStiffness;
-	params.WallStiffness    = mpWallStiffness;
+	params.timestep         = mpTimestep;
+	params.decelerate       = mpDecelerate;
+	params.pressure_stiffness= mpPressureStiffness;
+	params.wall_stiffness    = mpWallStiffness;
 
 	params.SPHRestDensity   = mpSPHRestDensity;
 	params.SPHParticleMass  = mpSPHParticleMass;
@@ -87,13 +71,13 @@ export void GetConstants(uniform KernelParams &params)
 
 vec3 ComputeGridBox(uniform int xi, uniform int yi, uniform int zi, uniform vec3 &o_bl, uniform vec3 &o_ur)
 {
-	uniform vec3 cell_size = mpWorldSize*2.0f / mpWorldDiv;
-	o_bl.x = mpWorldCenter.x - mpWorldSize.x + cell_size.x*xi;
-	o_bl.y = mpWorldCenter.y - mpWorldSize.y + cell_size.y*yi;
-	o_bl.z = mpWorldCenter.z - mpWorldSize.z + cell_size.z*zi;
-	o_ur.x = mpWorldCenter.x - mpWorldSize.x + cell_size.x*(xi+1);
-	o_ur.y = mpWorldCenter.y - mpWorldSize.y + cell_size.y*(yi+1);
-	o_ur.z = mpWorldCenter.z - mpWorldSize.z + cell_size.z*(zi+1);
+	uniform vec3 cell_size = mpWorldExtent*2.0f / mpWorldDiv;
+	o_bl.x = mpWorldCenter.x - mpWorldExtent.x + cell_size.x*xi;
+	o_bl.y = mpWorldCenter.y - mpWorldExtent.y + cell_size.y*yi;
+	o_bl.z = mpWorldCenter.z - mpWorldExtent.z + cell_size.z*zi;
+	o_ur.x = mpWorldCenter.x - mpWorldExtent.x + cell_size.x*(xi+1);
+	o_ur.y = mpWorldCenter.y - mpWorldExtent.y + cell_size.y*(yi+1);
+	o_ur.z = mpWorldCenter.z - mpWorldExtent.z + cell_size.z*(zi+1);
 }
 
 #define repulse(p, f, n, d, props)\
