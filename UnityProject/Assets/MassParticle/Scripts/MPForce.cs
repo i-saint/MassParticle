@@ -8,30 +8,37 @@ using System.Runtime.InteropServices;
 public class MPForce : MonoBehaviour {
 
 	public MPForceShape regionType;
-	public MPForceDirection directionType; 
+	public MPForceDirection directionType;
+	public float strengthNear = 10.0f;
+	public float strengthFar = 0.0f;
+	public float rangeInner = 0.0f;
+	public float rangeOuter = 100.0f;
+	public float attenuationExp = 0.5f;
+	public Vector3 direction = new Vector3(0.0f, -1.0f, 0.0f);
 
-	public float strength = 10.0f;
-	public Vector3 direction = new Vector3(0.0f,-1.0f,0.0f);
-
-	MPForceParams forceParams;
+	MPForceProperties fprops;
 
 	void Start () {
 	}
 
 	void Update()
 	{
-		forceParams.strength = strength;
 		
 		switch(directionType) {
 		case MPForceDirection.Directional:
-			forceParams.pos = direction;
+			fprops.directional_dir = direction;
 			break;
 
 		case MPForceDirection.Radial:
-			forceParams.pos = transform.position;
+			fprops.radial_center = transform.position;
 			break;
 		}
-		MPNative.mpAddForce (regionType, transform.localToWorldMatrix, directionType, forceParams);
+		fprops.strength_near = strengthNear;
+		fprops.strength_far = strengthFar;
+		fprops.range_inner = rangeInner;
+		fprops.range_outer = rangeOuter;
+		fprops.attenuation_exp = attenuationExp;
+		MPAPI.mpAddForce(ref fprops, transform.localToWorldMatrix);
 	}
 	
 	
@@ -41,7 +48,7 @@ public class MPForce : MonoBehaviour {
 			float arrowHeadAngle = 30.0f;
 			float arrowHeadLength = 0.5f;
 			Vector3 pos = transform.position;
-			Vector3 dir = direction * strength * 0.5f;
+			Vector3 dir = direction * strengthNear * 0.5f;
 			
 			Gizmos.matrix = Matrix4x4.identity;
 			Gizmos.color = Color.yellow;
@@ -52,7 +59,7 @@ public class MPForce : MonoBehaviour {
 			Gizmos.DrawRay(pos + dir, right * arrowHeadLength);
 			Gizmos.DrawRay(pos + dir, left * arrowHeadLength);
 		}
-		{			
+		{
 			Gizmos.color = Color.yellow;
 			Gizmos.matrix = transform.localToWorldMatrix;
 			switch(regionType) {

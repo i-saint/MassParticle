@@ -24,11 +24,11 @@ public class MPEmitter : MonoBehaviour {
 	{
 		switch (shape) {
 		case Shape.Sphere:
-			MPNative.mpScatterParticlesSphereTransform (transform.localToWorldMatrix, emitCount, velosityBase, velosityDiffuse);
+			MPAPI.mpScatterParticlesSphereTransform (transform.localToWorldMatrix, emitCount, velosityBase, velosityDiffuse);
 			break;
 
 		case Shape.Box:
-			MPNative.mpScatterParticlesBoxTransform (transform.localToWorldMatrix, emitCount, velosityBase, velosityDiffuse);
+			MPAPI.mpScatterParticlesBoxTransform (transform.localToWorldMatrix, emitCount, velosityBase, velosityDiffuse);
 			break;
 		}
 	}

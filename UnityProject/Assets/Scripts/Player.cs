@@ -3,15 +3,16 @@ using System.Collections;
 
 public class Player : MonoBehaviour {
 
-	MPForceParams forceParams;
+	MPForceProperties fprops;
 	Matrix4x4 blowMatrix;
+	Transform trans;
 	public GameObject playerBullet;
 
 
 
 	// Use this for initialization
 	void Start () {
-	
+		trans = transform;
 	}
 	
 	// Update is called once per frame
@@ -26,14 +27,14 @@ public class Player : MonoBehaviour {
 			Vector3 move = Vector3.zero;
 			move.x = Input.GetAxis ("Horizontal");
 			move.z = Input.GetAxis ("Vertical");
-			transform.position += move * 0.1f;
+			trans.position += move * 0.1f;
 		}
 		{			
 			Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
 			Plane plane = new Plane(Vector3.up, Vector3.zero);
 			float distance = 0; 
 			if (plane.Raycast(ray, out distance)){
-				transform.rotation = Quaternion.LookRotation(ray.GetPoint(distance)-transform.position);
+				trans.rotation = Quaternion.LookRotation(ray.GetPoint(distance) - trans.position);
 			}
 		}
 
@@ -41,23 +42,27 @@ public class Player : MonoBehaviour {
 			Matrix4x4 ts = Matrix4x4.identity;
 			ts.SetColumn (3, new Vector4(0.0f,0.0f,0.5f,1.0f));
 			ts = Matrix4x4.Scale(new Vector3(5.0f, 5.0f, 10.0f)) * ts;
-			blowMatrix = transform.localToWorldMatrix * ts;
+			blowMatrix = trans.localToWorldMatrix * ts;
 		}
 	}
 
 	void Shot()
 	{
-		Instantiate(playerBullet, transform.position + transform.forward.normalized * 1.0f, transform.rotation);
+		Instantiate(playerBullet, trans.position + trans.forward.normalized * 1.0f, trans.rotation);
 	}
 
 	void Blow()
 	{
-		Vector3 pos = transform.position;
+		Vector3 pos = trans.position;
 		float strength = 2000.0f;
 
-		forceParams.strength = strength;
-		forceParams.pos = pos - (transform.forward*6.0f);
-		MPNative.mpAddForce (MPForceShape.Box, blowMatrix, MPForceDirection.Radial, forceParams);
+		fprops.SetDefaultValues();
+		fprops.shape_type = MPForceShape.Box;
+		fprops.dir_type = MPForceDirection.Radial;
+		fprops.strength_near = strength;
+		fprops.strength_far = strength;
+		fprops.radial_center = pos - (trans.forward * 6.0f);
+		MPAPI.mpAddForce(ref fprops, blowMatrix);
 	}
 	
 	void OnDrawGizmos()

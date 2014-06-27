@@ -39,10 +39,19 @@ typedef glm::simdMat4 simdmat4;
 typedef ispc::Particle_SOA8			mpParticleSOA8;
 typedef ispc::ParticleIMData_SOA8	mpParticleIMDSOA8;
 typedef ispc::Cell					mpCell;
+
+typedef ispc::Plane					mpPlane;
+typedef ispc::Sphere				mpSphere;
+typedef ispc::Capsule				mpCapsule;
+typedef ispc::Box					mpBox;
+
+typedef ispc::ColliderProperties	mpColliderProperties;
 typedef ispc::PlaneCollider			mpPlaneCollider;
 typedef ispc::SphereCollider		mpSphereCollider;
 typedef ispc::CapsuleCollider		mpCapsuleCollider;
 typedef ispc::BoxCollider			mpBoxCollider;
+
+typedef ispc::ForceProperties		mpForceProperties;
 typedef ispc::Force					mpForce;
 
 namespace glm {
@@ -62,6 +71,7 @@ enum mpSolverType
 	mpSolver_SPH,
 	mpSolver_SPHEst,
 	mpSolver_NoInteraction,
+	mpSolver_NoInteractionNoCollision,
 };
 
 enum mpRendererType

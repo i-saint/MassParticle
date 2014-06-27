@@ -3,84 +3,83 @@
 
 #include "ispc_vectormath.h"
 typedef int id_type;
+typedef unsigned int uint;
 
+struct vec3f
+{
+	float x, y, z;
+};
+struct vec3i
+{
+	int x, y, z;
+};
 
 struct Plane
 {
-	float nx, ny, nz;
+	vec3f normal;
 	float distance;
 };
 
 struct BoundingBox
 {
-	float bl_x, bl_y, bl_z;
-	float ur_x, ur_y, ur_z;
+	vec3f bl, ur;
 };
 
 struct Sphere
 {
-	float x, y, z;
+	vec3f center;
 	float radius;
+};
+
+struct Capsule
+{
+	vec3f center, pos1, pos2;
+	float radius;
+	float rcp_lensq; // for optimization
 };
 
 struct Box
 {
+	vec3f center;
 	Plane planes[6];
-	float x, y, z;
 };
 
-struct SphereCollider
-{
-	id_type id;
-	BoundingBox bb;
-	float x, y, z;
-	float radius;
-};
 
-struct CapsuleCollider
+struct ColliderProperties
 {
-	id_type id;
-	BoundingBox bb;
-	float x1, y1, z1;
-	float x2, y2, z2;
-	float radius;
-	float rcp_lensq;
+	uint group_mask;
+	int owner_id;
+	float stiffness;
+	float rebound;
+	float lifetime_on_hit;
 };
 
 struct PlaneCollider
 {
-	id_type id;
-	BoundingBox bb;
-	float nx, ny, nz;
-	float distance;
+	ColliderProperties props;
+	BoundingBox bounds;
+	Plane shape;
+};
+
+struct SphereCollider
+{
+	ColliderProperties props;
+	BoundingBox bounds;
+	Sphere shape;
+};
+
+struct CapsuleCollider
+{
+	ColliderProperties props;
+	BoundingBox bounds;
+	Capsule shape;
 };
 
 struct BoxCollider
 {
-	id_type id;
-	BoundingBox bb;
-	float x, y, z;
-	Plane planes[6];
-};
-
-
-struct PointForce
-{
-	float x, y, z;
-	float strength;
-};
-
-struct DirectionalForce
-{
-	float nx, ny, nz;
-	float strength;
-};
-
-struct BoxForce
-{
-	float nx, ny, nz;
-	float strength;
-	Box box;
+	ColliderProperties props;
+	BoundingBox bounds;
+	Box shape;
 };
 
 
@@ -88,6 +87,7 @@ enum ForceShape
 {
 	FS_AffectAll,
 	FS_Sphere,
+	FS_Capsule,
 	FS_Box,
 };
 
@@ -95,46 +95,57 @@ enum ForceDirection
 {
 	FD_Directional,
 	FD_Radial,
+	FD_RadialCapsule,
 	FD_Vortex,      // todo:
 	FD_Spline,      // 
 	FD_VectorField, //
 };
 
-struct ForceParams
+struct ForceProperties
 {
-	float x, y, z; // direction for plane, position for other shapes
-	float strength;
-	float strength_random_diffuse;
+	uint	group_mask;
+	int		shape_type; // ForceShape
+	int		dir_type; // ForceDirection
+	float	strength_near;
+	float	strength_far;
+	float	range_inner;
+	float	range_outer;
+	float	attenuation_exp;
+
+	vec3f	directional_pos;
+	vec3f	directional_dir;
+	vec3f	radial_center;
+	vec3f	vortex_pos;
+	vec3f	vortex_axis;
+	float	vortex_pull;
+
+	float	directional_plane_distance;
+	float rcp_range;
 };
 
 struct Force
 {
-	int shape_type; // ForceShape
-	int dir_type; // ForceDirection
-
-	BoundingBox bb;
-	// union doesn't exists in ISPC :(
-	Sphere              shape_sphere;
-	Box                 shape_box;
-
-	ForceParams params;
+	ForceProperties	props;
+	BoundingBox		bounds;
+	Sphere			sphere;
+	Capsule			capsule;
+	Box				box;
 };
 
 
 struct Particle
 {
-	float   x, y, z;
-	float   vx, vy, vz;
-	float   speed;
-	float   density;
-	int     hit;
+	float	x, y, z;
+	float	vx, vy, vz;
+	float	speed;
+	float	density;
+	int		hit;
 };
 
 struct ParticleIMData
 {
 	float ax, ay, az;
-	float affection;
-	float distance_sq;
+	float inside_force;
 };
 
 struct Cell
@@ -178,17 +189,8 @@ struct KernelParams
 	float SPHViscosity;
 };
 
-// struct ÇÃéQè∆ìnÇµÇ™Ç≈Ç´Ç»Ç¢Ç¡Ç€Ç¢ÇÃÇ≈ macro Ç≈...
-// ï°êîÇÃå^Ç…ëŒâûÇ≈Ç´ÇÈÇÃÇ≈ÇﬁÇµÇÎÇ±Ç¡ÇøÇÃÇ™Ç¢Ç¢ÇÃÇ©Ç‡
-#define get_pos(p)      {p.x, p.y, p.z}
-#define get_vel(p)      {p.vx, p.vy, p.vz}
-#define get_normal(p)   {p.nx, p.ny, p.nz}
-#define get_accel(p)    {p.ax, p.ay, p.az}
-#define set_pos(p, v)   p.x=v.x; p.y=v.y; p.z=v.z;
-#define set_vel(p, v)   p.vx=v.x; p.vy=v.y; p.vz=v.z;
-#define set_accel(p, v) p.ax=v.x; p.ay=v.y; p.az=v.z;
-#define get_bl(p)       {p.bl_x, p.bl_y, p.bl_z}
-#define get_ur(p)       {p.ur_x, p.ur_y, p.ur_z}
-
+#define to_vec3(v) {v.x, v.y,v.z}
+#define gather3(v, ex, ey, ez) {v.ex, v.ey,v.ez}
+#define store3(t, ex, ey, ez, v) t.ex=v.x; t.ey=v.y; t.ez=v.z;
 
 #endif // mpCollision_h

@@ -13,7 +13,7 @@ public class MPWorldEditor : Editor {
 
 		if(GUILayout.Button("Reload Shader"))
 		{
-			MPNative.mpReloadShader();
+			MPAPI.mpReloadShader();
 		}
 	}
 }

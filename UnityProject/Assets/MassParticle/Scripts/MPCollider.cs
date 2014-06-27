@@ -15,10 +15,12 @@ public class MPCollider : MPColliderAttribute
 	Vector4 pos2;
 	float radius;
 
-	void Start () {
+	new void Start()
+	{
 		trans = GetComponent<Transform>();
+		cprops = new MPColliderProperties();
 	}
-	
+
 	void UpdateCapsule()
 	{
 		radius = (trans.localScale.x + trans.localScale.z) * 0.5f * 0.5f;
@@ -29,21 +31,23 @@ public class MPCollider : MPColliderAttribute
 		pos2 = trans.localToWorldMatrix * pos2;
 	}
 
-	void Update () {
+	new void Update()
+	{
+		base.Update();
 		if (sendCollision) {
 			switch (shape)
 			{
 			case Shape.Sphere:
-					MPNative.mpAddSphereCollider(-1, trans.position, trans.localScale.magnitude * 0.25f);
+					MPAPI.mpAddSphereCollider(ref cprops, trans.position, trans.localScale.magnitude * 0.25f);
 				break;
 			case Shape.Capsule:
 				{
 					UpdateCapsule();
-					MPNative.mpAddCapsuleCollider(-1, pos1, pos2, radius);
+					MPAPI.mpAddCapsuleCollider(ref cprops, pos1, pos2, radius);
 				}
 				break;
 			case Shape.Box:
-				MPNative.mpAddBoxCollider(-1, trans.localToWorldMatrix, Vector3.one);
+				MPAPI.mpAddBoxCollider(ref cprops, trans.localToWorldMatrix, Vector3.one);
 				break;
 			}
 		}

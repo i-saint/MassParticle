@@ -68,7 +68,7 @@ public unsafe class MPRenderer : MonoBehaviour
 		bounds.SetMinMax(min, max);
 		material.SetFloat("_ParticleSize", world.particleSize * scale);
 
-		int num = MPNative.mpGetNumParticles();
+		int num = MPAPI.mpGetNumParticles();
 		if (num == 0) { return; }
 
 		switch (renderMode)
@@ -78,11 +78,11 @@ public unsafe class MPRenderer : MonoBehaviour
 
 			case RenderMode.Points:
 				UpdatePointMeshes();
-				MPNative.mpUpdateDataTexture(dataTexture.GetNativeTexturePtr());
+				MPAPI.mpUpdateDataTexture(dataTexture.GetNativeTexturePtr());
 				break;
 			case RenderMode.Cubes:
 				UpdateCubeMeshes();
-				MPNative.mpUpdateDataTexture(dataTexture.GetNativeTexturePtr());
+				MPAPI.mpUpdateDataTexture(dataTexture.GetNativeTexturePtr());
 				break;
 		}
 	}
@@ -98,7 +98,7 @@ public unsafe class MPRenderer : MonoBehaviour
 
 	void UpdateCubeMeshes()
 	{
-		int numParticles = MPNative.mpGetNumParticles();
+		int numParticles = MPAPI.mpGetNumParticles();
 		int numActiveChildren = numParticles / 2700 + (numParticles % 2700 == 0 ? 0 : 1);
 		while (children.Count < numActiveChildren)
 		{
@@ -115,7 +115,7 @@ public unsafe class MPRenderer : MonoBehaviour
 				meshData.normals = n;
 				meshData.uv = t;
 				meshData.indices = idx;
-				MPNative.mpGenerateCubeMesh(children.Count, ref meshData);
+				MPAPI.mpGenerateCubeMesh(children.Count, ref meshData);
 			}}}}
 			Mesh mesh = child.GetComponent<MeshFilter>().mesh;
 			mesh.vertices = vertices;
@@ -129,7 +129,7 @@ public unsafe class MPRenderer : MonoBehaviour
 
 	void UpdatePointMeshes()
 	{
-		int numParticles = MPNative.mpGetNumParticles();
+		int numParticles = MPAPI.mpGetNumParticles();
 		int numActiveChildren = numParticles / 65000 + (numParticles % 65000 == 0 ? 0 : 1);
 		while (children.Count < numActiveChildren)
 		{
@@ -143,7 +143,7 @@ public unsafe class MPRenderer : MonoBehaviour
 				meshData.vertices = v;
 				meshData.uv = t;
 				meshData.indices = idx;
-				MPNative.mpGeneratePointMesh(children.Count, ref meshData);
+				MPAPI.mpGeneratePointMesh(children.Count, ref meshData);
 			}}}
 			Mesh mesh = child.GetComponent<MeshFilter>().mesh;
 			mesh.vertices = vertices;
@@ -180,7 +180,7 @@ public unsafe class MPRenderer : MonoBehaviour
 			UnityEngine.Camera cam = UnityEngine.Camera.current;
 			if (cam)
 			{
-				MPNative.mpSetViewProjectionMatrix(cam.worldToCameraMatrix, cam.projectionMatrix, cam.transform.position);
+				MPAPI.mpSetViewProjectionMatrix(cam.worldToCameraMatrix, cam.projectionMatrix, cam.transform.position);
 			}
 			GL.IssuePluginEvent(1);
 		}

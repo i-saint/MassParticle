@@ -57,7 +57,7 @@ public class excDestroyable : MonoBehaviour {
 	{
 		float volume = trans.localScale.x*trans.localScale.y*trans.localScale.z;
 		int numFraction = (int)(volume * 1000.0f);
-		MPNative.mpScatterParticlesBoxTransform(trans.localToWorldMatrix, numFraction, Vector3.zero, 3.0f);
+		MPAPI.mpScatterParticlesBoxTransform(trans.localToWorldMatrix, numFraction, Vector3.zero, 3.0f);
 	}
 
 	public void Damage(float v)

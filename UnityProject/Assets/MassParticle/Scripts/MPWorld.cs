@@ -31,13 +31,13 @@ public unsafe class MPWorld : MonoBehaviour {
 
 	MPWorld()
 	{
-		MPNative.mphInitialize();
+		MPAPI.mphInitialize();
 		particleHandler = (a, b) => DefaultParticleHandler(a, b);
 	}
 
 	void Reset()
 	{
-		MPKernelParams p = MPNative.mpGetKernelParams();
+		MPKernelParams p = MPAPI.mpGetKernelParams();
 		transform.position = p.WorldCenter;
 		transform.localScale = p.WorldSize;
 		solverType 			= (MPSolverType)p.SolverType;
@@ -52,13 +52,13 @@ public unsafe class MPWorld : MonoBehaviour {
 	}
 
 	void Start () {
-		MPNative.mpClearParticles();
+		MPAPI.mpClearParticles();
 	}
 
 	unsafe void Update()
 	{
 		{
-			MPKernelParams p = MPNative.mpGetKernelParams();
+			MPKernelParams p = MPAPI.mpGetKernelParams();
 			p.WorldCenter = transform.position;
 			p.WorldSize = transform.localScale;
 			p.WorldDiv_x = divX;
@@ -73,7 +73,7 @@ public unsafe class MPWorld : MonoBehaviour {
 			p.Scaler = coordScale;
 			p.ParticleSize = particleSize;
 			p.MaxParticles = maxParticleNum;
-			MPNative.mpSetKernelParams(ref p);
+			MPAPI.mpSetKernelParams(ref p);
 		}
 
 		if (include3DColliders)
@@ -84,21 +84,28 @@ public unsafe class MPWorld : MonoBehaviour {
 				Collider col = colliders3d[i];
 				if (col.isTrigger) { continue; }
 
+				MPColliderProperties cprops;
 				bool recv = false;
 				var attr = col.gameObject.GetComponent<MPColliderAttribute>();
 				if (attr)
 				{
 					if (!attr.sendCollision) { continue; }
 					recv = attr.receiveCollision;
+					cprops = attr.cprops;
+				}
+				else
+				{
+					cprops = new MPColliderProperties();
+					cprops.SetDefaultValues();
 				}
 
 				SphereCollider sphere = col as SphereCollider;
 				CapsuleCollider capsule = col as CapsuleCollider;
 				BoxCollider box = col as BoxCollider;
-				int ownerid = recv ? i : -1;
+				cprops.owner_id = recv ? i : -1;
 				if (sphere)
 				{
-					MPNative.mpAddSphereCollider(ownerid, sphere.transform.position, sphere.radius * col.gameObject.transform.localScale.magnitude * 0.5f);
+					MPAPI.mpAddSphereCollider(ref cprops, sphere.transform.position, sphere.radius * col.gameObject.transform.localScale.magnitude * 0.5f);
 				}
 				else if (capsule)
 				{
@@ -115,11 +122,11 @@ public unsafe class MPWorld : MonoBehaviour {
 					Vector4 pos2 = new Vector4(-e.x, -e.y, -e.z, 1.0f);
 					pos1 = capsule.transform.localToWorldMatrix * pos1;
 					pos2 = capsule.transform.localToWorldMatrix * pos2;
-					MPNative.mpAddCapsuleCollider(ownerid, pos1, pos2, r);
+					MPAPI.mpAddCapsuleCollider(ref cprops, pos1, pos2, r);
 				}
 				else if (box)
 				{
-					MPNative.mpAddBoxCollider(ownerid, box.transform.localToWorldMatrix, box.size);
+					MPAPI.mpAddBoxCollider(ref cprops, box.transform.localToWorldMatrix, box.size);
 				}
 			}
 		}
@@ -132,33 +139,40 @@ public unsafe class MPWorld : MonoBehaviour {
 				Collider2D col = colliders2d[i];
 				if (col.isTrigger) { continue; }
 
+				MPColliderProperties cprops;
 				bool recv = false;
 				var attr = col.gameObject.GetComponent<MPColliderAttribute>();
 				if (attr)
 				{
 					if (!attr.sendCollision) { continue; }
 					recv = attr.receiveCollision;
+					cprops = attr.cprops;
+				}
+				else
+				{
+					cprops = new MPColliderProperties();
+					cprops.SetDefaultValues();
 				}
 
 				CircleCollider2D sphere = col as CircleCollider2D;
 				BoxCollider2D box = col as BoxCollider2D;
-				int ownerid = recv ? i : -1;
+				cprops.owner_id = recv ? i : -1;
 				if (sphere)
 				{
-					MPNative.mpAddSphereCollider(ownerid, sphere.transform.position, sphere.radius * col.gameObject.transform.localScale.x);
+					MPAPI.mpAddSphereCollider(ref cprops, sphere.transform.position, sphere.radius * col.gameObject.transform.localScale.x);
 				}
 				else if (box)
 				{
-					MPNative.mpAddBoxCollider(ownerid, box.transform.localToWorldMatrix, new Vector3(box.size.x, box.size.y, box.size.x));
+					MPAPI.mpAddBoxCollider(ref cprops, box.transform.localToWorldMatrix, new Vector3(box.size.x, box.size.y, box.size.x));
 				}
 			}
 		}
 
-		MPNative.mpUpdate (Time.deltaTime);
-		MPNative.mpClearCollidersAndForces();
+		MPAPI.mpUpdate (Time.deltaTime);
+		MPAPI.mpClearCollidersAndForces();
 		if (particleHandler!=null)
 		{
-			particleHandler(MPNative.mpGetNumParticles(), MPNative.mpGetParticles());
+			particleHandler(MPAPI.mpGetNumParticles(), MPAPI.mpGetParticles());
 		}
 	}
 

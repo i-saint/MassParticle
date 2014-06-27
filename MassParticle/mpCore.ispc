@@ -7,7 +7,6 @@
 
 #include "ispc_vectormath.h"
 #include "mpCollision.h"
-typedef unsigned int32 uint32;
 
 static uniform vec3  mpWorldCenter;
 static uniform vec3  mpWorldSize;
@@ -65,9 +64,9 @@ export void GetConstants(uniform KernelParams &params)
 	params.WorldCenter_x    = mpWorldCenter.x;
 	params.WorldCenter_y    = mpWorldCenter.y;
 	params.WorldCenter_z    = mpWorldCenter.z;
-	params.WorldExtent_x      = mpWorldSize.x;
-	params.WorldExtent_y      = mpWorldSize.y;
-	params.WorldExtent_z      = mpWorldSize.z;
+	params.WorldExtent_x    = mpWorldSize.x;
+	params.WorldExtent_y    = mpWorldSize.y;
+	params.WorldExtent_z    = mpWorldSize.z;
 	params.WorldDiv_x       = mpWorldDiv.x;
 	params.WorldDiv_y       = mpWorldDiv.y;
 	params.WorldDiv_z       = mpWorldDiv.z;
@@ -86,7 +85,7 @@ export void GetConstants(uniform KernelParams &params)
 }
 
 
-vec3 ComputeGridBox(uniform int32 xi, uniform int32 yi, uniform int32 zi, uniform vec3 &o_bl, uniform vec3 &o_ur)
+vec3 ComputeGridBox(uniform int xi, uniform int yi, uniform int zi, uniform vec3 &o_bl, uniform vec3 &o_ur)
 {
 	uniform vec3 cell_size = mpWorldSize*2.0f / mpWorldDiv;
 	o_bl.x = mpWorldCenter.x - mpWorldSize.x + cell_size.x*xi;
@@ -97,22 +96,22 @@ vec3 ComputeGridBox(uniform int32 xi, uniform int32 yi, uniform int32 zi, unifor
 	o_ur.z = mpWorldCenter.z - mpWorldSize.z + cell_size.z*(zi+1);
 }
 
-#define repulse(p, f, n, d, shape)\
+#define repulse(p, f, n, d, props)\
 	{\
-		p.hit = shape.id;\
-		vec3 accel = get_accel(f);\
+		p.hit = props.owner_id;\
+		vec3 accel = gather3(f,ax,ay,az);\
 		accel += n * (-d * mpWallStiffness);\
-		set_accel(f, accel);\
+		store3(f,ax,ay,az, accel);\
 	}
 
 
-bool IsGridOverrapedAABB(uniform int32 xi, uniform int32 yi, uniform int32 zi, uniform const BoundingBox &bb)
+bool IsGridOverrapedAABB(uniform int xi, uniform int yi, uniform int zi, uniform const BoundingBox &bb)
 {
 	uniform vec3 grid_bl;
 	uniform vec3 grid_ur;
 	ComputeGridBox(xi,yi,zi, grid_bl, grid_ur);
-	uniform vec3 bb_bl = get_bl(bb);
-	uniform vec3 bb_ur = get_ur(bb);
+	uniform vec3 bb_bl = to_vec3(bb.bl);
+	uniform vec3 bb_ur = to_vec3(bb.ur);
 	if( grid_ur.x < bb_bl.x || grid_bl.x > bb_ur.x ||
 		grid_ur.y < bb_bl.y || grid_bl.y > bb_ur.y ||
 		grid_ur.z < bb_bl.z || grid_bl.z > bb_ur.z )
@@ -126,14 +125,14 @@ export void ProcessColliders(
 	soa<8> Particle all_particles[],
 	soa<8> ParticleIMData imds[],
 	Cell uniform grid[],
-	uniform int32 xi, uniform int32 yi, uniform int32 zi,
-	uniform PlaneCollider planes[], uniform int32 num_planes,
-	uniform SphereCollider spheres[], uniform int32 num_spheres,
-	uniform CapsuleCollider capsules[], uniform int32 num_capsules,
-	uniform BoxCollider boxes[], uniform int32 num_boxes )
+	uniform int xi, uniform int yi, uniform int zi,
+	uniform PlaneCollider planes[], uniform int num_planes,
+	uniform SphereCollider spheres[], uniform int num_spheres,
+	uniform CapsuleCollider capsules[], uniform int num_capsules,
+	uniform BoxCollider boxes[], uniform int num_boxes )
 {
 	uniform const Cell &gd = grid[mpWorldDiv.x*mpWorldDiv.z*yi + mpWorldDiv.x*zi + xi];
-	uniform const int32 particle_num = gd.end - gd.begin;
+	uniform const int particle_num = gd.end - gd.begin;
 	soa<8> Particle * uniform particles = &all_particles[gd.soai*8];
 	soa<8> ParticleIMData * uniform imd = &imds[gd.soai*8];
 
@@ -143,49 +142,54 @@ export void ProcessColliders(
 	// 全部 inline で書きます。
 
 	// Plane
-	for(uniform int32 s=0; s<num_planes; ++s) {
-		uniform const PlaneCollider &shape = planes[s];
-		uniform const vec3 plane_normal = get_normal(shape);
+	for(uniform int s=0; s<num_planes; ++s) {
+		uniform const PlaneCollider &col = planes[s];
+		uniform const Plane &shape = col.shape;
+		if(!IsGridOverrapedAABB(xi,yi,zi, col.bounds)) { continue; }
+
+		uniform const vec3 plane_normal = to_vec3(shape.normal);
 		uniform const float plane_distance = shape.distance;
 		foreach(i=0 ... particle_num) {
-			vec3 particles_pos = get_pos(particles[i]);
+			vec3 particles_pos = to_vec3(particles[i]);
 			float distance = dot3(particles_pos, plane_normal) + plane_distance;
 			if(distance < 0.0f) {
-				repulse(particles[i], imd[i], plane_normal, distance, shape);
+				repulse(particles[i], imd[i], plane_normal, distance, col.props);
 			}
 		}
 	}
 
 	// Sphere
-	for(uniform int32 s=0; s<num_spheres; ++s) {
-		uniform const SphereCollider &shape = spheres[s];
-		if(!IsGridOverrapedAABB(xi,yi,zi, shape.bb)) { continue; }
+	for(uniform int s=0; s<num_spheres; ++s) {
+		uniform const SphereCollider &col = spheres[s];
+		uniform const Sphere &shape = col.shape;
+		if(!IsGridOverrapedAABB(xi,yi,zi, col.bounds)) { continue; }
 
-		uniform const vec3 sphere_pos = get_pos(shape);
+		uniform const vec3 sphere_pos = to_vec3(shape.center);
 		uniform const float sphere_radius = shape.radius;
 		foreach(i=0 ... particle_num) {
-			vec3 particles_pos = get_pos(particles[i]);
+			vec3 particles_pos = to_vec3(particles[i]);
 			vec3 diff = particles_pos-sphere_pos;
 			float len = length3(diff);
 			float distance = len - sphere_radius;
 			if(distance <= 0.0f) {
 				vec3 dir = diff / len;
-				repulse(particles[i], imd[i], dir, distance, shape);
+				repulse(particles[i], imd[i], dir, distance, col.props);
 			}
 		}
 	}
 	
 	// Capsules
-	for(uniform int32 s=0; s<num_capsules; ++s) {
-		uniform const CapsuleCollider &shape = capsules[s];
-		if(!IsGridOverrapedAABB(xi,yi,zi, shape.bb)) { continue; }
-		
-		uniform const vec3 pos1 = {shape.x1, shape.y1, shape.z1};
-		uniform const vec3 pos2 = {shape.x2, shape.y2, shape.z2};
+	for(uniform int s=0; s<num_capsules; ++s) {
+		uniform const CapsuleCollider &col = capsules[s];
+		uniform const Capsule &shape = col.shape;
+		if(!IsGridOverrapedAABB(xi,yi,zi, col.bounds)) { continue; }
+
+		uniform const vec3 pos1 = to_vec3(shape.pos1);
+		uniform const vec3 pos2 = to_vec3(shape.pos2);
 		uniform const float radius = shape.radius;
 		uniform float rcp_lensq = shape.rcp_lensq;
 		foreach(i=0 ... particle_num) {
-			vec3 particles_pos = get_pos(particles[i]);
+			vec3 particles_pos = to_vec3(particles[i]);
 			const float t = dot3(particles_pos-pos1, pos2-pos1) * rcp_lensq;
 			vec3 diff;
 			if(t<=0.0f) {
@@ -202,26 +206,27 @@ export void ProcessColliders(
 			float distance = len - radius;
 			if(distance <= 0.0f) {
 				vec3 dir = diff / len;
-				repulse(particles[i], imd[i], dir, distance, shape);
+				repulse(particles[i], imd[i], dir, distance, col.props);
 			}
 		}
 	}
 
 	// Box
-	for(uniform int32 s=0; s<num_boxes; ++s) {
-		uniform const BoxCollider &shape = boxes[s];
-		if(!IsGridOverrapedAABB(xi,yi,zi, shape.bb)) { continue; }
+	for(uniform int s=0; s<num_boxes; ++s) {
+		uniform const BoxCollider &col = boxes[s];
+		uniform const Box &shape = col.shape;
+		if(!IsGridOverrapedAABB(xi,yi,zi, col.bounds)) { continue; }
 
-		uniform vec3 box_pos = get_pos(shape);
+		uniform vec3 box_pos = to_vec3(shape.center);
 		foreach(i=0 ... particle_num) {
-			vec3 particles_pos = get_pos(particles[i]);
+			vec3 particles_pos = to_vec3(particles[i]);
 
-			int32 inside = 0;
+			int inside = 0;
 			float closest_distance = -9999.0f;
 			vec3 closest_normal;
 			vec3 ppos = particles_pos - box_pos;
-			for(uniform int32 p=0; p<6; ++p) {
-				uniform const vec3 plane_normal = get_normal(shape.planes[p]);
+			for(uniform int p=0; p<6; ++p) {
+				uniform const vec3 plane_normal = to_vec3(shape.planes[p].normal);
 				uniform const float plane_distance = shape.planes[p].distance;
 				float distance = dot3(ppos, plane_normal) + plane_distance;
 				if(distance < 0.0f) {
@@ -233,7 +238,7 @@ export void ProcessColliders(
 				}
 			}
 			if(inside==6) {
-				repulse(particles[i], imd[i], closest_normal, closest_distance, shape);
+				repulse(particles[i], imd[i], closest_normal, closest_distance, col.props);
 			}
 		}
 	}
@@ -245,78 +250,96 @@ export void ProcessExternalForce(
 	soa<8> Particle all_particles[],
 	soa<8> ParticleIMData imds[],
 	Cell uniform grid[],
-	uniform int32 xi, uniform int32 yi, uniform int32 zi,
-	uniform Force forces[], uniform int32 num_forces )
+	uniform int xi, uniform int yi, uniform int zi,
+	uniform Force forces[], uniform int num_forces )
 {
 	uniform const Cell &gd = grid[mpWorldDiv.x*mpWorldDiv.z*yi + mpWorldDiv.x*zi + xi];
-	uniform const int32 particle_num = gd.end - gd.begin;
+	uniform const int particle_num = gd.end - gd.begin;
 	soa<8> Particle * uniform particles = &all_particles[gd.soai*8];
 	soa<8> ParticleIMData * uniform imd = &imds[gd.soai*8];
 
 	uniform float particle_radius = mpParticleSize;
 
-
-	for(uniform int32 fi=0; fi<num_forces; ++fi) {
+	for(uniform int fi=0; fi<num_forces; ++fi) {
 		uniform const Force &force = forces[fi];
+		uniform const ForceProperties &props = force.props;
 
-		// todo: 球状 radial force はよく使われると予想されるので特殊化による最適化
-		if(force.shape_type==FS_AffectAll) {
+		if(props.shape_type==FS_AffectAll) {
 			foreach(i=0 ... particle_num) {
-				imd[i].affection = 1.0f;
+				imd[i].inside_force = 1.0f;
 			}
 		}
-		else if(force.shape_type==FS_Sphere) {
-			if(!IsGridOverrapedAABB(xi,yi,zi, force.bb)) { continue; }
+		else if(props.shape_type==FS_Sphere) {
+			if(!IsGridOverrapedAABB(xi,yi,zi, force.bounds)) { continue; }
 
-			uniform const Sphere &sphere = force.shape_sphere;
+			uniform const Sphere &sphere = force.sphere;
 			float radius_sq = sphere.radius * sphere.radius;
-			vec3 force_center = get_pos(sphere);
+			vec3 center = to_vec3(sphere.center);
 			foreach(i=0 ... particle_num) {
-				vec3 particles_pos = get_pos(particles[i]);
-				vec3 diff = particles_pos - force_center;
-				float dist_sq = length_sq3(diff);
-				imd[i].affection = dist_sq<=radius_sq ? 1.0f : 0.0f;
+				vec3 particles_pos = to_vec3(particles[i]);
+				vec3 diff = particles_pos - center;
+				float distance_sq = length_sq3(diff);
+				imd[i].inside_force = distance_sq<=radius_sq ? 1.0f : 0.0f;
 			}
 		}
-		else if(force.shape_type==FS_Box) {
-			if(!IsGridOverrapedAABB(xi,yi,zi, force.bb)) { continue; }
+		else if(props.shape_type==FS_Capsule) {
+			if(!IsGridOverrapedAABB(xi,yi,zi, force.bounds)) { continue; }
 
-			uniform const Box &box = force.shape_box;
-			uniform vec3 box_pos = get_pos(box);
+			// todo
+		}
+		else if(props.shape_type==FS_Box) {
+			if(!IsGridOverrapedAABB(xi,yi,zi, force.bounds)) { continue; }
+
+			uniform const Box &box = force.box;
+			uniform vec3 box_pos = to_vec3(box.center);
 			foreach(i=0 ... particle_num) {
-				vec3 particles_pos = get_pos(particles[i]);
-				int32 inside = 0;
+				vec3 particles_pos = to_vec3(particles[i]);
+				int inside = 0;
 				vec3 ppos = particles_pos - box_pos;
-				for(uniform int32 p=0; p<6; ++p) {
-					uniform const vec3 plane_normal = get_normal(box.planes[p]);
+				for(uniform int p=0; p<6; ++p) {
+					uniform const vec3 plane_normal = to_vec3(box.planes[p].normal);
 					uniform const float plane_distance = box.planes[p].distance;
 					float distance = dot3(ppos, plane_normal) + plane_distance;
 					if(distance < 0.0f) {
 						inside++;
 					}
 				}
-				imd[i].affection = inside==6 ? 1.0f : 0.0f;
+				imd[i].inside_force = inside==6 ? 1.0f : 0.0f;
 			}
 		}
 
-		if(force.dir_type==FD_Directional) {
+		if(props.dir_type==FD_Directional) {
 			foreach(i=0 ... particle_num) {
-				vec3 dir = get_pos(force.params);
-				vec3 accel = get_accel(imd[i]);
-				accel += dir * imd[i].affection * force.params.strength;
-				set_accel(imd[i], accel);
+				vec3 dir = to_vec3(props.directional_dir);
+				vec3 accel = gather3(imd[i], ax,ay,az);
+				float affection = 1.0f;
+				accel += dir * (lerp(props.strength_far, props.strength_near, pow(affection, props.attenuation_exp)) * imd[i].inside_force);
+				store3(imd[i],ax,ay,az, accel);
 			}
 		}
-		else if(force.dir_type==FD_Radial) {
-			vec3 force_center = get_pos(force.params);
+		else if(props.dir_type==FD_Radial) {
+			vec3 center = to_vec3(props.radial_center);
 			foreach(i=0 ... particle_num) {
-				vec3 particles_pos = get_pos(particles[i]);
-				vec3 diff = particles_pos - force_center;
+				vec3 particles_pos = to_vec3(particles[i]);
+				vec3 diff = particles_pos - center;
 				vec3 dir = normalize3(diff);
-				vec3 accel = get_accel(imd[i]);
-				accel += dir * imd[i].affection * force.params.strength;
-				set_accel(imd[i], accel);
+				vec3 accel = gather3(imd[i], ax,ay,az);
+				float affection = 1.0f;
+				accel += dir * (lerp(props.strength_far, props.strength_near, pow(affection, props.attenuation_exp)) * imd[i].inside_force);
+				store3(imd[i],ax,ay,az, accel);
 			}
+		}
+		else if(props.dir_type==FD_RadialCapsule) {
+			// todo
+		}
+		else if(props.dir_type==FD_Vortex) {
+			// todo
+		}
+		else if(props.dir_type==FD_Spline) {
+			// todo
+		}
+		else if(props.dir_type==FD_VectorField) {
+			// todo
 		}
 	}
 }
@@ -344,30 +367,30 @@ export void sphUpdateDensity(
 	soa<8> Particle all_particles[],
 	soa<8> ParticleIMData imds[],
 	Cell uniform grid[],
-	uniform int32 xi, uniform int32 yi, uniform int32 zi )
+	uniform int xi, uniform int yi, uniform int zi )
 {
 	uniform const Cell &gd = grid[mpWorldDiv.x*mpWorldDiv.z*yi + mpWorldDiv.x*zi + xi];
-	uniform const int32 particle_num = gd.end - gd.begin;
+	uniform const int particle_num = gd.end - gd.begin;
 	soa<8> Particle * uniform particles = &all_particles[gd.soai*8];
 
-	uniform const int32 nx_beg = max(xi-1, 0);
-	uniform const int32 nx_end = min(xi+1, mpWorldDiv.x-1);
-	uniform const int32 ny_beg = max(yi-1, 0);
-	uniform const int32 ny_end = min(yi+1, mpWorldDiv.y-1);
-	uniform const int32 nz_beg = max(zi-1, 0);
-	uniform const int32 nz_end = min(zi+1, mpWorldDiv.z-1);
+	uniform const int nx_beg = max(xi-1, 0);
+	uniform const int nx_end = min(xi+1, mpWorldDiv.x-1);
+	uniform const int ny_beg = max(yi-1, 0);
+	uniform const int ny_end = min(yi+1, mpWorldDiv.y-1);
+	uniform const int nz_beg = max(zi-1, 0);
+	uniform const int nz_end = min(zi+1, mpWorldDiv.z-1);
 
-	for(uniform int32 i=0; i<particle_num; ++i) {
-		uniform vec3 pos1 = get_pos(particles[i]);
+	for(uniform int i=0; i<particle_num; ++i) {
+		uniform vec3 pos1 = to_vec3(particles[i]);
 		float density = 0.0f;
-		for(uniform int32 nyi=ny_beg; nyi<=ny_end; ++nyi) {
-			for(uniform int32 nzi=nz_beg; nzi<=nz_end; ++nzi) {
-				for(uniform int32 nxi=nx_beg; nxi<=nx_end; ++nxi) {
+		for(uniform int nyi=ny_beg; nyi<=ny_end; ++nyi) {
+			for(uniform int nzi=nz_beg; nzi<=nz_end; ++nzi) {
+				for(uniform int nxi=nx_beg; nxi<=nx_end; ++nxi) {
 					uniform const Cell &ngd = grid[mpWorldDiv.x*mpWorldDiv.z*nyi + mpWorldDiv.x*nzi + nxi];
-					uniform const int32 neighbor_num = ngd.end - ngd.begin;
+					uniform const int neighbor_num = ngd.end - ngd.begin;
 					soa<8> Particle * uniform neighbors = &all_particles[ngd.soai*8];
 					foreach(t=0 ... neighbor_num) {
-						vec3 pos2 = get_pos(neighbors[t]);
+						vec3 pos2 = to_vec3(neighbors[t]);
 						density += sphComputeDensity(pos1, pos2);
 					}
 				}
@@ -382,21 +405,21 @@ export void sphUpdateDensityEst1(
 	soa<8> Particle all_particles[],
 	soa<8> ParticleIMData imds[],
 	Cell uniform grid[],
-	uniform int32 xi, uniform int32 yi, uniform int32 zi )
+	uniform int xi, uniform int yi, uniform int zi )
 {
 	uniform Cell &gd = grid[mpWorldDiv.x*mpWorldDiv.z*yi + mpWorldDiv.x*zi + xi];
-	uniform const int32 particle_num = gd.end - gd.begin;
+	uniform const int particle_num = gd.end - gd.begin;
 	soa<8> Particle * uniform particles = &all_particles[gd.soai*8];
 
-	for(uniform int32 i=0; i<particle_num; ++i) {
-		uniform vec3 pos1 = get_pos(particles[i]);
+	for(uniform int i=0; i<particle_num; ++i) {
+		uniform vec3 pos1 = to_vec3(particles[i]);
 		float density = 0.0f;
 
 		uniform const Cell &ngd = gd;
-		uniform const int32 neighbor_num = ngd.end - ngd.begin;
+		uniform const int neighbor_num = ngd.end - ngd.begin;
 		soa<8> Particle * uniform neighbors = &all_particles[ngd.soai*8];
 		foreach(t=0 ... neighbor_num) {
-			vec3 pos2 = get_pos(neighbors[t]);
+			vec3 pos2 = to_vec3(neighbors[t]);
 			density += sphComputeDensity(pos1, pos2);
 		}
 		particles[i].density = reduce_add(density);
@@ -415,22 +438,22 @@ export void sphUpdateDensityEst2(
 	soa<8> Particle all_particles[],
 	soa<8> ParticleIMData imds[],
 	Cell uniform grid[],
-	uniform int32 xi, uniform int32 yi, uniform int32 zi )
+	uniform int xi, uniform int yi, uniform int zi )
 {
 	uniform const Cell &gd = grid[mpWorldDiv.x*mpWorldDiv.z*yi + mpWorldDiv.x*zi + xi];
-	uniform const int32 particle_num = gd.end - gd.begin;
+	uniform const int particle_num = gd.end - gd.begin;
 	soa<8> Particle * uniform particles = &all_particles[gd.soai*8];
 
-	uniform const int32 nx_beg = max(xi-1, 0);
-	uniform const int32 nx_end = min(xi+1, mpWorldDiv.x-1);
-	uniform const int32 ny_beg = max(yi-1, 0);
-	uniform const int32 ny_end = min(yi+1, mpWorldDiv.y-1);
-	uniform const int32 nz_beg = max(zi-1, 0);
-	uniform const int32 nz_end = min(zi+1, mpWorldDiv.z-1);
+	uniform const int nx_beg = max(xi-1, 0);
+	uniform const int nx_end = min(xi+1, mpWorldDiv.x-1);
+	uniform const int ny_beg = max(yi-1, 0);
+	uniform const int ny_end = min(yi+1, mpWorldDiv.y-1);
+	uniform const int nz_beg = max(zi-1, 0);
+	uniform const int nz_end = min(zi+1, mpWorldDiv.z-1);
 
-	for(uniform int32 nyi=ny_beg; nyi<=ny_end; ++nyi) {
-		for(uniform int32 nzi=nz_beg; nzi<=nz_end; ++nzi) {
-			for(uniform int32 nxi=nx_beg; nxi<=nx_end; ++nxi) {
+	for(uniform int nyi=ny_beg; nyi<=ny_end; ++nyi) {
+		for(uniform int nzi=nz_beg; nzi<=nz_end; ++nzi) {
+			for(uniform int nxi=nx_beg; nxi<=nx_end; ++nxi) {
 				uniform const Cell &ngd = grid[mpWorldDiv.x*mpWorldDiv.z*nyi + mpWorldDiv.x*nzi + nxi];
 				foreach(i=0 ... particle_num) {
 					particles[i].density += ngd.density*0.05f;
@@ -513,36 +536,36 @@ export void sphUpdateForce(
 	soa<8> Particle all_particles[],
 	soa<8> ParticleIMData imds[],
 	Cell uniform grid[],
-	uniform int32 xi, uniform int32 yi, uniform int32 zi )
+	uniform int xi, uniform int yi, uniform int zi )
 {
 	uniform const Cell &gd = grid[mpWorldDiv.x*mpWorldDiv.z*yi + mpWorldDiv.x*zi + xi];
-	uniform const int32 particle_num = gd.end - gd.begin;
+	uniform const int particle_num = gd.end - gd.begin;
 	soa<8> Particle * uniform particles = &all_particles[gd.soai*8];
 	soa<8> ParticleIMData * uniform imd = &imds[gd.soai*8];
 
-	uniform const int32 nx_beg = max(xi-1, 0);
-	uniform const int32 nx_end = min(xi+1, mpWorldDiv.x-1);
-	uniform const int32 ny_beg = max(yi-1, 0);
-	uniform const int32 ny_end = min(yi+1, mpWorldDiv.y-1);
-	uniform const int32 nz_beg = max(zi-1, 0);
-	uniform const int32 nz_end = min(zi+1, mpWorldDiv.z-1);
+	uniform const int nx_beg = max(xi-1, 0);
+	uniform const int nx_end = min(xi+1, mpWorldDiv.x-1);
+	uniform const int ny_beg = max(yi-1, 0);
+	uniform const int ny_end = min(yi+1, mpWorldDiv.y-1);
+	uniform const int nz_beg = max(zi-1, 0);
+	uniform const int nz_end = min(zi+1, mpWorldDiv.z-1);
 
-	for(uniform int32 i=0; i<particle_num; ++i) {
-		uniform vec3 pos1 = get_pos(particles[i]);
-		uniform vec3 vel1 = get_vel(particles[i]);
+	for(uniform int i=0; i<particle_num; ++i) {
+		uniform vec3 pos1 = to_vec3(particles[i]);
+		uniform vec3 vel1 = gather3(particles[i],vx,vy,vz);
 		uniform float density1 = particles[i].density;
 		uniform float pressure1 = sphCalculatePressure(density1);
 
 		vec3 accel = {0.0f, 0.0f, 0.0f};
-		for(uniform int32 nyi=ny_beg; nyi<=ny_end; ++nyi) {
-			for(uniform int32 nzi=nz_beg; nzi<=nz_end; ++nzi) {
-				for(uniform int32 nxi=nx_beg; nxi<=nx_end; ++nxi) {
+		for(uniform int nyi=ny_beg; nyi<=ny_end; ++nyi) {
+			for(uniform int nzi=nz_beg; nzi<=nz_end; ++nzi) {
+				for(uniform int nxi=nx_beg; nxi<=nx_end; ++nxi) {
 					uniform const Cell &ngd = grid[mpWorldDiv.x*mpWorldDiv.z*nyi + mpWorldDiv.x*nzi + nxi];
-					uniform const int32 neighbor_num = ngd.end - ngd.begin;
+					uniform const int neighbor_num = ngd.end - ngd.begin;
 					soa<8> Particle * uniform neighbors = &all_particles[ngd.soai*8];
 					foreach(t=0 ... neighbor_num) {
-						vec3 pos2 = get_pos(neighbors[t]);
-						vec3 vel2 = get_vel(neighbors[t]);
+						vec3 pos2 = to_vec3(neighbors[t]);
+						vec3 vel2 = gather3(neighbors[t],vx,vy,vz);
 						float density2 = neighbors[t].density;
 						accel += sphComputeAccel(pos1, pos2, vel1, vel2, pressure1, density2);
 					}
@@ -561,17 +584,17 @@ export void sphIntegrate(
 	soa<8> Particle all_particles[],
 	soa<8> ParticleIMData imds[],
 	Cell uniform grid[],
-	uniform int32 xi, uniform int32 yi, uniform int32 zi )
+	uniform int xi, uniform int yi, uniform int zi )
 {
 	uniform const Cell &gd = grid[mpWorldDiv.x*mpWorldDiv.z*yi + mpWorldDiv.x*zi + xi];
-	uniform const int32 particle_num = gd.end - gd.begin;
+	uniform const int particle_num = gd.end - gd.begin;
 	soa<8> Particle * uniform particles = &all_particles[gd.soai*8];
 	soa<8> ParticleIMData * uniform imd = &imds[gd.soai*8];
 
 	foreach(i=0 ... particle_num) {
-		vec3 vel = get_vel(particles[i]);
-		vec3 accel = get_accel(imd[i]);
-		vec3 pos = get_pos(particles[i]);
+		vec3 vel = gather3(particles[i],vx,vy,vz);
+		vec3 accel = gather3(imd[i],ax,ay,az);
+		vec3 pos = to_vec3(particles[i]);
 
 		vel += accel * mpTimestep;
 		vel *= mpDecelerate;
@@ -580,8 +603,8 @@ export void sphIntegrate(
 		pos += vel * mpTimestep;
 		pos *= mpCoordScale;
 
-		set_pos(particles[i], pos);
-		set_vel(particles[i], vel);
+		store3(particles[i],x,y,z, pos);
+		store3(particles[i],vx,vy,vz, vel);
 		particles[i].speed = length3(vel);
 	}
 }
@@ -593,8 +616,8 @@ static inline void impComputeParticleInteraction(
 	vec3 pos2,
 	vec3 &accel )
 {
-	vec3 diff = pos2 - pos1;    
-	float d = length3(diff); // float d = length3est(diff); // 何故か est の方が遅くなる
+	vec3 diff = pos2 - pos1;
+	float d = length3(diff);
 	if(d > 0.0f) { // d==0: 衝突元＆衝突相手が同一
 		vec3 dir = diff * mpRcpParticleSize2; // vec3 dir = diff / d;
 		accel += dir * (min(0.0f, d-(mpParticleSize*2.0f)) * mpPressureStiffness);
@@ -605,10 +628,10 @@ export void impZeroAccel(
 	soa<8> Particle all_particles[],
 	soa<8> ParticleIMData imds[],
 	Cell uniform grid[],
-	uniform int32 xi, uniform int32 yi, uniform int32 zi )
+	uniform int xi, uniform int yi, uniform int zi )
 {
 	uniform const Cell &gd = grid[mpWorldDiv.x*mpWorldDiv.z*yi + mpWorldDiv.x*zi + xi];
-	uniform const int32 particle_num = gd.end - gd.begin;
+	uniform const int particle_num = gd.end - gd.begin;
 	soa<8> Particle * uniform particles = &all_particles[gd.soai*8];
 	soa<8> ParticleIMData * uniform imd = &imds[gd.soai*8];
 	foreach(i=0 ... particle_num) {
@@ -622,31 +645,31 @@ export void impUpdatePressure(
 	soa<8> Particle all_particles[],
 	soa<8> ParticleIMData imds[],
 	Cell uniform grid[],
-	uniform int32 xi, uniform int32 yi, uniform int32 zi )
+	uniform int xi, uniform int yi, uniform int zi )
 {
 	uniform const Cell &gd = grid[mpWorldDiv.x*mpWorldDiv.z*yi + mpWorldDiv.x*zi + xi];
-	uniform const int32 particle_num = gd.end - gd.begin;
+	uniform const int particle_num = gd.end - gd.begin;
 	soa<8> Particle * uniform particles = &all_particles[gd.soai*8];
 	soa<8> ParticleIMData * uniform imd = &imds[gd.soai*8];
 
-	uniform const int32 nx_beg = max(xi-1, 0);
-	uniform const int32 nx_end = min(xi+1, mpWorldDiv.x-1);
-	uniform const int32 ny_beg = max(yi-1, 0);
-	uniform const int32 ny_end = min(yi+1, mpWorldDiv.y-1);
-	uniform const int32 nz_beg = max(zi-1, 0);
-	uniform const int32 nz_end = min(zi+1, mpWorldDiv.z-1);
+	uniform const int nx_beg = max(xi-1, 0);
+	uniform const int nx_end = min(xi+1, mpWorldDiv.x-1);
+	uniform const int ny_beg = max(yi-1, 0);
+	uniform const int ny_end = min(yi+1, mpWorldDiv.y-1);
+	uniform const int nz_beg = max(zi-1, 0);
+	uniform const int nz_end = min(zi+1, mpWorldDiv.z-1);
 
-	for(uniform int32 i=0; i<particle_num; ++i) {
-		uniform vec3 pos1 = get_pos(particles[i]);
+	for(uniform int i=0; i<particle_num; ++i) {
+		uniform vec3 pos1 = to_vec3(particles[i]);
 		vec3 accel = {0.0f, 0.0f, 0.0f};
-		for(uniform int32 nyi=ny_beg; nyi<=ny_end; ++nyi) {
-			for(uniform int32 nzi=nz_beg; nzi<=nz_end; ++nzi) {
-				for(uniform int32 nxi=nx_beg; nxi<=nx_end; ++nxi) {
+		for(uniform int nyi=ny_beg; nyi<=ny_end; ++nyi) {
+			for(uniform int nzi=nz_beg; nzi<=nz_end; ++nzi) {
+				for(uniform int nxi=nx_beg; nxi<=nx_end; ++nxi) {
 					uniform const Cell &ngd = grid[mpWorldDiv.x*mpWorldDiv.z*nyi + mpWorldDiv.x*nzi + nxi];
 					soa<8> Particle * uniform neighbors = &all_particles[ngd.soai*8];
-					uniform const int32 neighbor_num = ngd.end - ngd.begin;
+					uniform const int neighbor_num = ngd.end - ngd.begin;
 					foreach(t=0 ... neighbor_num) {
-						vec3 pos2 = get_pos(neighbors[t]);
+						vec3 pos2 = to_vec3(neighbors[t]);
 						impComputeParticleInteraction(pos1, pos2, accel);
 					}
 				}
@@ -663,17 +686,17 @@ export void impIntegrate(
 	soa<8> Particle all_particles[],
 	soa<8> ParticleIMData imds[],
 	Cell uniform grid[],
-	uniform int32 xi, uniform int32 yi, uniform int32 zi )
+	uniform int xi, uniform int yi, uniform int zi )
 {
 	uniform const Cell &gd = grid[mpWorldDiv.x*mpWorldDiv.z*yi + mpWorldDiv.x*zi + xi];
-	uniform const int32 particle_num = gd.end - gd.begin;
+	uniform const int particle_num = gd.end - gd.begin;
 	soa<8> Particle * uniform particles = &all_particles[gd.soai*8];
 	soa<8> ParticleIMData * uniform imd = &imds[gd.soai*8];
 
 	foreach(i=0 ... particle_num) {
-		vec3 pos = get_pos(particles[i]);
-		vec3 accel = get_accel(imd[i]);
-		vec3 vel = get_vel(particles[i]);
+		vec3 pos = to_vec3(particles[i]);
+		vec3 accel = gather3(imd[i],ax,ay,az);
+		vec3 vel = gather3(particles[i],vx,vy,vz);
 
 		vel += accel * mpTimestep;
 		// 自然減速
@@ -683,8 +706,8 @@ export void impIntegrate(
 		pos += vel * mpTimestep;
 		pos *= mpCoordScale;
 
-		set_pos(particles[i], pos);
-		set_vel(particles[i], vel);
+		store3(particles[i],x,y,z, pos);
+		store3(particles[i],vx,vy,vz, vel);
 		particles[i].speed = length3(vel);
 	}
 }

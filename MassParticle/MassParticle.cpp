@@ -177,7 +177,7 @@ extern "C" EXPORT_API void mpScatterParticlesBoxTransform(mat4 transform, int32_
 
 
 
-inline void mpBuildBoxCollider(mpBoxCollider &o, int32_t owner, mat4 transform, vec3 size)
+inline void mpBuildBoxCollider(mpBoxCollider &o, mat4 transform, vec3 size)
 {
 	float psize = g_mpWorld.getKernelParams().ParticleSize;
 	size.x = size.x * 0.5f;
@@ -216,102 +216,116 @@ inline void mpBuildBoxCollider(mpBoxCollider &o, int32_t owner, mat4 transform, 
 		-(glm::dot(vertices[4], normals[5]) + psize),
 	};
 
-	o.id = owner;
-	(vec3&)o.x = (vec3&)transform[3][0];
+	(vec3&)o.shape.center = (vec3&)transform[3][0];
 	for (int i = 0; i < 6; ++i) {
-		(vec3&)o.planes[i].nx = (vec3&)normals[i];
-		o.planes[i].distance = distances[i];
+		(vec3&)o.shape.planes[i].normal = (vec3&)normals[i];
+		o.shape.planes[i].distance = distances[i];
 	}
 	for (int i = 0; i < _countof(vertices); ++i) {
 		vec3 p = (vec3&)vertices[i];
 		if (i == 0) {
-			(vec3&)o.bb.bl_x = p;
-			(vec3&)o.bb.ur_x = p;
+			(vec3&)o.bounds.bl = p;
+			(vec3&)o.bounds.ur = p;
 		}
-		(vec3&)o.bb.bl_x = glm::min((vec3&)o.bb.bl_x, p-psize);
-		(vec3&)o.bb.ur_x = glm::max((vec3&)o.bb.ur_x, p+psize);
+		(vec3&)o.bounds.bl = glm::min((vec3&)o.bounds.bl, p - psize);
+		(vec3&)o.bounds.ur = glm::max((vec3&)o.bounds.ur, p + psize);
 	}
 }
 
-inline void mpBuildSphereCollider(mpSphereCollider &o, int32_t owner, vec3 center, float radius)
+inline void mpBuildSphereCollider(mpSphereCollider &o, vec3 center, float radius)
 {
 	float psize = g_mpWorld.getKernelParams().ParticleSize;
 	float er = radius + psize;
-	o.id = owner;
-	(vec3&)o.x = center;
-	o.radius = er;
-	(vec3&)o.bb.bl_x = center - er;
-	(vec3&)o.bb.ur_x = center + er;
+	(vec3&)o.shape.center = center;
+	o.shape.radius = er;
+	(vec3&)o.bounds.bl = center - er;
+	(vec3&)o.bounds.ur = center + er;
 }
 
-inline void mpBuildCapsuleCollider(mpCapsuleCollider &o, int32_t owner, vec3 pos1, vec3 pos2, float radius)
+inline void mpBuildCapsuleCollider(mpCapsuleCollider &o, vec3 pos1, vec3 pos2, float radius)
 {
 	float psize = g_mpWorld.getKernelParams().ParticleSize;
 	float er = radius + psize;
-	o.id = owner;
-	(vec3&)o.x1 = pos1;
-	(vec3&)o.x2 = pos2;
-	o.radius = er;
-	float len_sq = glm::length_sq((vec3&)o.x2 - (vec3&)o.x1);
-	o.rcp_lensq = 1.0f / len_sq;
 
-	(vec3&)o.bb.bl_x = glm::min((vec3&)o.x1-er, (vec3&)(o.x2)-er);
-	(vec3&)o.bb.ur_x = glm::max((vec3&)o.x1+er, (vec3&)(o.x2)+er);
+	ispc::Capsule &shape = o.shape;
+	(vec3&)shape.pos1 = pos1;
+	(vec3&)shape.pos2 = pos2;
+	shape.radius = er;
+	float len_sq = glm::length_sq((vec3&)shape.pos2 - (vec3&)shape.pos1);
+	shape.rcp_lensq = 1.0f / len_sq;
+
+	(vec3&)o.bounds.bl = glm::min((vec3&)shape.pos1 - er, (vec3&)(shape.pos2) - er);
+	(vec3&)o.bounds.ur = glm::max((vec3&)shape.pos1 + er, (vec3&)(shape.pos2) + er);
 }
 
 
-extern "C" EXPORT_API void mpAddBoxCollider(int32_t owner, mat4 transform, vec3 size)
+extern "C" EXPORT_API void mpAddBoxCollider(mpColliderProperties *props, mat4 transform, vec3 size)
 {
 	mpBoxCollider col;
-	mpBuildBoxCollider(col, owner, transform, size);
+	col.props = *props;
+	mpBuildBoxCollider(col, transform, size);
 	g_mpWorld.addBoxColliders(&col, 1);
 }
 
-extern "C" EXPORT_API void mpAddSphereCollider(int32_t owner, vec3 center, float radius)
+extern "C" EXPORT_API void mpAddSphereCollider(mpColliderProperties *props, vec3 center, float radius)
 {
 	mpSphereCollider col;
-	mpBuildSphereCollider(col, owner, center, radius);
+	col.props = *props;
+	mpBuildSphereCollider(col, center, radius);
 	g_mpWorld.addSphereColliders(&col, 1);
 }
 
-extern "C" EXPORT_API void mpAddCapsuleCollider(int32_t owner, vec3 pos1, vec3 pos2, float radius)
+extern "C" EXPORT_API void mpAddCapsuleCollider(mpColliderProperties *props, vec3 pos1, vec3 pos2, float radius)
 {
 	mpCapsuleCollider col;
-	mpBuildCapsuleCollider(col, owner, pos1, pos2, radius);
+	col.props = *props;
+	mpBuildCapsuleCollider(col, pos1, pos2, radius);
 	g_mpWorld.addCapsuleColliders(&col, 1);
 }
 
-extern "C" EXPORT_API void mpAddForce(int force_shape, mat4 trans, int force_direction, ispc::ForceParams p)
+extern "C" EXPORT_API void mpAddForce(mpForceProperties *props, mat4 trans)
 {
 	mpForce force;
-	force.shape_type = force_shape;
-	force.dir_type = force_direction;
-	force.params = p;
+	force.props = *props;
+	force.props.rcp_range = 1.0f / (force.props.range_outer - force.props.range_inner);
 
-	switch (force.shape_type) {
-	case mpFS_Box:
-	{
-		mpBoxCollider col;
-		mpBuildBoxCollider(col, 0, trans, vec3(1.0f, 1.0f, 1.0f));
-		force.bb = col.bb;
-		(vec3&)force.shape_box.x = (vec3&)col.x;
-		for (int i = 0; i < 6; ++i) {
-			force.shape_box.planes[i] = col.planes[i];
-		}
-	}
-		break;
-
+	switch (force.props.shape_type) {
 	case mpFS_Sphere:
-	{
-		mpSphereCollider col;
-		vec3 pos = (vec3&)trans[3];
-		float radius = (trans[0][0] + trans[1][1] + trans[2][2]) * 0.3333333333f * 0.5f;
-		mpBuildSphereCollider(col, 0, pos, radius);
-		force.bb = col.bb;
-		(vec3&)force.shape_sphere.x = (vec3&)col.x;
-		force.shape_sphere.radius = col.radius;
-	}
+		{
+			mpSphereCollider col;
+			vec3 pos = (vec3&)trans[3];
+			float radius = (trans[0][0] + trans[1][1] + trans[2][2]) * 0.3333333333f * 0.5f;
+			mpBuildSphereCollider(col, pos, radius);
+			force.bounds = col.bounds;
+			force.sphere.center = col.shape.center;
+			force.sphere.radius = col.shape.radius;
+		}
 		break;
+
+	case mpFS_Capsule:
+		{
+			mpCapsuleCollider col;
+			vec3 pos = (vec3&)trans[3];
+			float radius = (trans[0][0] + trans[2][2]) * 0.5f * 0.5f;
+			mpBuildCapsuleCollider(col, pos, pos, radius);
+			force.bounds = col.bounds;
+			force.sphere.center = col.shape.center;
+			force.sphere.radius = col.shape.radius;
+		}
+		break;
+
+	case mpFS_Box:
+		{
+			mpBoxCollider col;
+			mpBuildBoxCollider(col, trans, vec3(1.0f, 1.0f, 1.0f));
+			force.bounds = col.bounds;
+			force.box.center = col.shape.center;
+			for (int i = 0; i < 6; ++i) {
+				force.box.planes[i] = col.shape.planes[i];
+			}
+		}
+		break;
+
 	}
 	g_mpWorld.addForces(&force, 1);
 }

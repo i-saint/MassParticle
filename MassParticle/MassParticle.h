@@ -12,6 +12,7 @@ enum mpForceShape
 {
 	mpFS_AffectAll,
 	mpFS_Sphere,
+	mpFS_Capsule,
 	mpFS_Box,
 };
 
@@ -46,10 +47,10 @@ extern "C" EXPORT_API void          mpScatterParticlesSphere(vec3 center, float 
 extern "C" EXPORT_API void          mpScatterParticlesBox(vec3 center, vec3 size, int32_t num, vec3 vel, float vel_diffuse);
 extern "C" EXPORT_API void          mpScatterParticlesSphereTransform(mat4 transform, int32_t num, vec3 vel, float vel_diffuse);
 extern "C" EXPORT_API void          mpScatterParticlesBoxTransform(mat4 transform, int32_t num, vec3 vel, float vel_diffuse);
-extern "C" EXPORT_API void          mpAddSphereCollider(int32_t owner, vec3 center, float radius);
-extern "C" EXPORT_API void          mpAddCapsuleCollider(int32_t owner, vec3 pos1, vec3 pos2, float radius);
-extern "C" EXPORT_API void          mpAddBoxCollider(int32_t owner, mat4 transform, vec3 size);
-extern "C" EXPORT_API void          mpAddForce(int force_shape, mat4 trans, int force_direction, ispc::ForceParams p);
+extern "C" EXPORT_API void          mpAddSphereCollider(mpColliderProperties *props, vec3 center, float radius);
+extern "C" EXPORT_API void          mpAddCapsuleCollider(mpColliderProperties *props, vec3 pos1, vec3 pos2, float radius);
+extern "C" EXPORT_API void          mpAddBoxCollider(mpColliderProperties *props, mat4 transform, vec3 size);
+extern "C" EXPORT_API void          mpAddForce(mpForceProperties *p, mat4 trans);
 
 
 

@@ -43,48 +43,68 @@ static inline float length_sq3(vec3 v)
 {
 	return dot3(v, v);
 }
-
 static inline uniform float length_sq3(uniform vec3 v)
 {
 	return dot3(v, v);
 }
 
-
 static inline float length3(vec3 v)
 {
 	return sqrt(length_sq3(v));
 }
-
 static inline uniform float length3(uniform vec3 v)
 {
 	return sqrt(length_sq3(v));
 }
 
-static inline float length3est(vec3 v)
+// somehow length_est3() is slower than length3()...
+static inline float length_est3(vec3 v)
 {
 	float t = length_sq3(v);
 	return rsqrt(t)*t;
 }
-
-static inline uniform float length3est(uniform vec3 v)
+static inline uniform float length_est3(uniform vec3 v)
 {
 	uniform float t = length_sq3(v);
 	return rsqrt(t)*t;
 }
 
+static inline float rcp_length3(vec3 v)
+{
+	return rsqrt(length_sq3(v));
+}
+static inline uniform float rcp_length3(uniform vec3 v)
+{
+	return rsqrt(length_sq3(v));
+}
 
 static inline vec3 normalize3(vec3 v)
 {
-	float len2 = dot3(v, v);
-	float invlen = rsqrt(len2);
-	return v * invlen;
+	return v * rsqrt(dot3(v, v));
 }
-
 static inline uniform vec3 normalize3(uniform vec3 v)
 {
-	uniform float len2 = dot3(v, v);
-	uniform float invlen = rsqrt(len2);
-	return v * invlen;
+	return v * rsqrt(dot3(v, v));
 }
+
+static inline float lerp(float a, float b, float t) {
+	return (1.0f-t)*a + t*b;
+}
+static inline uniform float lerp(uniform float a, uniform float b, uniform float t) {
+	return (1.0f-t)*a + t*b;
+}
+
+static inline vec3 lerp3(vec3 a, vec3 b, float t) {
+	return (1.0f-t)*a + t*b;
+}
+static inline uniform vec3 lerp3(uniform vec3 a, uniform vec3 b, uniform float t) {
+	return (1.0f-t)*a + t*b;
+}
+
+static inline float clamp_and_normalize(float v, float low, float high, float rcp_range) {
+	float r = (v - low)*rcp_range;
+	return clamp(r, 0.0f, 1.0f);
+}
+
 
 #endif // _ispc_vectormath_h_
