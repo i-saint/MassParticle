@@ -262,6 +262,7 @@ private:
 	mpHitDataConbinable		m_hitdata_work;
 
 	int						m_num_particles_gpu;
+	int						m_num_particles_gpu_prev;
 	mpParticleCont			m_particles_gpu;
 	mpTrailCont				m_trail;
 };

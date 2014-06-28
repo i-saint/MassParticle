@@ -62,6 +62,17 @@ public unsafe class MPRenderer : MonoBehaviour
 		Vector3 max = trans.position + trans.localScale;
 		bounds.SetMinMax(min, max);
 		dummyMesh.bounds = bounds;
+
+		if (renderMode != renderModePrev)
+		{
+			foreach (GameObject child in children)
+			{
+				DestroyImmediate(child.GetComponent<MeshFilter>().sharedMesh, true);
+				DestroyImmediate(child);
+			}
+			children.Clear();
+		}
+		renderModePrev = renderMode;
 		switch (renderMode)
 		{
 			case RenderMode.Plugin:
@@ -78,14 +89,6 @@ public unsafe class MPRenderer : MonoBehaviour
 
 	void OnWillRenderObject()
 	{
-		if (renderMode != renderModePrev)
-		{
-			foreach(GameObject child in children) {
-				Destroy(child);
-			}
-			children.Clear();
-		}
-		renderModePrev = renderMode;
 
 		material.SetFloat("_ParticleSize", world.particleSize * scale);
 		if (renderMode != RenderMode.Plugin)

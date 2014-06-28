@@ -20,6 +20,7 @@ enum mpForceDirection
 {
 	mpFD_Directional,
 	mpFD_Radial,
+	mpFD_RadialCapsule,
 	mpFD_Vortex,      // todo:
 	mpFD_Spline,      // 
 	mpFD_VectorField, //

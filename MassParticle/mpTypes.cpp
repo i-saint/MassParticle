@@ -164,6 +164,7 @@ mpWorld::mpWorld()
 	, m_update_task(nullptr)
 	, m_hitdata_needs_update(false)
 	, m_num_particles_gpu(0)
+	, m_num_particles_gpu_prev(0)
 {
 	m_sphere_colliders.reserve(64);
 
@@ -729,7 +730,9 @@ int mpWorld::updateDataTexture(void *tex)
 {
 	std::unique_lock<std::mutex> lock(m_mutex);
 	if (g_mpRenderer && !m_particles_gpu.empty()) {
-		g_mpRenderer->updateDataTexture(tex, &m_particles_gpu[0], sizeof(mpParticle)*m_particles_gpu.size());
+		int num_needs_copy = std::max<int>(m_num_particles_gpu, m_num_particles_gpu_prev);
+		m_num_particles_gpu_prev = m_num_particles_gpu;
+		g_mpRenderer->updateDataTexture(tex, &m_particles_gpu[0], sizeof(mpParticle)*num_needs_copy);
 	}
 	return m_num_particles_gpu;
 }

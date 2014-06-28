@@ -44,8 +44,7 @@ public:
 	virtual void updateDataTexture(void *tex, const void *data, size_t data_size);
 
 private:
-	bool initializeDevice(void *dev);
-	void finalizeDevice();
+	bool initializeResources();
 	HRESULT CompileShaderFromFile(WCHAR* szFileName, LPCSTR szEntryPoint, LPCSTR szShaderModel, ID3DBlob** ppBlobOut);
 	ID3D11Buffer* CreateVertexBuffer(const void *data, UINT size);
 
@@ -65,6 +64,7 @@ private:
 	ID3D11Buffer			*m_pCBChangesEveryFrame;
 	vec4					m_MeshColor;
 
+	bool m_resources_initialized;
 	int m_num_particles;
 	int m_max_particles;
 };
@@ -145,26 +145,38 @@ mpRendererD3D11::mpRendererD3D11(void *_dev)
 , m_pCubeIndexBuffer(nullptr)
 , m_pCBChangesEveryFrame(nullptr)
 , m_MeshColor(0.7f, 0.7f, 0.7f, 1.0f)
+, m_resources_initialized(false)
 , m_num_particles(0)
 , m_max_particles(0)
 {
-	initializeDevice(_dev);
+	m_pDevice = (ID3D11Device*)_dev;
+	m_pDevice->GetImmediateContext(&m_pImmediateContext);
 }
 
 mpRendererD3D11::~mpRendererD3D11()
 {
-	finalizeDevice();
+	mpSafeRelease(m_pCBChangesEveryFrame);
+	mpSafeRelease(m_pCubeInstanceBuffer);
+	mpSafeRelease(m_pCubeVertexBuffer);
+	mpSafeRelease(m_pCubeIndexBuffer);
+	mpSafeRelease(m_pCubeVertexLayout);
+	mpSafeRelease(m_pCubeVertexShader);
+	mpSafeRelease(m_pCubePixelShader);
+
+	mpSafeRelease(m_pDepthStencilState);
+	mpSafeRelease(m_pRasterState);
+	mpSafeRelease(m_pBlendState);
+
+	mpSafeRelease(m_pImmediateContext);
 }
 
 
-bool mpRendererD3D11::initializeDevice(void *_dev)
+bool mpRendererD3D11::initializeResources()
 {
-	ID3D11Device *dev = (ID3D11Device*)_dev;
-	HRESULT hr = S_OK;
+	if (m_resources_initialized) { return true; }
+	m_resources_initialized = true;
 
-	m_pDevice = dev;
-	m_pDevice->GetImmediateContext(&m_pImmediateContext);
-
+	HRESULT hr;
 	{
 		D3D11_RASTERIZER_DESC rsdesc;
 		memset(&rsdesc, 0, sizeof(rsdesc));
@@ -272,25 +284,10 @@ bool mpRendererD3D11::initializeDevice(void *_dev)
 	return true;
 }
 
-void mpRendererD3D11::finalizeDevice()
-{
-	mpSafeRelease(m_pCBChangesEveryFrame);
-	mpSafeRelease(m_pCubeInstanceBuffer);
-	mpSafeRelease(m_pCubeVertexBuffer);
-	mpSafeRelease(m_pCubeIndexBuffer);
-	mpSafeRelease(m_pCubeVertexLayout);
-	mpSafeRelease(m_pCubeVertexShader);
-	mpSafeRelease(m_pCubePixelShader);
-
-	mpSafeRelease(m_pDepthStencilState);
-	mpSafeRelease(m_pRasterState);
-	mpSafeRelease(m_pBlendState);
-
-	mpSafeRelease(m_pImmediateContext);
-}
-
 void mpRendererD3D11::reloadShader()
 {
+	if (!m_resources_initialized) { return; }
+
 	HRESULT hr;
 	ID3D11VertexShader *pCubeVertexShader = nullptr;
 	ID3D11InputLayout  *pCubeVertexLayout = nullptr;
@@ -370,6 +367,9 @@ on_failed:
 
 void mpRendererD3D11::render(mpWorld &world)
 {
+	initializeResources();
+	if (!m_pCubePixelShader || !m_pCubeVertexShader) { return;  }
+
 	const mpKernelParams &kparams = world.getKernelParams();
 	if (m_max_particles < kparams.max_particles) {
 		m_max_particles = kparams.max_particles;
