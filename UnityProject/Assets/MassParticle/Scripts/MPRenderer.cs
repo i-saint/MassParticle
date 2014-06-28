@@ -28,16 +28,20 @@ public unsafe class MPRenderer : MonoBehaviour
 	Transform trans;
 	Bounds bounds;
 	MPWorld world;
+	Mesh dummyMesh;
 
 
 	MPRenderer()
 	{
 	}
 
-	void Start () {
+	void Start ()
+	{
 		trans = gameObject.GetComponent<Transform>();
 		world = gameObject.GetComponent<MPWorld>();
+		dummyMesh = new Mesh();
 		meshes = new GameObject("MPMeshes");
+		gameObject.GetComponent<MeshFilter>().mesh = dummyMesh;
 
 		meshData = new MPMeshData();
 		children = new List<GameObject>();
@@ -52,7 +56,27 @@ public unsafe class MPRenderer : MonoBehaviour
 		}
 	}
 
-	void Update()
+	public void MPUpdate()
+	{
+		Vector3 min = trans.position - trans.localScale;
+		Vector3 max = trans.position + trans.localScale;
+		bounds.SetMinMax(min, max);
+		dummyMesh.bounds = bounds;
+		switch (renderMode)
+		{
+			case RenderMode.Plugin:
+				break;
+
+			case RenderMode.Points:
+				UpdatePointMeshes();
+				break;
+			case RenderMode.Cubes:
+				UpdateCubeMeshes();
+				break;
+		}
+	}
+
+	void OnWillRenderObject()
 	{
 		if (renderMode != renderModePrev)
 		{
@@ -63,27 +87,10 @@ public unsafe class MPRenderer : MonoBehaviour
 		}
 		renderModePrev = renderMode;
 
-		Vector3 min = trans.position - trans.localScale;
-		Vector3 max = trans.position + trans.localScale;
-		bounds.SetMinMax(min, max);
 		material.SetFloat("_ParticleSize", world.particleSize * scale);
-
-		int num = MPAPI.mpGetNumParticles();
-		if (num == 0) { return; }
-
-		switch (renderMode)
+		if (renderMode != RenderMode.Plugin)
 		{
-			case RenderMode.Plugin:
-				break;
-
-			case RenderMode.Points:
-				UpdatePointMeshes();
-				MPAPI.mpUpdateDataTexture(dataTexture.GetNativeTexturePtr());
-				break;
-			case RenderMode.Cubes:
-				UpdateCubeMeshes();
-				MPAPI.mpUpdateDataTexture(dataTexture.GetNativeTexturePtr());
-				break;
+			MPAPI.mpUpdateDataTexture(dataTexture.GetNativeTexturePtr());
 		}
 	}
 

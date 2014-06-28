@@ -47,7 +47,7 @@ public class MPCollider : MPColliderAttribute
 		pos2 = trans.localToWorldMatrix * pos2;
 	}
 
-	public void UpdateCollider()
+	public void MPUpdate()
 	{
 		UpdateColliderProperties();
 		if (sendCollision) {

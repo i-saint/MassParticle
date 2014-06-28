@@ -10,7 +10,11 @@ public unsafe class MPWorld : MonoBehaviour {
 	public delegate void ParticleProcessor(MPWorld world, int numParticles, MPParticle* particles);
 	public delegate void GatheredHitProcessor(MPWorld world, int numColliders, MPHitData* hits);
 
-	public MPSolverType solverType;
+	public MPUpdateMode updateMode = MPUpdateMode.Immediate;
+	public bool enableInteractions = true;
+	public bool enableColliders = true;
+	public bool enableForces = true;
+	public MPSolverType solverType = MPSolverType.Impulse;
 	public float force = 1.0f;
 	public float particleLifeTime;
 	public float timeStep;
@@ -32,6 +36,7 @@ public unsafe class MPWorld : MonoBehaviour {
 	public ParticleProcessor particleProcessor;
 	public GatheredHitProcessor gatheredHitProcessor;
 	public List<GameObject> colliders;
+	MPRenderer mprenderer;
 
 	MPWorld()
 	{
@@ -56,33 +61,88 @@ public unsafe class MPWorld : MonoBehaviour {
 		maxParticleNum		= p.MaxParticles;
 	}
 
-	void Start () {
-		MPAPI.mpClearParticles();
+	void OnEnable()
+	{
+		MPAPI.mpOnEnable();
 	}
 
-	unsafe void Update()
+	void OnDisable()
 	{
-		{
-			MPKernelParams p = MPAPI.mpGetKernelParams();
-			p.WorldCenter = transform.position;
-			p.WorldSize = transform.localScale;
-			p.WorldDiv_x = divX;
-			p.WorldDiv_y = divY;
-			p.WorldDiv_z = divZ;
-			p.SolverType = (int)solverType;
-			p.LifeTime = particleLifeTime;
-			p.Timestep = timeStep;
-			p.Decelerate = deceleration;
-			p.PressureStiffness = pressureStiffness;
-			p.WallStiffness = wallStiffness;
-			p.Scaler = coordScale;
-			p.ParticleSize = particleSize;
-			p.MaxParticles = maxParticleNum;
-			MPAPI.mpSetKernelParams(ref p);
-		}
-
+		MPAPI.mpOnDisable();
+		MPAPI.mpClearCollidersAndForces();
+		MPAPI.mpClearParticles();
 		colliders.Clear();
+	}
 
+	void Start()
+	{
+		mprenderer = GetComponent<MPRenderer>();
+	}
+
+	void Update()
+	{
+		switch (updateMode)
+		{
+		case MPUpdateMode.Immediate: ImmediateUpdate(); break;
+		case MPUpdateMode.Deferred: DeferredUpdate(); break;
+		}
+	}
+
+
+	void ImmediateUpdate()
+	{
+		UpdateKernelParams();
+		UpdateMPObjects();
+		MPAPI.mpUpdate(Time.deltaTime);
+		ExecuteProcessors();
+		MPAPI.mpClearCollidersAndForces();
+	}
+
+	void DeferredUpdate()
+	{
+		MPAPI.mpEndUpdate();
+		ExecuteProcessors();
+
+		MPAPI.mpClearCollidersAndForces();
+		UpdateKernelParams();
+		UpdateMPObjects();
+		MPAPI.mpBeginUpdate(Time.deltaTime);
+	}
+
+
+	void OnDrawGizmos()
+	{
+		Gizmos.color = Color.yellow;
+		Gizmos.DrawWireCube(transform.position, transform.localScale*2.0f);
+	}
+
+
+	void UpdateKernelParams()
+	{
+		MPKernelParams p = MPAPI.mpGetKernelParams();
+		p.WorldCenter = transform.position;
+		p.WorldSize = transform.localScale;
+		p.WorldDiv_x = divX;
+		p.WorldDiv_y = divY;
+		p.WorldDiv_z = divZ;
+		p.enableInteractions = enableInteractions ? 1 : 0;
+		p.enableColliders = enableColliders ? 1 : 0;
+		p.enableForces = enableForces ? 1 : 0;
+		p.SolverType = (int)solverType;
+		p.LifeTime = particleLifeTime;
+		p.Timestep = timeStep;
+		p.Decelerate = deceleration;
+		p.PressureStiffness = pressureStiffness;
+		p.WallStiffness = wallStiffness;
+		p.Scaler = coordScale;
+		p.ParticleSize = particleSize;
+		p.MaxParticles = maxParticleNum;
+		MPAPI.mpSetKernelParams(ref p);
+	}
+
+	void UpdateMPObjects()
+	{
+		colliders.Clear();
 		if (include3DColliders)
 		{
 			Collider[] colliders3d = Physics.OverlapSphere(transform.position, transform.localScale.magnitude);
@@ -120,7 +180,7 @@ public unsafe class MPWorld : MonoBehaviour {
 				else if (capsule)
 				{
 					Vector3 e = Vector3.zero;
-					float h = Mathf.Max(0.0f, capsule.height - capsule.radius*2.0f);
+					float h = Mathf.Max(0.0f, capsule.height - capsule.radius * 2.0f);
 					float r = capsule.radius * capsule.transform.localScale.x;
 					switch (capsule.direction)
 					{
@@ -185,29 +245,32 @@ public unsafe class MPWorld : MonoBehaviour {
 		foreach (MPCollider col in MPCollider.instances)
 		{
 			if (!col.sendCollision) { continue; }
-			col.UpdateCollider();
-			int id = colliders.Count;
-			col.cprops.owner_id = id;
+			col.MPUpdate();
+			col.cprops.owner_id = colliders.Count;
 			colliders.Add(col.gameObject);
 		}
+		foreach (MPForce force in MPForce.instances)
+		{
+			force.MPUpdate();
+		}
+		foreach (MPEmitter emitter in MPEmitter.instances)
+		{
+			emitter.MPUpdate();
+		}
 
-		MPAPI.mpUpdate (Time.deltaTime);
-		MPAPI.mpClearCollidersAndForces();
+		mprenderer.MPUpdate();
+	}
 
-		if (enableParticleHitHandler && particleProcessor!=null)
+	void ExecuteProcessors()
+	{
+		if (enableParticleHitHandler && particleProcessor != null)
 		{
 			particleProcessor(this, MPAPI.mpGetNumParticles(), MPAPI.mpGetParticles());
 		}
-		if (enableGatheredHitHandler && gatheredHitProcessor!=null)
+		if (enableGatheredHitHandler && gatheredHitProcessor != null)
 		{
 			gatheredHitProcessor(this, MPAPI.mpGetNumHitData(), MPAPI.mpGetHitData());
 		}
-	}
-
-	void OnDrawGizmos()
-	{
-		Gizmos.color = Color.yellow;
-		Gizmos.DrawWireCube(transform.position, transform.localScale*2.0f);
 	}
 
 

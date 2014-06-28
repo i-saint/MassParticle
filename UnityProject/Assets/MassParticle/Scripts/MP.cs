@@ -42,6 +42,9 @@ public struct MPKernelParams
 	public int WorldDiv_y;
 	public int WorldDiv_z;
 	public Vector3 Scaler;
+	public int enableInteractions;
+	public int enableColliders;
+	public int enableForces;
 	public int SolverType;
 	public float LifeTime;
 	public float Timestep;
@@ -60,8 +63,13 @@ public enum MPSolverType
 	Impulse = 0,
 	SPH = 1,
 	SPHEstimate = 2,
-	NoInteraction = 3,
 }
+public enum MPUpdateMode
+{
+	Immediate = 0,
+	Deferred = 1,
+}
+
 
 public struct MPColliderProperties
 {
@@ -139,9 +147,13 @@ public class MPAPI {
 
 	[DllImport ("MassParticle")] unsafe public static extern void mpGeneratePointMesh(int i, ref MPMeshData md);
 	[DllImport ("MassParticle")] unsafe public static extern void mpGenerateCubeMesh(int i, ref MPMeshData md);
-	[DllImport ("MassParticle")] unsafe public static extern void mpUpdateDataTexture(IntPtr tex);
+	[DllImport ("MassParticle")] unsafe public static extern int mpUpdateDataTexture(IntPtr tex);
 	[DllImport ("MassParticle")] public static extern void mpReloadShader ();
 
+	[DllImport ("MassParticle")] public static extern void mpOnEnable();
+	[DllImport ("MassParticle")] public static extern void mpOnDisable();
+	[DllImport ("MassParticle")] public static extern void mpBeginUpdate(float dt);
+	[DllImport ("MassParticle")] public static extern void mpEndUpdate();
 	[DllImport ("MassParticle")] public static extern void mpUpdate (float dt);
 	[DllImport ("MassParticle")] public static extern void mpClearParticles();
 	[DllImport ("MassParticle")] public static extern void mpClearCollidersAndForces();

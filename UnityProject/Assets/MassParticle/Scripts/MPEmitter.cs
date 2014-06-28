@@ -6,6 +6,16 @@ using System.Runtime.InteropServices;
 
 public class MPEmitter : MonoBehaviour {
 
+	static HashSet<MPEmitter> _instances;
+	public static HashSet<MPEmitter> instances
+	{
+		get
+		{
+			if (_instances == null) { _instances = new HashSet<MPEmitter>(); }
+			return _instances;
+		}
+	}
+
 	public enum Shape {
 		Sphere,
 		Box,
@@ -17,10 +27,17 @@ public class MPEmitter : MonoBehaviour {
 	public int emitCount = 8;
 
 
-	void Start () {
+	void OnEnable()
+	{
+		instances.Add(this);
 	}
 
-	void Update()
+	void OnDisable()
+	{
+		instances.Remove(this);
+	}
+
+	public void MPUpdate()
 	{
 		switch (shape) {
 		case Shape.Sphere:

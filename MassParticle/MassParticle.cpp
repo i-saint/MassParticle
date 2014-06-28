@@ -29,18 +29,31 @@ extern "C" EXPORT_API void mpGenerateCubeMesh(int mi, mpMeshData *mds)
 	g_mpWorld.generateCubeMesh(mi, mds);
 }
 
-extern "C" EXPORT_API void mpUpdateDataTexture(void *tex)
+extern "C" EXPORT_API int mpUpdateDataTexture(void *tex)
 {
-	g_mpWorld.updateDataTexture(tex);
+	return g_mpWorld.updateDataTexture(tex);
 }
 
+extern "C" EXPORT_API void mpOnEnable()
+{
+	g_mpWorld.onEnable();
+}
+extern "C" EXPORT_API void mpOnDisable()
+{
+	g_mpWorld.onDisable();
+}
 
+extern "C" EXPORT_API void mpBeginUpdate(float dt)
+{
+	g_mpWorld.beginUpdate(dt);
+}
+extern "C" EXPORT_API void mpEndUpdate()
+{
+	g_mpWorld.endUpdate();
+}
 extern "C" EXPORT_API void mpUpdate(float dt)
 {
-	{
-		std::unique_lock<std::mutex> lock(g_mpWorld.getMutex());
-		g_mpWorld.update(dt);
-	}
+	g_mpWorld.update(dt);
 }
 
 extern "C" EXPORT_API void mpClearParticles()

@@ -161,6 +161,9 @@ struct KernelParams
 	vec3f world_extent;
 	vec3i world_div;
 	vec3f coord_scaler;
+	int enable_interactions;
+	int enable_colliders;
+	int enable_forces;
 
 	int solver_type;
 	float lifetime;

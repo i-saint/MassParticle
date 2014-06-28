@@ -7,6 +7,16 @@ using System.Runtime.InteropServices;
 
 public class MPForce : MonoBehaviour {
 
+	static HashSet<MPForce> _instances;
+	public static HashSet<MPForce> instances
+	{
+		get
+		{
+			if (_instances == null) { _instances = new HashSet<MPForce>(); }
+			return _instances;
+		}
+	}
+
 	public MPForceShape regionType;
 	public MPForceDirection directionType;
 	public float strengthNear = 10.0f;
@@ -18,12 +28,19 @@ public class MPForce : MonoBehaviour {
 
 	MPForceProperties fprops;
 
-	void Start () {
+
+	void OnEnable()
+	{
+		instances.Add(this);
 	}
 
-	void Update()
+	void OnDisable()
 	{
-		
+		instances.Remove(this);
+	}
+
+	public void MPUpdate()
+	{
 		switch(directionType) {
 		case MPForceDirection.Directional:
 			fprops.directional_dir = direction;

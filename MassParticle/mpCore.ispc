@@ -564,34 +564,6 @@ export void sphUpdateForce(
 }
 
 
-export void sphIntegrate(
-	soa<8> Particle all_particles[],
-	soa<8> ParticleIMData imds[],
-	Cell uniform grid[],
-	uniform int xi, uniform int yi, uniform int zi )
-{
-	uniform const Cell &gd = grid[mpWorldDiv.x*mpWorldDiv.z*yi + mpWorldDiv.x*zi + xi];
-	uniform const int particle_num = gd.end - gd.begin;
-	soa<8> Particle * uniform particles = &all_particles[gd.soai*8];
-	soa<8> ParticleIMData * uniform imd = &imds[gd.soai*8];
-
-	foreach(i=0 ... particle_num) {
-		vec3 vel = gather3(particles[i],vx,vy,vz);
-		vec3 accel = gather3(imd[i],ax,ay,az);
-		vec3 pos = to_vec3(particles[i]);
-
-		vel += accel * mpTimestep;
-		vel *= mpDecelerate;
-		vel *= mpCoordScale;
-
-		pos += vel * mpTimestep;
-		pos *= mpCoordScale;
-
-		store3(particles[i],x,y,z, pos);
-		store3(particles[i],vx,vy,vz, vel);
-		particles[i].speed = length3(vel);
-	}
-}
 
 
 
@@ -605,23 +577,6 @@ static inline void impComputeParticleInteraction(
 	if(d > 0.0f) { // d==0: è’ìÀå≥Åïè’ìÀëäéËÇ™ìØàÍ
 		vec3 dir = diff * mpRcpParticleSize2; // vec3 dir = diff / d;
 		accel += dir * (min(0.0f, d-(mpParticleSize*2.0f)) * mpPressureStiffness);
-	}
-}
-
-export void impZeroAccel(
-	soa<8> Particle all_particles[],
-	soa<8> ParticleIMData imds[],
-	Cell uniform grid[],
-	uniform int xi, uniform int yi, uniform int zi )
-{
-	uniform const Cell &gd = grid[mpWorldDiv.x*mpWorldDiv.z*yi + mpWorldDiv.x*zi + xi];
-	uniform const int particle_num = gd.end - gd.begin;
-	soa<8> Particle * uniform particles = &all_particles[gd.soai*8];
-	soa<8> ParticleIMData * uniform imd = &imds[gd.soai*8];
-	foreach(i=0 ... particle_num) {
-		imd[i].ax = 0.0f;
-		imd[i].ay = 0.0f;
-		imd[i].az = 0.0f;
 	}
 }
 
@@ -666,7 +621,7 @@ export void impUpdatePressure(
 	}
 }
 
-export void impIntegrate(
+export void Integrate(
 	soa<8> Particle all_particles[],
 	soa<8> ParticleIMData imds[],
 	Cell uniform grid[],
@@ -683,7 +638,6 @@ export void impIntegrate(
 		vec3 vel = gather3(particles[i],vx,vy,vz);
 
 		vel += accel * mpTimestep;
-		// é©ëRå∏ë¨
 		vel *= mpDecelerate;
 		vel *= mpCoordScale;
 
@@ -693,5 +647,9 @@ export void impIntegrate(
 		store3(particles[i],x,y,z, pos);
 		store3(particles[i],vx,vy,vz, vel);
 		particles[i].speed = length3(vel);
+
+		imd[i].ax = 0.0f;
+		imd[i].ay = 0.0f;
+		imd[i].az = 0.0f;
 	}
 }

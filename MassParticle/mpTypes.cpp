@@ -9,6 +9,10 @@ mpKernelParams::mpKernelParams()
 	(vec3&)world_extent = vec3(10.24f, 10.24f, 10.24f);
 	(vec3&)coord_scaler = vec3(1.0f, 1.0f, 1.0f);
 
+	enable_interactions = 1;
+	enable_colliders = 1;
+	enable_forces = 1;
+
 	solver_type = mpSolver_Impulse;
 	lifetime = 30.0f;
 	timestep = 0.01f;
@@ -21,30 +25,6 @@ mpKernelParams::mpKernelParams()
 	SPHRestDensity = 1000.0f;
 	SPHParticleMass = 0.002f;
 	SPHViscosity = 0.1f;
-}
-
-
-mpPerformanceCounter::mpPerformanceCounter()
-{
-	reset();
-}
-
-void mpPerformanceCounter::reset()
-{
-	::QueryPerformanceCounter(&m_start);
-}
-
-float mpPerformanceCounter::getElapsedSecond()
-{
-	LARGE_INTEGER freq;
-	::QueryPerformanceCounter(&m_end);
-	::QueryPerformanceFrequency(&freq);
-	return ((float)(m_end.QuadPart - m_start.QuadPart) / (float)freq.QuadPart);
-}
-
-float mpPerformanceCounter::getElapsedMillisecond()
-{
-	return getElapsedSecond()*1000.0f;
 }
 
 
@@ -63,7 +43,7 @@ T clamp(T v, T minv, T maxv)
 
 int32 soa_blocks(int32 i)
 {
-	return (i/SIMD_LANES) + (i%SIMD_LANES>0 ? 1 : 0);
+	return ceildiv(i, SIMD_LANES);
 }
 
 template<class T>
@@ -157,8 +137,8 @@ inline uint32 mpGenHash(mpWorld &world, const mpParticle &particle)
 	vec3 &ppos = (vec3&)particle.position;
 
 	uint32 r =  clamp<int32>(int32((ppos.x-bl.x)*rcpCell.x), 0, p.world_div.x-1) |
-			   (clamp<int32>(int32((ppos.z-bl.z)*rcpCell.z), 0, p.world_div.z-1) << (t.world_div_bits.x)) |
-			   (clamp<int32>(int32((ppos.y-bl.y)*rcpCell.y), 0, p.world_div.y-1) << (t.world_div_bits.x+t.world_div_bits.z)) ;
+				(clamp<int32>(int32((ppos.z-bl.z)*rcpCell.z), 0, p.world_div.z-1) << (t.world_div_bits.x)) |
+				(clamp<int32>(int32((ppos.y-bl.y)*rcpCell.y), 0, p.world_div.y-1) << (t.world_div_bits.x+t.world_div_bits.z)) ;
 
 	if(particle.lifetime<=0.0f) { r |= 0x80000000; }
 	return r;
@@ -181,7 +161,9 @@ static const int g_cells_par_task = 256;
 mpWorld::mpWorld()
 	: m_num_active_particles(0)
 	, m_trail_enabled(false)
+	, m_update_task(nullptr)
 	, m_hitdata_needs_update(false)
+	, m_num_particles_gpu(0)
 {
 	m_sphere_colliders.reserve(64);
 
@@ -209,21 +191,25 @@ void mpWorld::addParticles(mpParticle *p, int num)
 void mpWorld::addPlaneColliders(mpPlaneCollider *col, int num)
 {
 	m_plane_colliders.insert(m_plane_colliders.end(), col, col + num);
+	m_hitdata.resize(m_hitdata.size() + num);
 }
 
 void mpWorld::addSphereColliders(mpSphereCollider *col, int num)
 {
 	m_sphere_colliders.insert(m_sphere_colliders.end(), col, col+num);
+	m_hitdata.resize(m_hitdata.size() + num);
 }
 
 void mpWorld::addCapsuleColliders(mpCapsuleCollider *col, int num)
 {
 	m_capsule_colliders.insert(m_capsule_colliders.end(), col, col+num);
+	m_hitdata.resize(m_hitdata.size() + num);
 }
 
 void mpWorld::addBoxColliders(mpBoxCollider *col, int num)
 {
 	m_box_colliders.insert(m_box_colliders.end(), col, col+num);
+	m_hitdata.resize(m_hitdata.size() + num);
 }
 
 void mpWorld::addForces(mpForce *force, int num)
@@ -242,6 +228,7 @@ void mpWorld::clearParticles()
 
 void mpWorld::clearCollidersAndForces()
 {
+	m_hitdata.clear();
 	m_plane_colliders.clear();
 	m_sphere_colliders.clear();
 	m_capsule_colliders.clear();
@@ -262,39 +249,84 @@ void mpWorld::setViewProjection(const mat4 &mat, const vec3 &camerapos)
 }
 
 
+void mpWorld::onEnable()
+{
+
+}
+
+void mpWorld::onDisable()
+{
+}
+
+class mpUpdateTask : public tbb::task
+{
+private:
+	typedef std::function<void()> func_t;
+	func_t func;
+public:
+	mpUpdateTask(const func_t &f) : func(f)
+	{
+		set_ref_count(2);
+	}
+
+	tbb::task* execute()
+	{
+		func();
+		decrement_ref_count();
+		return nullptr;
+	}
+};
+
+void mpWorld::beginUpdate(float dt)
+{
+	m_update_task = new (tbb::task::allocate_root()) mpUpdateTask([=](){ update(dt); });
+	tbb::task::enqueue(*m_update_task);
+}
+
+void mpWorld::endUpdate()
+{
+	if (m_update_task) {
+		m_update_task->wait_for_all();
+		m_update_task = nullptr;
+	}
+}
+
 void mpWorld::update(float32 dt)
 {
 	if (m_num_active_particles == 0) { return; }
 
 	m_hitdata_needs_update = true;
-	mpKernelParams &p = m_kparams;
-	mpTempParams &t = m_tparams;
-	int cell_num = p.world_div.x*p.world_div.y*p.world_div.z;
+	mpKernelParams &kp = m_kparams;
+	mpTempParams &tp = m_tparams;
+	int cell_num = kp.world_div.x*kp.world_div.y*kp.world_div.z;
 
 	{
-		vec3 &wpos = (vec3&)p.world_center;
-		vec3 &wsize = (vec3&)p.world_extent;
-		vec3 &rcpCell = (vec3&)t.rcp_cell_size;
-		vec3 &bl = (vec3&)t.world_bounds_bl;
-		vec3 &ur = (vec3&)t.world_bounds_ur;
-		p.particle_size = std::max<float>(p.particle_size, 0.00001f);
-		p.max_particles = std::max<int>(p.max_particles, 128);
-		m_num_active_particles = std::min<int>(m_num_active_particles, p.max_particles);
-		p.world_div.x = std::max<int>(p.world_div.x, 1);
-		p.world_div.y = std::max<int>(p.world_div.y, 1);
-		p.world_div.z = std::max<int>(p.world_div.z, 1);
-		t.world_div_bits.x = mpMSB(p.world_div.x);
-		t.world_div_bits.y = mpMSB(p.world_div.y);
-		t.world_div_bits.z = mpMSB(p.world_div.z);
-		rcpCell = vec3(1.0f, 1.0f, 1.0f) / (wsize*2.0f / vec3((float)p.world_div.x, (float)p.world_div.y, (float)p.world_div.z));
+		vec3 &wpos = (vec3&)kp.world_center;
+		vec3 &wsize = (vec3&)kp.world_extent;
+		vec3 &rcpCell = (vec3&)tp.rcp_cell_size;
+		vec3 &bl = (vec3&)tp.world_bounds_bl;
+		vec3 &ur = (vec3&)tp.world_bounds_ur;
+		kp.particle_size = std::max<float>(kp.particle_size, 0.00001f);
+		kp.max_particles = std::max<int>(kp.max_particles, 128);
+		m_num_active_particles = std::min<int>(m_num_active_particles, kp.max_particles);
+		kp.world_div.x = std::max<int>(kp.world_div.x, 1);
+		kp.world_div.y = std::max<int>(kp.world_div.y, 1);
+		kp.world_div.z = std::max<int>(kp.world_div.z, 1);
+		tp.world_div_bits.x = mpMSB(kp.world_div.x);
+		tp.world_div_bits.y = mpMSB(kp.world_div.y);
+		tp.world_div_bits.z = mpMSB(kp.world_div.z);
+		rcpCell = vec3(1.0f, 1.0f, 1.0f) / (wsize*2.0f / vec3((float)kp.world_div.x, (float)kp.world_div.y, (float)kp.world_div.z));
 		bl = wpos - wsize;
 		ur = wpos + wsize;
 
-		int SOADataNum = std::max<int>(cell_num, p.max_particles / 8);
+		int reserve_size = mpParticlesEachLine * (ceildiv(kp.max_particles, mpParticlesEachLine));
+		int SOADataNum = std::max<int>(cell_num, kp.max_particles / 8);
 		m_cells.resize(cell_num);
-		m_particles.resize(p.max_particles);
+		m_particles.resize(kp.max_particles);
 		m_particles_soa.resize(SOADataNum);
 		m_imd_soa.resize(SOADataNum);
+		m_particles_gpu.reserve(reserve_size);
+		m_particles_gpu.resize(kp.max_particles);
 	}
 
 	mpCell				*ce = &m_cells[0];
@@ -348,7 +380,7 @@ void mpWorld::update(float32 dt)
 
 				uint32 cell = m_particles[G_ID].hash;
 				uint32 cell_prev = (G_ID_PREV==-1) ? -1 : m_particles[G_ID_PREV].hash;
-				uint32 cell_next = (G_ID_NEXT == p.max_particles) ? -2 : m_particles[G_ID_NEXT].hash;
+				uint32 cell_next = (G_ID_NEXT == kp.max_particles) ? -2 : m_particles[G_ID_NEXT].hash;
 				if((cell & 0x80000000) != 0) { // ç≈è„à  bit Ç™óßÇ¡ÇƒÇ¢ÇΩÇÁéÄÇÒÇ≈Ç¢ÇÈàµÇ¢
 					if((cell_prev & 0x80000000) == 0) { // 
 						m_num_active_particles = G_ID;
@@ -368,8 +400,8 @@ void mpWorld::update(float32 dt)
 		if( (m_particles[0].hash & 0x80000000) != 0 ) {
 			m_num_active_particles = 0;
 		}
-		else if ((m_particles[p.max_particles - 1].hash & 0x80000000) == 0) {
-			m_num_active_particles = p.max_particles;
+		else if ((m_particles[kp.max_particles - 1].hash & 0x80000000) == 0) {
+			m_num_active_particles = kp.max_particles;
 		}
 	}
 
@@ -402,10 +434,29 @@ void mpWorld::update(float32 dt)
 				if (n == 0) { continue; }
 				int xi, yi, zi;
 				mpGenIndex(*this, i, xi, yi, zi);
-				ispc::impUpdatePressure(
-					(ispc::Particle*)&m_particles_soa[0],
-					(ispc::ParticleIMData*)&m_imd_soa[0],
-					ce, xi, yi, zi);
+				if (kp.enable_interactions) {
+					ispc::impUpdatePressure(
+						(ispc::Particle*)&m_particles_soa[0],
+						(ispc::ParticleIMData*)&m_imd_soa[0],
+						ce, xi, yi, zi);
+				}
+				if (kp.enable_forces) {
+					ispc::ProcessExternalForce(
+						(ispc::Particle*)&m_particles_soa[0],
+						(ispc::ParticleIMData*)&m_imd_soa[0],
+						ce, xi, yi, zi,
+						forces, (int32)m_forces.size());
+				}
+				if (kp.enable_colliders) {
+					ispc::ProcessColliders(
+						(ispc::Particle*)&m_particles_soa[0],
+						(ispc::ParticleIMData*)&m_imd_soa[0],
+						ce, xi, yi, zi,
+						planes, (int32)m_plane_colliders.size(),
+						spheres, (int32)m_sphere_colliders.size(),
+						capsules, (int32)m_capsule_colliders.size(),
+						boxes, (int32)m_box_colliders.size());
+				}
 			}
 		});
 		tbb::parallel_for(tbb::blocked_range<int>(0, cell_num, g_cells_par_task),
@@ -415,20 +466,7 @@ void mpWorld::update(float32 dt)
 				if (n == 0) { continue; }
 				int xi, yi, zi;
 				mpGenIndex(*this, i, xi, yi, zi);
-				ispc::ProcessExternalForce(
-					(ispc::Particle*)&m_particles_soa[0],
-					(ispc::ParticleIMData*)&m_imd_soa[0],
-					ce, xi, yi, zi,
-					forces, (int32)m_forces.size());
-				ispc::ProcessColliders(
-					(ispc::Particle*)&m_particles_soa[0],
-					(ispc::ParticleIMData*)&m_imd_soa[0],
-					ce, xi, yi, zi,
-					planes, (int32)m_plane_colliders.size(),
-					spheres, (int32)m_sphere_colliders.size(),
-					capsules, (int32)m_capsule_colliders.size(),
-					boxes, (int32)m_box_colliders.size());
-				ispc::impIntegrate(
+				ispc::Integrate(
 					(ispc::Particle*)&m_particles_soa[0],
 					(ispc::ParticleIMData*)&m_imd_soa[0],
 					ce, xi, yi, zi);
@@ -436,7 +474,7 @@ void mpWorld::update(float32 dt)
 		});
 	}
 	else if (m_kparams.solver_type == mpSolver_SPH || m_kparams.solver_type == mpSolver_SPHEst) {
-		if (m_kparams.solver_type == mpSolver_SPH) {
+		if (kp.enable_interactions && m_kparams.solver_type == mpSolver_SPH) {
 			tbb::parallel_for(tbb::blocked_range<int>(0, cell_num, g_cells_par_task),
 				[&](const tbb::blocked_range<int> &r) {
 				for (int i = r.begin(); i != r.end(); ++i) {
@@ -450,8 +488,21 @@ void mpWorld::update(float32 dt)
 						ce, xi, yi, zi);
 				}
 			});
+			tbb::parallel_for(tbb::blocked_range<int>(0, cell_num, g_cells_par_task),
+				[&](const tbb::blocked_range<int> &r) {
+				for (int i = r.begin(); i != r.end(); ++i) {
+					int32 n = ce[i].end - ce[i].begin;
+					if (n == 0) { continue; }
+					int xi, yi, zi;
+					mpGenIndex(*this, i, xi, yi, zi);
+					ispc::sphUpdateForce(
+						(ispc::Particle*)&m_particles_soa[0],
+						(ispc::ParticleIMData*)&m_imd_soa[0],
+						ce, xi, yi, zi);
+				}
+			});
 		}
-		else if (m_kparams.solver_type == mpSolver_SPHEst) {
+		else if (kp.enable_interactions && m_kparams.solver_type == mpSolver_SPHEst) {
 			tbb::parallel_for(tbb::blocked_range<int>(0, cell_num, g_cells_par_task),
 				[&](const tbb::blocked_range<int> &r) {
 				for (int i = r.begin(); i != r.end(); ++i) {
@@ -478,6 +529,19 @@ void mpWorld::update(float32 dt)
 						ce, xi, yi, zi);
 				}
 			});
+			tbb::parallel_for(tbb::blocked_range<int>(0, cell_num, g_cells_par_task),
+				[&](const tbb::blocked_range<int> &r) {
+				for (int i = r.begin(); i != r.end(); ++i) {
+					int32 n = ce[i].end - ce[i].begin;
+					if (n == 0) { continue; }
+					int xi, yi, zi;
+					mpGenIndex(*this, i, xi, yi, zi);
+					ispc::sphUpdateForce(
+						(ispc::Particle*)&m_particles_soa[0],
+						(ispc::ParticleIMData*)&m_imd_soa[0],
+						ce, xi, yi, zi);
+				}
+			});
 		}
 
 		tbb::parallel_for(tbb::blocked_range<int>(0, cell_num, g_cells_par_task),
@@ -487,65 +551,24 @@ void mpWorld::update(float32 dt)
 				if (n == 0) { continue; }
 				int xi, yi, zi;
 				mpGenIndex(*this, i, xi, yi, zi);
-				ispc::sphUpdateForce(
-					(ispc::Particle*)&m_particles_soa[0],
-					(ispc::ParticleIMData*)&m_imd_soa[0],
-					ce, xi, yi, zi);
-			}
-		});
-		tbb::parallel_for(tbb::blocked_range<int>(0, cell_num, g_cells_par_task),
-			[&](const tbb::blocked_range<int> &r) {
-			for (int i = r.begin(); i != r.end(); ++i) {
-				int32 n = ce[i].end - ce[i].begin;
-				if (n == 0) { continue; }
-				int xi, yi, zi;
-				mpGenIndex(*this, i, xi, yi, zi);
-				ispc::ProcessExternalForce(
-					(ispc::Particle*)&m_particles_soa[0],
-					(ispc::ParticleIMData*)&m_imd_soa[0],
-					ce, xi, yi, zi,
-				   forces, (int32)m_forces.size());
-				ispc::ProcessColliders(
-					(ispc::Particle*)&m_particles_soa[0],
-					(ispc::ParticleIMData*)&m_imd_soa[0],
-					ce, xi, yi, zi,
-					planes, (int32)m_plane_colliders.size(),
-					spheres, (int32)m_sphere_colliders.size(),
-					capsules, (int32)m_capsule_colliders.size(),
-					boxes, (int32)m_box_colliders.size());
-				ispc::sphIntegrate(
-					(ispc::Particle*)&m_particles_soa[0],
-					(ispc::ParticleIMData*)&m_imd_soa[0],
-					ce, xi, yi, zi);
-			}
-		});
-	}
-	else if (m_kparams.solver_type == mpSolver_NoInteraction) {
-		tbb::parallel_for(tbb::blocked_range<int>(0, cell_num, g_cells_par_task),
-			[&](const tbb::blocked_range<int> &r) {
-			for (int i = r.begin(); i != r.end(); ++i) {
-				int32 n = ce[i].end - ce[i].begin;
-				if (n == 0) { continue; }
-				int xi, yi, zi;
-				mpGenIndex(*this, i, xi, yi, zi);
-				ispc::impZeroAccel(
-					(ispc::Particle*)&m_particles_soa[0],
-					(ispc::ParticleIMData*)&m_imd_soa[0],
-					ce, xi, yi, zi);
-				ispc::ProcessExternalForce(
-					(ispc::Particle*)&m_particles_soa[0],
-					(ispc::ParticleIMData*)&m_imd_soa[0],
-					ce, xi, yi, zi,
-					forces, (int32)m_forces.size());
-				ispc::ProcessColliders(
-					(ispc::Particle*)&m_particles_soa[0],
-					(ispc::ParticleIMData*)&m_imd_soa[0],
-					ce, xi, yi, zi,
-					planes, (int32)m_plane_colliders.size(),
-					spheres, (int32)m_sphere_colliders.size(),
-					capsules, (int32)m_capsule_colliders.size(),
-					boxes, (int32)m_box_colliders.size());
-				ispc::impIntegrate(
+				if (kp.enable_forces) {
+					ispc::ProcessExternalForce(
+						(ispc::Particle*)&m_particles_soa[0],
+						(ispc::ParticleIMData*)&m_imd_soa[0],
+						ce, xi, yi, zi,
+						forces, (int32)m_forces.size());
+				}
+				if (kp.enable_colliders) {
+					ispc::ProcessColliders(
+						(ispc::Particle*)&m_particles_soa[0],
+						(ispc::ParticleIMData*)&m_imd_soa[0],
+						ce, xi, yi, zi,
+						planes, (int32)m_plane_colliders.size(),
+						spheres, (int32)m_sphere_colliders.size(),
+						capsules, (int32)m_capsule_colliders.size(),
+						boxes, (int32)m_box_colliders.size());
+				}
+				ispc::Integrate(
 					(ispc::Particle*)&m_particles_soa[0],
 					(ispc::ParticleIMData*)&m_imd_soa[0],
 					ce, xi, yi, zi);
@@ -565,6 +588,16 @@ void mpWorld::update(float32 dt)
 				}
 			}
 	});
+
+	// make clone data for GPU
+	{
+		std::unique_lock<std::mutex> lock(m_mutex);
+		int num_particles_needs_copy = std::max<int>(m_num_active_particles, m_num_particles_gpu);
+		m_num_particles_gpu = m_num_active_particles;
+		if (num_particles_needs_copy > 0) {
+			memcpy(&m_particles_gpu[0], &m_particles[0], sizeof(mpParticle)*num_particles_needs_copy);
+		}
+	}
 }
 
 int mpWorld::getNumHitData() const
@@ -580,7 +613,6 @@ mpHitData* mpWorld::getHitData()
 		// reduce hit data
 
 		int num_colliders = getNumHitData();
-		m_hitdata.resize(num_colliders);
 		if (num_colliders > 0) {
 			memset((void*)&m_hitdata[0], 0, sizeof(mpHitData)*m_hitdata.size());
 			tbb::parallel_for(tbb::blocked_range<int>(0, m_num_active_particles, g_particles_par_task),
@@ -597,7 +629,7 @@ mpHitData* mpWorld::getHitData()
 				}
 			});
 			m_hitdata_work.combine_each([&](const mpHitDataCont &hits){
-				for (int i = 0; i < hits.size(); ++i) {
+				for (int i = 0; i < (int)hits.size(); ++i) {
 					const mpHitData &h = hits[i];
 					(simdvec4&)m_hitdata[i].position += h.position;
 					(simdvec4&)m_hitdata[i].velocity += h.velocity;
@@ -693,9 +725,11 @@ void mpWorld::generateCubeMesh(int mi, mpMeshData *mds)
 }
 
 
-void mpWorld::updateDataTexture(void *tex)
+int mpWorld::updateDataTexture(void *tex)
 {
-	if (g_mpRenderer && !m_particles.empty()) {
-		g_mpRenderer->updateDataTexture(tex, &m_particles[0], sizeof(mpParticle)*m_particles.size());
+	std::unique_lock<std::mutex> lock(m_mutex);
+	if (g_mpRenderer && !m_particles_gpu.empty()) {
+		g_mpRenderer->updateDataTexture(tex, &m_particles_gpu[0], sizeof(mpParticle)*m_particles_gpu.size());
 	}
+	return m_num_particles_gpu;
 }

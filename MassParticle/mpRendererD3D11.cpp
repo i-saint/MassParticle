@@ -66,6 +66,7 @@ private:
 	vec4					m_MeshColor;
 
 	int m_num_particles;
+	int m_max_particles;
 };
 
 mpRenderer* mpCreateRendererD3D11(void *device)
@@ -121,7 +122,7 @@ ID3D11Buffer* mpRendererD3D11::CreateVertexBuffer(const void *data, UINT size)
 	InitData.pSysMem = data;
 
 	ID3D11Buffer *buffer;
-	HRESULT hr = m_pDevice->CreateBuffer( &bd, &InitData, &buffer );
+	HRESULT hr = m_pDevice->CreateBuffer(&bd, !data ? nullptr : &InitData, &buffer);
 	if( FAILED( hr ) ) {
 		return nullptr;
 	}
@@ -145,6 +146,7 @@ mpRendererD3D11::mpRendererD3D11(void *_dev)
 , m_pCBChangesEveryFrame(nullptr)
 , m_MeshColor(0.7f, 0.7f, 0.7f, 1.0f)
 , m_num_particles(0)
+, m_max_particles(0)
 {
 	initializeDevice(_dev);
 }
@@ -369,19 +371,21 @@ on_failed:
 void mpRendererD3D11::render(mpWorld &world)
 {
 	const mpKernelParams &kparams = world.getKernelParams();
-	mpParticle *particles = world.getParticles();
-	int num_particles = world.getNumParticles();
-	if (num_particles == 0) { return; }
+	if (m_max_particles < kparams.max_particles) {
+		m_max_particles = kparams.max_particles;
+		mpSafeRelease(m_pCubeInstanceBuffer);
+		m_pCubeInstanceBuffer = CreateVertexBuffer(nullptr, sizeof(mpParticle) * m_max_particles);
+	}
 
+	int num_particles;
 	{
 		std::unique_lock<std::mutex> lock(world.getMutex());
-
-		if (m_num_particles < num_particles) {
-			m_num_particles = num_particles;
-			mpSafeRelease(m_pCubeInstanceBuffer);
-			m_pCubeInstanceBuffer = CreateVertexBuffer(particles, sizeof(mpParticle) * m_num_particles);
-		}
-
+		mpParticle *particles = world.getParticlesGPU();
+		num_particles = world.getNumParticlesGPU();
+		if (num_particles == 0) { return; }
+		m_pImmediateContext->UpdateSubresource(m_pCubeInstanceBuffer, 0, nullptr, particles, 0, 0);
+	}
+	{
 		mpCBCData cb;
 		vec4 eye(1.0f, 1.0f, 1.0f, 1.0f);
 		mat4 vp;
@@ -394,7 +398,6 @@ void mpRendererD3D11::render(mpWorld &world)
 		cb.MeshShininess = 200.0f;
 		cb.ParticleSize = world.getKernelParams().particle_size;
 		m_pImmediateContext->UpdateSubresource(m_pCBChangesEveryFrame, 0, nullptr, &cb, 0, 0);
-		m_pImmediateContext->UpdateSubresource(m_pCubeInstanceBuffer, 0, nullptr, particles, 0, 0);
 	}
 	{
 		ID3D11Buffer *buffers[] = {m_pCubeVertexBuffer, m_pCubeInstanceBuffer};
@@ -433,11 +436,13 @@ void mpRendererD3D11::render(mpWorld &world)
 
 void mpRendererD3D11::updateDataTexture(void *texptr, const void *data, size_t data_size)
 {
+	const int num_texels = data_size / 16;
+
 	D3D11_BOX box;
 	box.left = 0;
 	box.right = mpDataTextureWidth;
 	box.top = 0;
-	box.bottom = (data_size/16) / mpDataTextureWidth;
+	box.bottom = ceildiv(num_texels, mpDataTextureWidth);
 	box.front = 0;
 	box.back = 1;
 	ID3D11Texture2D *tex = (ID3D11Texture2D*)texptr;

@@ -3,6 +3,7 @@
 Properties {
 	_ParticleSize ("Particle Size", Float) = 0.08
 	_Color ("Color", Color) = (0.8, 0.8, 0.8, 1.0)
+	_FadeTime ("Fade Time", Float) = 0.3
 	_MainTex ("Base (RGB)", 2D) = "white" {}
 }
 SubShader {
@@ -16,6 +17,7 @@ SubShader {
 	float _ParticleSize;
 	float _DataTexPitch;
 	float4 _Color;
+	float _FadeTime;
 
 	struct Input {
 		float4 color : COLOR;
@@ -35,7 +37,7 @@ SubShader {
 		float lifetime = params.w;
 
 		v.vertex.xyz *= (_ParticleSize*100.0);
-		v.vertex.xyz *= min(1.0, lifetime*3.3333);
+		v.vertex.xyz *= min(1.0, lifetime/_FadeTime);
 		v.vertex.xyz += tex2Dlod(_DataTex,v.texcoord).xyz;
 
 		float ei = max(velocity.w-2.5, 0.0) * 1.0;
@@ -74,6 +76,7 @@ SubShader {
 		float _ParticleSize;
 		float _DataTexPitch;
 		float4 _Color;
+		float _FadeTime;
 
 		struct v2f { 
 			V2F_SHADOW_CASTER;
@@ -86,7 +89,7 @@ SubShader {
 			float4 params = tex2Dlod(_DataTex, v.texcoord+pitch*2.0);
 			float lifetime = params.w;
 			v.vertex.xyz *= (_ParticleSize*100.0);
-			v.vertex.xyz *= min(1.0, lifetime*3.3333);
+			v.vertex.xyz *= min(1.0, lifetime/_FadeTime);
 			v.vertex.xyz += tex2Dlod(_DataTex,v.texcoord).xyz;
 
 			v2f o;
@@ -120,6 +123,7 @@ SubShader {
 		float _ParticleSize;
 		float _DataTexPitch;
 		float4 _Color;
+		float _FadeTime;
 
 		struct v2f { 
 			V2F_SHADOW_COLLECTOR;
@@ -132,7 +136,7 @@ SubShader {
 			float4 params = tex2Dlod(_DataTex, v.texcoord+pitch*2.0);
 			float lifetime = params.w;
 			v.vertex.xyz *= (_ParticleSize*100.0);
-			v.vertex.xyz *= min(1.0, lifetime*3.3333);
+			v.vertex.xyz *= min(1.0, lifetime/_FadeTime);
 			v.vertex.xyz += tex2Dlod(_DataTex,v.texcoord).xyz;
 			
 			v2f o;

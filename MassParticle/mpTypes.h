@@ -65,14 +65,18 @@ namespace glm {
 	inline float length_sq(const vec4 &v) { return dot(v, v); }
 } // namespace glm
 
+template<class IntType>
+inline IntType ceildiv(IntType a, IntType b)
+{
+	return a / b + (a%b == 0 ? 0 : 1);
+}
+
 
 enum mpSolverType
 {
 	mpSolver_Impulse,
 	mpSolver_SPH,
 	mpSolver_SPHEst,
-	mpSolver_NoInteraction,
-	mpSolver_NoInteractionNoCollision,
 };
 
 enum mpRendererType
@@ -128,19 +132,6 @@ struct mpHitData
 	void clear() { memset(this, 0, sizeof(*this));  }
 };
 
-
-class mpPerformanceCounter
-{
-public:
-	mpPerformanceCounter();
-	void reset();
-	float getElapsedSecond();
-	float getElapsedMillisecond();
-
-private:
-	LARGE_INTEGER m_start;
-	LARGE_INTEGER m_end;
-};
 
 template<typename T, int Align=32>
 class mpAlignedAllocator {
@@ -200,6 +191,8 @@ mpRenderer* mpCreateRendererOpenGL(void *dev);
 
 const int mpDataTextureWidth = 3072;
 const int mpDataTextureHeight = 2048;
+const int mpTexelsEachParticle = 3;
+const int mpParticlesEachLine = mpDataTextureWidth / mpTexelsEachParticle;
 
 class mpWorld
 {
@@ -207,6 +200,10 @@ public:
 
 	mpWorld();
 	~mpWorld();
+	void onEnable();
+	void onDisable();
+	void beginUpdate(float dt);
+	void endUpdate();
 	void update(float dt);
 	void render();
 
@@ -229,12 +226,14 @@ public:
 	mpHitData*	getHitData();
 	int			getNumParticles() const	{ return m_num_active_particles; }
 	mpParticle*	getParticles()			{ return m_particles.empty() ? nullptr : &m_particles[0]; }
+	int			getNumParticlesGPU() const	{ return m_num_particles_gpu; }
+	mpParticle*	getParticlesGPU()			{ return m_particles_gpu.empty() ? nullptr : &m_particles_gpu[0]; }
 
 	std::mutex& getMutex() { return m_mutex;  }
 
 	void generatePointMesh(int mi, mpMeshData *mds);
 	void generateCubeMesh(int mi, mpMeshData *mds);
-	void updateDataTexture(void *tex);
+	int updateDataTexture(void *tex);
 
 private:
 	mpParticleCont			m_particles;
@@ -250,6 +249,7 @@ private:
 	mpBoxColliderCont		m_box_colliders;
 	mpForceCont				m_forces;
 
+	tbb::task				*m_update_task;
 	std::mutex				m_mutex;
 	mpKernelParams			m_kparams;
 	mpTempParams			m_tparams;
@@ -261,6 +261,8 @@ private:
 	mpHitDataCont			m_hitdata;
 	mpHitDataConbinable		m_hitdata_work;
 
+	int						m_num_particles_gpu;
+	mpParticleCont			m_particles_gpu;
 	mpTrailCont				m_trail;
 };
 
