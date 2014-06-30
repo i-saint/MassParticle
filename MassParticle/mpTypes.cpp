@@ -159,7 +159,7 @@ static const int g_particles_par_task = 2048;
 static const int g_cells_par_task = 256;
 
 mpWorld::mpWorld()
-	: m_num_active_particles(0)
+	: m_num_particles(0)
 	, m_trail_enabled(false)
 	, m_update_task(nullptr)
 	, m_hitdata_needs_update(false)
@@ -181,12 +181,12 @@ mpWorld::~mpWorld()
 
 void mpWorld::addParticles(mpParticle *p, int num)
 {
-	num = std::min<uint32_t>(num, m_kparams.max_particles - m_num_active_particles);
+	num = std::min<uint32_t>(num, m_kparams.max_particles - m_num_particles);
 	for (int i = 0; i<num; ++i) {
-		m_particles[m_num_active_particles+i] = p[i];
-		m_particles[m_num_active_particles+i].lifetime = m_kparams.lifetime;
+		m_particles[m_num_particles+i] = p[i];
+		m_particles[m_num_particles+i].lifetime = m_kparams.lifetime;
 	}
-	m_num_active_particles += num;
+	m_num_particles += num;
 }
 
 void mpWorld::addPlaneColliders(mpPlaneCollider *col, int num)
@@ -220,7 +220,7 @@ void mpWorld::addForces(mpForce *force, int num)
 
 void mpWorld::clearParticles()
 {
-	m_num_active_particles = 0;
+	m_num_particles = 0;
 	for (uint32 i = 0; i < m_particles.size(); ++i) {
 		m_particles[i].lifetime = 0.0f;
 		m_particles[i].hash = 0x80000000;
@@ -294,7 +294,7 @@ void mpWorld::endUpdate()
 
 void mpWorld::update(float32 dt)
 {
-	if (m_num_active_particles == 0) { return; }
+	if (m_num_particles == 0) { return; }
 
 	m_hitdata_needs_update = true;
 	mpKernelParams &kp = m_kparams;
@@ -309,7 +309,7 @@ void mpWorld::update(float32 dt)
 		vec3 &ur = (vec3&)tp.world_bounds_ur;
 		kp.particle_size = std::max<float>(kp.particle_size, 0.00001f);
 		kp.max_particles = std::max<int>(kp.max_particles, 128);
-		m_num_active_particles = std::min<int>(m_num_active_particles, kp.max_particles);
+		m_num_particles = std::min<int>(m_num_particles, kp.max_particles);
 		kp.world_div.x = std::max<int>(kp.world_div.x, 1);
 		kp.world_div.y = std::max<int>(kp.world_div.y, 1);
 		kp.world_div.z = std::max<int>(kp.world_div.z, 1);
@@ -351,7 +351,7 @@ void mpWorld::update(float32 dt)
 		});
 
 	// gen hash
-	tbb::parallel_for(tbb::blocked_range<int>(0, (int32)m_num_active_particles, g_particles_par_task),
+	tbb::parallel_for(tbb::blocked_range<int>(0, (int32)m_num_particles, g_particles_par_task),
 		[&](const tbb::blocked_range<int> &r) {
 			for(int i=r.begin(); i!=r.end(); ++i) {
 				vec3 &ppos = (vec3&)m_particles[i].position;
@@ -368,11 +368,11 @@ void mpWorld::update(float32 dt)
 		});
 
 	// パーティクルを hash で sort
-	tbb::parallel_sort(&m_particles[0], &m_particles[0]+m_num_active_particles, 
+	tbb::parallel_sort(&m_particles[0], &m_particles[0]+m_num_particles, 
 		[&](const mpParticle &a, const mpParticle &b) { return a.hash < b.hash; } );
 
 	// パーティクルがどの grid に入っているかを算出
-	tbb::parallel_for(tbb::blocked_range<int>(0, (int32)m_num_active_particles, g_particles_par_task),
+	tbb::parallel_for(tbb::blocked_range<int>(0, (int32)m_num_particles, g_particles_par_task),
 		[&](const tbb::blocked_range<int> &r) {
 			for(int i=r.begin(); i!=r.end(); ++i) {
 				const uint32 G_ID = i;
@@ -384,7 +384,7 @@ void mpWorld::update(float32 dt)
 				uint32 cell_next = (G_ID_NEXT == kp.max_particles) ? -2 : m_particles[G_ID_NEXT].hash;
 				if((cell & 0x80000000) != 0) { // 最上位 bit が立っていたら死んでいる扱い
 					if((cell_prev & 0x80000000) == 0) { // 
-						m_num_active_particles = G_ID;
+						m_num_particles = G_ID;
 					}
 				}
 				else {
@@ -399,10 +399,10 @@ void mpWorld::update(float32 dt)
 	});
 	{
 		if( (m_particles[0].hash & 0x80000000) != 0 ) {
-			m_num_active_particles = 0;
+			m_num_particles = 0;
 		}
 		else if ((m_particles[kp.max_particles - 1].hash & 0x80000000) == 0) {
-			m_num_active_particles = kp.max_particles;
+			m_num_particles = kp.max_particles;
 		}
 	}
 
@@ -593,8 +593,8 @@ void mpWorld::update(float32 dt)
 	// make clone data for GPU
 	{
 		std::unique_lock<std::mutex> lock(m_mutex);
-		int num_particles_needs_copy = std::max<int>(m_num_active_particles, m_num_particles_gpu);
-		m_num_particles_gpu = m_num_active_particles;
+		int num_particles_needs_copy = std::max<int>(m_num_particles, m_num_particles_gpu);
+		m_num_particles_gpu = m_num_particles;
 		if (num_particles_needs_copy > 0) {
 			memcpy(&m_particles_gpu[0], &m_particles[0], sizeof(mpParticle)*num_particles_needs_copy);
 		}
@@ -616,7 +616,7 @@ mpHitData* mpWorld::getHitData()
 		int num_colliders = getNumHitData();
 		if (num_colliders > 0) {
 			memset((void*)&m_hitdata[0], 0, sizeof(mpHitData)*m_hitdata.size());
-			tbb::parallel_for(tbb::blocked_range<int>(0, m_num_active_particles, g_particles_par_task),
+			tbb::parallel_for(tbb::blocked_range<int>(0, m_num_particles, g_particles_par_task),
 				[&](const tbb::blocked_range<int> &r) {
 				mpHitDataCont &hits = m_hitdata_work.local();
 				hits.resize(num_colliders);

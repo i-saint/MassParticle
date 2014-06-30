@@ -127,6 +127,16 @@ struct mpParticle
 	};
 	int32 hit;
 	float32 lifetime;
+
+	mpParticle& operator=(const mpParticle &v)
+	{
+		simd128 *dst = (simd128*)this;
+		simd128 *src = (simd128*)&v;
+		dst[0] = src[0];
+		dst[1] = src[1];
+		dst[2] = src[2];
+		return *this;
+	}
 };
 
 struct mpHitData
@@ -138,26 +148,35 @@ struct mpHitData
 
 	mpHitData() { clear(); }
 	void clear() { memset(this, 0, sizeof(*this));  }
+	mpHitData& operator=(const mpHitData &v)
+	{
+		simd128 *dst = (simd128*)this;
+		simd128 *src = (simd128*)&v;
+		dst[0] = src[0];
+		dst[1] = src[1];
+		dst[2] = src[2];
+		return *this;
+	}
 };
 
 
 inline void* mpAlignedAlloc(size_t size, size_t align)
 {
 #ifdef _MSC_VER
-    return _aligned_malloc(size, align);
+	return _aligned_malloc(size, align);
 #elif defined(__APPLE__)
-    return malloc(size);
+	return malloc(size);
 #else  // _MSC_VER
-    return memalign(align, size);
+	return memalign(align, size);
 #endif // _MSC_VER
 }
 
 inline void mpAlignedFree(void *p)
 {
 #ifdef _MSC_VER
-    _aligned_free(p);
+	_aligned_free(p);
 #else  // _MSC_VER
-    free(p);
+	free(p);
 #endif // _MSC_VER
 }
 
@@ -180,11 +199,11 @@ public:
 	~mpAlignedAllocator() {}
 	pointer address(reference r) { return &r; }
 	const_pointer address(const_reference r) { return &r; }
-	pointer allocate(size_type cnt, const void *p = nullptr) { return (pointer)mpAlignedAlloc(cnt * sizeof(T), Align); }
-	void deallocate(pointer p, size_type) { mpAlignedFree(p); }
+	pointer allocate(size_type cnt, const void *p = nullptr) { p; return (pointer)_aligned_malloc(cnt * sizeof(T), Align); }
+	void deallocate(pointer p, size_type) { _aligned_free(p); }
 	size_type max_size() const { return std::numeric_limits<size_type>::max() / sizeof(T); }
 	void construct(pointer p, const T& t) { new(p)T(t); }
-	void destroy(pointer p) { p->~T(); }
+	void destroy(pointer p) { p; p->~T(); }
 	bool operator==(mpAlignedAllocator const&) { return true; }
 	bool operator!=(mpAlignedAllocator const& a) { return !operator==(a); }
 };
@@ -253,7 +272,7 @@ public:
 
 	int			getNumHitData() const;
 	mpHitData*	getHitData();
-	int			getNumParticles() const	{ return m_num_active_particles; }
+	int			getNumParticles() const	{ return m_num_particles; }
 	mpParticle*	getParticles()			{ return m_particles.empty() ? nullptr : &m_particles[0]; }
 	int			getNumParticlesGPU() const	{ return m_num_particles_gpu; }
 	mpParticle*	getParticlesGPU()			{ return m_particles_gpu.empty() ? nullptr : &m_particles_gpu[0]; }
@@ -269,8 +288,7 @@ private:
 	mpParticleSOACont		m_particles_soa;
 	mpParticleIMDSOACont	m_imd_soa;
 	mpCellCont				m_cells;
-	int						m_num_active_particles;
-	bool					m_trail_enabled;
+	int						m_num_particles;
 
 	mpPlaneColliderCont		m_plane_colliders;
 	mpSphereColliderCont	m_sphere_colliders;
@@ -293,6 +311,10 @@ private:
 	int						m_num_particles_gpu;
 	int						m_num_particles_gpu_prev;
 	mpParticleCont			m_particles_gpu;
+
+	bool					m_trail_enabled;
+	int						m_trail_length;
+	tbb::task				*m_trail_update_task;
 	mpTrailCont				m_trail;
 };
 

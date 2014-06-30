@@ -27,17 +27,17 @@ istForceInline simdvec4 sub(simdvec4 a, simdvec4 b) { return _mm_sub_ps(a, b); }
 istForceInline simdvec4 mul(simdvec4 a, simdvec4 b) { return _mm_mul_ps(a, b); }
 istForceInline simdvec4 div(simdvec4 a, simdvec4 b) { return _mm_div_ps(a, b); }
 
-istForceInline simdvec4i addeq(simdvec4i a, simdvec4i b) { return _mm_add_epi32(a, b); }
-istForceInline simdvec4i subeq(simdvec4i a, simdvec4i b) { return _mm_sub_epi32(a, b); }
+//istForceInline simdvec4i addeq(simdvec4i a, simdvec4i b) { return _mm_add_epi32(a, b); }
+//istForceInline simdvec4i subeq(simdvec4i a, simdvec4i b) { return _mm_sub_epi32(a, b); }
 //istForceInline simdvec4i muleq(simdvec4i a, simdvec4i b) { return _mm_mul_epi32(a, b); }
 
-istForceInline simdvec4& addeq(simdvec4 &a, simdvec4 b) { return (a = a + b); }
-istForceInline simdvec4& subeq(simdvec4 &a, simdvec4 b) { return (a = a - b); }
-istForceInline simdvec4& muleq(simdvec4 &a, simdvec4 b) { return (a = a * b); }
-istForceInline simdvec4& diveq(simdvec4 &a, simdvec4 b) { return (a = a / b); }
-istForceInline simdvec4i& addeq(simdvec4i &a, simdvec4i b) { return (a = a + b); }
-istForceInline simdvec4i& subeq(simdvec4i &a, simdvec4i b) { return (a = a - b); }
-istForceInline simdvec4i& muleq(simdvec4i &a, simdvec4i b) { return (a = a * b); }
+istForceInline simdvec4& addeq(simdvec4 &a, simdvec4 b) { return (a = add(a,b)); }
+istForceInline simdvec4& subeq(simdvec4 &a, simdvec4 b) { return (a = sub(a,b)); }
+istForceInline simdvec4& muleq(simdvec4 &a, simdvec4 b) { return (a = mul(a,b)); }
+istForceInline simdvec4& diveq(simdvec4 &a, simdvec4 b) { return (a = div(a,b)); }
+//istForceInline simdvec4i& addeq(simdvec4i &a, simdvec4i b) { return (a = add(a,b)); }
+//istForceInline simdvec4i& subeq(simdvec4i &a, simdvec4i b) { return (a = sub(a,b)); }
+//istForceInline simdvec4i& muleq(simdvec4i &a, simdvec4i b) { return (a = mul(a,b)); }
 
 //istForceInline simdvec8 addeq(simdvec8 a, simdvec8 b) { return _mm256_add_ps(a, b); }
 //istForceInline simdvec8 subeq(simdvec8 a, simdvec8 b) { return _mm256_sub_ps(a, b); }
@@ -486,19 +486,19 @@ istForceInline vec4soa3 operator/(const vec4soa3 &a, const simdvec4 &b)
 istForceInline vec4soa4 operator/(const vec4soa4 &a, const simdvec4 &b)
     { return vec4soa4(div(a[0],b), div(a[1],b), div(a[2],b), div(a[3],b)); }
 
-istForceInline simdvec4 reduce_add2(const vec4soa2 &v) { return v[0] + v[1]; }
-istForceInline simdvec4 reduce_add2(const vec4soa3 &v) { return v[0] + v[1]; }
-istForceInline simdvec4 reduce_add2(const vec4soa4 &v) { return v[0] + v[1]; }
-istForceInline simdvec4 reduce_add3(const vec4soa3 &v) { return v[0] + v[1] + v[2]; }
-istForceInline simdvec4 reduce_add3(const vec4soa4 &v) { return v[0] + v[1] + v[2]; }
-istForceInline simdvec4 reduce_add4(const vec4soa4 &v) { return v[0] + v[1] + v[2] + v[3]; }
+istForceInline simdvec4 reduce_add2(const vec4soa2 &v) { return add(v[0],v[1]); }
+istForceInline simdvec4 reduce_add2(const vec4soa3 &v) { return add(v[0],v[1]); }
+istForceInline simdvec4 reduce_add2(const vec4soa4 &v) { return add(v[0],v[1]); }
+istForceInline simdvec4 reduce_add3(const vec4soa3 &v) { return add(add(v[0],v[1]),v[2]); }
+istForceInline simdvec4 reduce_add3(const vec4soa4 &v) { return add(add(v[0],v[1]),v[2]); }
+istForceInline simdvec4 reduce_add4(const vec4soa4 &v) { return add(add(v[0],v[1]),add(v[2],v[3])); }
 
-istForceInline simdvec4 dot2(const vec4soa2 &v1, const vec4soa2 &v2) { return v1[0]*v2[0] + v1[1]*v2[1]; }
-istForceInline simdvec4 dot2(const vec4soa3 &v1, const vec4soa3 &v2) { return v1[0]*v2[0] + v1[1]*v2[1]; }
-istForceInline simdvec4 dot2(const vec4soa4 &v1, const vec4soa4 &v2) { return v1[0]*v2[0] + v1[1]*v2[1]; }
-istForceInline simdvec4 dot3(const vec4soa3 &v1, const vec4soa3 &v2) { return v1[0]*v2[0] + v1[1]*v2[1] + v1[2]*v2[2]; }
-istForceInline simdvec4 dot3(const vec4soa4 &v1, const vec4soa4 &v2) { return v1[0]*v2[0] + v1[1]*v2[1] + v1[2]*v2[2]; }
-istForceInline simdvec4 dot4(const vec4soa4 &v1, const vec4soa4 &v2) { return v1[0]*v2[0] + v1[1]*v2[1] + v1[2]*v2[2] + v1[3]*v2[3]; }
+istForceInline simdvec4 dot2(const vec4soa2 &v1, const vec4soa2 &v2) { return add(mul(v1[0],v2[0]), mul(v1[1], v2[1])); }
+istForceInline simdvec4 dot2(const vec4soa3 &v1, const vec4soa3 &v2) { return add(mul(v1[0],v2[0]), mul(v1[1], v2[1])); }
+istForceInline simdvec4 dot2(const vec4soa4 &v1, const vec4soa4 &v2) { return add(mul(v1[0],v2[0]), mul(v1[1], v2[1])); }
+istForceInline simdvec4 dot3(const vec4soa3 &v1, const vec4soa3 &v2) { return add(add(mul(v1[0],v2[0]), mul(v1[1], v2[1])), mul(v1[2], v2[2])); }
+istForceInline simdvec4 dot3(const vec4soa4 &v1, const vec4soa4 &v2) { return add(add(mul(v1[0],v2[0]), mul(v1[1], v2[1])), mul(v1[2], v2[2])); }
+istForceInline simdvec4 dot4(const vec4soa4 &v1, const vec4soa4 &v2) { return add(add(mul(v1[0],v2[0]), mul(v1[1], v2[1])), add(mul(v1[2], v2[2]), mul(v1[3], v2[3]))); }
 
 istForceInline simdvec4 length_sq2(const vec4soa2 &v1) { return dot2(v1, v1); }
 istForceInline simdvec4 length_sq2(const vec4soa3 &v1) { return dot2(v1, v1); }
