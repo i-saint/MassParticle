@@ -189,6 +189,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\mpRendererD3D11.cpp" />
+    <ClCompile Include="..\mpRendererOpenGL.cpp" />
     <ClCompile Include="..\mpTypes.cpp" />
     <ClCompile Include="..\MassParticle.cpp" />
     <ClCompile Include="..\tasksys.cpp" />

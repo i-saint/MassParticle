@@ -1,3 +1,6 @@
+#include "UnityPluginInterface.h"
+
+#if SUPPORT_D3D11
 #pragma warning( disable : 4996 ) // _s じゃない CRT 関数使うと出るやつ
 #pragma warning( disable : 4005 ) // DirectX のマクロの redefinition
 
@@ -6,8 +9,6 @@
 #include <d3dx11.h>
 #include <d3dcompiler.h>
 #include <cstdio>
-#include "resource.h"
-
 #include "mpTypes.h"
 #include "mpCore_ispc.h"
 #include "MassParticle.h"
@@ -448,3 +449,4 @@ void mpRendererD3D11::updateDataTexture(void *texptr, const void *data, size_t d
 	ID3D11Texture2D *tex = (ID3D11Texture2D*)texptr;
 	m_pImmediateContext->UpdateSubresource(tex, 0, &box, data, mpDataTextureWidth * 16, 0);
 }
+#endif // SUPPORT_D3D11

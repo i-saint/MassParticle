@@ -120,7 +120,7 @@ struct ForceProperties
 	float	vortex_pull;
 
 	float	directional_plane_distance;
-	float rcp_range;
+	float	rcp_range;
 };
 
 struct Force

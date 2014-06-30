@@ -11,6 +11,7 @@ SubShader {
 		
 	CGPROGRAM
 	#pragma surface surf Lambert vertex:vert
+	#pragma glsl
 
 	sampler2D _MainTex;
 	sampler2D _DataTex;
@@ -69,6 +70,7 @@ SubShader {
 		#pragma vertex vert
 		#pragma fragment frag
 		#pragma multi_compile_shadowcaster
+		#pragma glsl
 		#include "UnityCG.cginc"
 
 		sampler2D _MainTex;
@@ -115,6 +117,7 @@ SubShader {
 		#pragma vertex vert
 		#pragma fragment frag
 		#pragma multi_compile_shadowcollector
+		#pragma glsl
 		#define SHADOW_COLLECTOR_PASS
 		#include "UnityCG.cginc"
 
