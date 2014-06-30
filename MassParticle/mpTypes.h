@@ -1,6 +1,8 @@
 #ifndef _SPH_types_h_
 #define _SPH_types_h_
 
+#define GLM_FORCE_RADIANS
+
 #include <vector>
 #include <mutex>
 #include <glm/glm.hpp>
@@ -17,6 +19,12 @@
 #undef max
 #undef min
 #endif // max
+
+#ifdef _MSC_VER
+#   define mpCountof(exp) _countof(exp)
+#else
+#   define mpCountof(exp) (sizeof(exp)/sizeof(exp[0]))
+#endif
 
 typedef short           int16;
 typedef unsigned short  uint16;
@@ -133,6 +141,27 @@ struct mpHitData
 };
 
 
+inline void* mpAlignedAlloc(size_t size, size_t align)
+{
+#ifdef _MSC_VER
+    return _aligned_malloc(size, align);
+#elif defined(__APPLE__)
+    return malloc(size);
+#else  // _MSC_VER
+    return memalign(align, size);
+#endif // _MSC_VER
+}
+
+inline void mpAlignedFree(void *p)
+{
+#ifdef _MSC_VER
+    _aligned_free(p);
+#else  // _MSC_VER
+    free(p);
+#endif // _MSC_VER
+}
+
+
 template<typename T, int Align=32>
 class mpAlignedAllocator {
 public:
@@ -151,11 +180,11 @@ public:
 	~mpAlignedAllocator() {}
 	pointer address(reference r) { return &r; }
 	const_pointer address(const_reference r) { return &r; }
-	pointer allocate(size_type cnt, const void *p = nullptr) { p; return (pointer)_aligned_malloc(cnt * sizeof(T), Align); }
-	void deallocate(pointer p, size_type) { _aligned_free(p); }
+	pointer allocate(size_type cnt, const void *p = nullptr) { return (pointer)mpAlignedAlloc(cnt * sizeof(T), Align); }
+	void deallocate(pointer p, size_type) { mpAlignedFree(p); }
 	size_type max_size() const { return std::numeric_limits<size_type>::max() / sizeof(T); }
 	void construct(pointer p, const T& t) { new(p)T(t); }
-	void destroy(pointer p) { p; p->~T(); }
+	void destroy(pointer p) { p->~T(); }
 	bool operator==(mpAlignedAllocator const&) { return true; }
 	bool operator!=(mpAlignedAllocator const& a) { return !operator==(a); }
 };

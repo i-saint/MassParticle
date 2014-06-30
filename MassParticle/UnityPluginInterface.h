@@ -3,7 +3,7 @@
 // Which platform we are on?
 #if _MSC_VER
 #define UNITY_WIN 1
-#else
+#elif defined(__APPLE__)
 #define UNITY_OSX 1
 #endif
 
@@ -37,7 +37,8 @@
 #if UNITY_WIN
 #include <gl/GL.h>
 #else
-#include <OpenGL/OpenGL.h>
+#include <OpenGL/gl.h>
+#include <OpenGL/glext.h>
 #endif
 #endif
 

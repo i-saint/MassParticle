@@ -219,7 +219,7 @@ inline void mpBuildBoxCollider(mpBoxCollider &o, mat4 transform, vec3 size)
 		simdvec4(-size.x, -size.y, -size.z, 0.0f),
 		simdvec4(size.x, -size.y, -size.z, 0.0f),
 	};
-	for (int i = 0; i < _countof(vertices); ++i) {
+	for (int i = 0; i < mpCountof(vertices); ++i) {
 		vertices[i] = st * vertices[i];
 	}
 
@@ -245,7 +245,7 @@ inline void mpBuildBoxCollider(mpBoxCollider &o, mat4 transform, vec3 size)
 		(vec3&)o.shape.planes[i].normal = (vec3&)normals[i];
 		o.shape.planes[i].distance = distances[i];
 	}
-	for (int i = 0; i < _countof(vertices); ++i) {
+	for (int i = 0; i < mpCountof(vertices); ++i) {
 		vec3 p = (vec3&)vertices[i];
 		if (i == 0) {
 			(vec3&)o.bounds.bl = p;

@@ -1,6 +1,6 @@
-#include <windows.h>
 #include <string>
 #include "UnityPluginInterface.h"
+
 
 extern "C" EXPORT_API void mphInitialize()
 {
@@ -10,6 +10,8 @@ extern "C" EXPORT_API void mphInitialize()
 
 		std::string path;
 		path.resize(1024 * 64);
+
+#ifdef _MSC_VER
 		DWORD ret = ::GetEnvironmentVariableA("PATH", &path[0], path.size());
 		path.resize(ret);
 		{
@@ -27,5 +29,8 @@ extern "C" EXPORT_API void mphInitialize()
 			path += path_to_this_module;
 		}
 		::SetEnvironmentVariableA("PATH", path.c_str());
+#elif defined(__APPLE__)
+
+#endif
 	}
 }

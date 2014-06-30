@@ -46,7 +46,7 @@ void mpRendererOpenGL::updateDataTexture(void *tex, const void *data, size_t dat
 	ivec2 pos = ivec2(0, 0);
 	ivec2 size = ivec2(mpDataTextureWidth, ceildiv(num_texels, mpDataTextureWidth));
 
-	glBindTexture(GL_TEXTURE_2D, (GLuint)tex);
+	glBindTexture(GL_TEXTURE_2D, (GLuint)(size_t)tex);
 	glTexSubImage2D(GL_TEXTURE_2D, 0, pos.x, pos.y, size.x, size.y, GL_RGBA, GL_FLOAT, data);
 	glBindTexture(GL_TEXTURE_2D, 0);
 }
