@@ -2,6 +2,7 @@
 #define _SPH_types_h_
 
 #define GLM_FORCE_RADIANS
+#define __SSSE3__
 
 #include <vector>
 #include <mutex>
