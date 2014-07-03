@@ -76,15 +76,17 @@ extern "C" EXPORT_API void mpSetKernelParams(ispc::KernelParams *params)
 	g_mpWorld.setKernelParams(*(mpKernelParams*)params);
 }
 
-extern "C" EXPORT_API void mpSetViewProjectionMatrix(mat4 view, mat4 proj, vec3 camerapos)
+extern "C" EXPORT_API void mpSetViewProjectionMatrix(mat4 *_view, mat4 *_proj, vec3 *camerapos)
 {
+    mat4 &view = *_view;
+    mat4 &proj = *_proj;
 	proj[0][2] = proj[0][2]*0.5f + proj[0][3]*0.5f;
 	proj[1][2] = proj[1][2]*0.5f + proj[1][3]*0.5f;
 	proj[2][2] = proj[2][2]*0.5f + proj[2][3]*0.5f;
 	proj[3][2] = proj[3][2]*0.5f + proj[3][3]*0.5f;
 
 	mat4 viewproj = proj*view;
-	g_mpWorld.setViewProjection(viewproj, camerapos);
+	g_mpWorld.setViewProjection(viewproj, *camerapos);
 }
 
 
@@ -118,7 +120,7 @@ extern "C" EXPORT_API void mpWriteParticles(const mpParticle *from)
 }
 
 
-extern "C" EXPORT_API void mpScatterParticlesSphere(vec3 center, float radius, int32_t num, vec3 vel_base, float vel_diffuse)
+extern "C" EXPORT_API void mpScatterParticlesSphere(vec3 *center, float radius, int32_t num, vec3 *vel_base, float vel_diffuse)
 {
 	if (num <= 0) { return; }
 
@@ -126,11 +128,11 @@ extern "C" EXPORT_API void mpScatterParticlesSphere(vec3 center, float radius, i
 	for (size_t i = 0; i < particles.size(); ++i) {
 		float l = mpGenRand()*radius;
 		vec3 dir = glm::normalize(vec3(mpGenRand(), mpGenRand(), mpGenRand()));
-		vec3 pos = center + dir*l;
+		vec3 pos = *center + dir*l;
 		vec3 vel = vec3(
-			vel_base.x + mpGenRand()*vel_diffuse,
-			vel_base.y + mpGenRand()*vel_diffuse,
-			vel_base.z + mpGenRand()*vel_diffuse );
+			vel_base->x + mpGenRand()*vel_diffuse,
+			vel_base->y + mpGenRand()*vel_diffuse,
+			vel_base->z + mpGenRand()*vel_diffuse );
 
 		(vec3&)particles[i].velocity = vel;
 		(vec3&)particles[i].position = pos;
@@ -138,17 +140,17 @@ extern "C" EXPORT_API void mpScatterParticlesSphere(vec3 center, float radius, i
 	g_mpWorld.addParticles(&particles[0], particles.size());
 }
 
-extern "C" EXPORT_API void mpScatterParticlesBox(vec3 center, vec3 size, int32_t num, vec3 vel_base, float vel_diffuse)
+extern "C" EXPORT_API void mpScatterParticlesBox(vec3 *center, vec3 *size, int32_t num, vec3 *vel_base, float vel_diffuse)
 {
 	if (num <= 0) { return; }
 
 	mpParticleCont particles(num);
 	for (size_t i = 0; i < particles.size(); ++i) {
-		vec3 pos = center + vec3(mpGenRand()*size.x, mpGenRand()*size.y, mpGenRand()*size.z);
+		vec3 pos = *center + vec3(mpGenRand()*size->x, mpGenRand()*size->y, mpGenRand()*size->z);
 		vec3 vel = vec3(
-			vel_base.x + mpGenRand()*vel_diffuse,
-			vel_base.y + mpGenRand()*vel_diffuse,
-			vel_base.z + mpGenRand()*vel_diffuse);
+			vel_base->x + mpGenRand()*vel_diffuse,
+			vel_base->y + mpGenRand()*vel_diffuse,
+			vel_base->z + mpGenRand()*vel_diffuse);
 
 		(vec3&)particles[i].position = pos;
 		(vec3&)particles[i].velocity = vel;
@@ -157,21 +159,21 @@ extern "C" EXPORT_API void mpScatterParticlesBox(vec3 center, vec3 size, int32_t
 }
 
 
-extern "C" EXPORT_API void mpScatterParticlesSphereTransform(mat4 transform, int32_t num, vec3 vel_base, float vel_diffuse)
+extern "C" EXPORT_API void mpScatterParticlesSphereTransform(mat4 *transform, int32_t num, vec3 *vel_base, float vel_diffuse)
 {
 	if (num <= 0) { return; }
 
 	mpParticleCont particles(num);
-	simdmat4 mat(transform);
+	simdmat4 mat(*transform);
 	for (size_t i = 0; i < particles.size(); ++i) {
 		vec3 dir = glm::normalize(vec3(mpGenRand(), mpGenRand(), mpGenRand()));
 		float l = mpGenRand()*0.5f;
 		simdvec4 pos = simdvec4(dir*l, 1.0f);
 		pos = mat * pos;
 		vec3 vel = vec3(
-			vel_base.x + mpGenRand()*vel_diffuse,
-			vel_base.y + mpGenRand()*vel_diffuse,
-			vel_base.z + mpGenRand()*vel_diffuse);
+			vel_base->x + mpGenRand()*vel_diffuse,
+			vel_base->y + mpGenRand()*vel_diffuse,
+			vel_base->z + mpGenRand()*vel_diffuse);
 
 		(vec3&)particles[i].position = (vec3&)pos;
 		(vec3&)particles[i].velocity = vel;
@@ -179,19 +181,19 @@ extern "C" EXPORT_API void mpScatterParticlesSphereTransform(mat4 transform, int
 	g_mpWorld.addParticles(&particles[0], particles.size());
 }
 
-extern "C" EXPORT_API void mpScatterParticlesBoxTransform(mat4 transform, int32_t num, vec3 vel_base, float vel_diffuse)
+extern "C" EXPORT_API void mpScatterParticlesBoxTransform(mat4 *transform, int32_t num, vec3 *vel_base, float vel_diffuse)
 {
 	if (num <= 0) { return; }
 
 	mpParticleCont particles(num);
-	simdmat4 mat(transform);
+	simdmat4 mat(*transform);
 	for (size_t i = 0; i < particles.size(); ++i) {
 		simdvec4 pos(mpGenRand()*0.5f, mpGenRand()*0.5f, mpGenRand()*0.5f, 1.0f);
 		pos = mat * pos;
 		vec3 vel = vec3(
-			vel_base.x + mpGenRand()*vel_diffuse,
-			vel_base.y + mpGenRand()*vel_diffuse,
-			vel_base.z + mpGenRand()*vel_diffuse);
+			vel_base->x + mpGenRand()*vel_diffuse,
+			vel_base->y + mpGenRand()*vel_diffuse,
+			vel_base->z + mpGenRand()*vel_diffuse);
 
 		(vec3&)particles[i].position = (vec3&)pos;
 		(vec3&)particles[i].velocity = vel;
@@ -283,32 +285,33 @@ inline void mpBuildCapsuleCollider(mpCapsuleCollider &o, vec3 pos1, vec3 pos2, f
 }
 
 
-extern "C" EXPORT_API void mpAddBoxCollider(mpColliderProperties *props, mat4 transform, vec3 size)
+extern "C" EXPORT_API void mpAddBoxCollider(mpColliderProperties *props, mat4 *transform, vec3 *size)
 {
 	mpBoxCollider col;
 	col.props = *props;
-	mpBuildBoxCollider(col, transform, size);
+	mpBuildBoxCollider(col, *transform, *size);
 	g_mpWorld.addBoxColliders(&col, 1);
 }
 
-extern "C" EXPORT_API void mpAddSphereCollider(mpColliderProperties *props, vec3 center, float radius)
+extern "C" EXPORT_API void mpAddSphereCollider(mpColliderProperties *props, vec3 *center, float radius)
 {
 	mpSphereCollider col;
 	col.props = *props;
-	mpBuildSphereCollider(col, center, radius);
+	mpBuildSphereCollider(col, *center, radius);
 	g_mpWorld.addSphereColliders(&col, 1);
 }
 
-extern "C" EXPORT_API void mpAddCapsuleCollider(mpColliderProperties *props, vec3 pos1, vec3 pos2, float radius)
+extern "C" EXPORT_API void mpAddCapsuleCollider(mpColliderProperties *props, vec3 *pos1, vec3 *pos2, float radius)
 {
 	mpCapsuleCollider col;
 	col.props = *props;
-	mpBuildCapsuleCollider(col, pos1, pos2, radius);
+	mpBuildCapsuleCollider(col, *pos1, *pos2, radius);
 	g_mpWorld.addCapsuleColliders(&col, 1);
 }
 
-extern "C" EXPORT_API void mpAddForce(mpForceProperties *props, mat4 trans)
+extern "C" EXPORT_API void mpAddForce(mpForceProperties *props, mat4 *_trans)
 {
+    mat4 &trans = *_trans;
 	mpForce force;
 	force.props = *props;
 	force.props.rcp_range = 1.0f / (force.props.range_outer - force.props.range_inner);

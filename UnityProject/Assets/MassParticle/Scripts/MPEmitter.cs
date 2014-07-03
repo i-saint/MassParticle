@@ -39,13 +39,14 @@ public class MPEmitter : MonoBehaviour {
 
 	public void MPUpdate()
 	{
+		Matrix4x4 mat = transform.localToWorldMatrix;
 		switch (shape) {
 		case Shape.Sphere:
-			MPAPI.mpScatterParticlesSphereTransform (transform.localToWorldMatrix, emitCount, velosityBase, velosityDiffuse);
+			MPAPI.mpScatterParticlesSphereTransform (ref mat, emitCount, ref velosityBase, velosityDiffuse);
 			break;
 
 		case Shape.Box:
-			MPAPI.mpScatterParticlesBoxTransform (transform.localToWorldMatrix, emitCount, velosityBase, velosityDiffuse);
+			MPAPI.mpScatterParticlesBoxTransform (ref mat, emitCount, ref velosityBase, velosityDiffuse);
 			break;
 		}
 	}

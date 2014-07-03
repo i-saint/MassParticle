@@ -326,7 +326,7 @@ inline int mpMSB(int a)
 	_BitScanReverse(&r, (ULONG)a);
 	return (int)r;
 #else  // _MSC_VER
-	return __builtin_clz(a);
+	return a==0 ? 0 : 31 - __builtin_clz(a);
 #endif // _MSC_VER
 }
 

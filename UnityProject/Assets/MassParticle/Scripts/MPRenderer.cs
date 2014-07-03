@@ -190,7 +190,10 @@ public unsafe class MPRenderer : MonoBehaviour
 			UnityEngine.Camera cam = UnityEngine.Camera.current;
 			if (cam)
 			{
-				MPAPI.mpSetViewProjectionMatrix(cam.worldToCameraMatrix, cam.projectionMatrix, cam.transform.position);
+				Matrix4x4 view = cam.worldToCameraMatrix;
+				Matrix4x4 proj = cam.projectionMatrix;
+				Vector3 pos = cam.transform.position;
+				MPAPI.mpSetViewProjectionMatrix(ref view, ref proj, ref pos);
 			}
 			GL.IssuePluginEvent(1);
 		}

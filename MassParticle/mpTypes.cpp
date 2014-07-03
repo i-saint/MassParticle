@@ -136,10 +136,10 @@ inline uint32 mpGenHash(mpWorld &world, const mpParticle &particle)
 	vec3 &rcpCell = (vec3&)t.rcp_cell_size;
 	vec3 &ppos = (vec3&)particle.position;
 
-	uint32 r =  clamp<int32>(int32((ppos.x-bl.x)*rcpCell.x), 0, p.world_div.x-1) |
-				(clamp<int32>(int32((ppos.z-bl.z)*rcpCell.z), 0, p.world_div.z-1) << (t.world_div_bits.x)) |
-				(clamp<int32>(int32((ppos.y-bl.y)*rcpCell.y), 0, p.world_div.y-1) << (t.world_div_bits.x+t.world_div_bits.z)) ;
-
+	uint32 xb = clamp<int32>(int32((ppos.x-bl.x)*rcpCell.x), 0, p.world_div.x-1);
+	uint32 zb =	clamp<int32>(int32((ppos.z-bl.z)*rcpCell.z), 0, p.world_div.z-1) << (t.world_div_bits.x);
+	uint32 yb = clamp<int32>(int32((ppos.y-bl.y)*rcpCell.y), 0, p.world_div.y-1) << (t.world_div_bits.x+t.world_div_bits.z);
+    uint32 r = xb | zb | yb;
 	if(particle.lifetime<=0.0f) { r |= 0x80000000; }
 	return r;
 }

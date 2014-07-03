@@ -40,7 +40,7 @@ public unsafe class MPWorld : MonoBehaviour {
 
 	MPWorld()
 	{
-		MPAPI.mphInitialize();
+		//MPAPI.mphInitialize();
 		particleProcessor = DefaultParticleProcessor;
 		gatheredHitProcessor = DefaultGatheredHitProcessor;
 	}
@@ -175,7 +175,8 @@ public unsafe class MPWorld : MonoBehaviour {
 				BoxCollider box = col as BoxCollider;
 				if (sphere)
 				{
-					MPAPI.mpAddSphereCollider(ref cprops, sphere.transform.position, sphere.radius * col.gameObject.transform.localScale.magnitude * 0.5f);
+					Vector3 pos = sphere.transform.position;
+					MPAPI.mpAddSphereCollider(ref cprops, ref pos, sphere.radius * col.gameObject.transform.localScale.magnitude * 0.5f);
 				}
 				else if (capsule)
 				{
@@ -192,11 +193,15 @@ public unsafe class MPWorld : MonoBehaviour {
 					Vector4 pos2 = new Vector4(-e.x, -e.y, -e.z, 1.0f);
 					pos1 = capsule.transform.localToWorldMatrix * pos1;
 					pos2 = capsule.transform.localToWorldMatrix * pos2;
-					MPAPI.mpAddCapsuleCollider(ref cprops, pos1, pos2, r);
+					Vector3 pos13 = pos1;
+					Vector3 pos23 = pos2;
+					MPAPI.mpAddCapsuleCollider(ref cprops, ref pos13, ref pos23, r);
 				}
 				else if (box)
 				{
-					MPAPI.mpAddBoxCollider(ref cprops, box.transform.localToWorldMatrix, box.size);
+					Matrix4x4 mat = box.transform.localToWorldMatrix;
+					Vector3 size = box.size;
+					MPAPI.mpAddBoxCollider(ref cprops, ref mat, ref size);
 				}
 			}
 		}
@@ -233,11 +238,14 @@ public unsafe class MPWorld : MonoBehaviour {
 				BoxCollider2D box = col as BoxCollider2D;
 				if (sphere)
 				{
-					MPAPI.mpAddSphereCollider(ref cprops, sphere.transform.position, sphere.radius * col.gameObject.transform.localScale.x);
+					Vector3 pos = sphere.transform.position;
+					MPAPI.mpAddSphereCollider(ref cprops, ref pos, sphere.radius * col.gameObject.transform.localScale.x);
 				}
 				else if (box)
 				{
-					MPAPI.mpAddBoxCollider(ref cprops, box.transform.localToWorldMatrix, new Vector3(box.size.x, box.size.y, box.size.x));
+					Matrix4x4 mat = box.transform.localToWorldMatrix;
+					Vector3 size = new Vector3(box.size.x, box.size.y, box.size.x);
+					MPAPI.mpAddBoxCollider(ref cprops, ref mat, ref size);
 				}
 			}
 		}

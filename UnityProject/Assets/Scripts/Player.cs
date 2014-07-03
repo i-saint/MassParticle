@@ -62,7 +62,7 @@ public class Player : MonoBehaviour {
 		fprops.strength_near = strength;
 		fprops.strength_far = strength;
 		fprops.radial_center = pos - (trans.forward * 6.0f);
-		MPAPI.mpAddForce(ref fprops, blowMatrix);
+		MPAPI.mpAddForce(ref fprops, ref blowMatrix);
 	}
 	
 	void OnDrawGizmos()

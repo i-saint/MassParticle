@@ -54,16 +54,25 @@ public class MPCollider : MPColliderAttribute
 			switch (shape)
 			{
 			case Shape.Sphere:
-					MPAPI.mpAddSphereCollider(ref cprops, trans.position, trans.localScale.magnitude * 0.25f);
+			{
+				Vector3 pos = trans.position;
+				MPAPI.mpAddSphereCollider(ref cprops, ref pos, trans.localScale.magnitude * 0.25f);
+			}
 				break;
 			case Shape.Capsule:
-				{
-					UpdateCapsule();
-					MPAPI.mpAddCapsuleCollider(ref cprops, pos1, pos2, radius);
-				}
+			{
+				UpdateCapsule();
+				Vector3 pos13 = pos1;
+				Vector3 pos23 = pos2;
+				MPAPI.mpAddCapsuleCollider(ref cprops, ref pos13, ref pos23, radius);
+			}
 				break;
 			case Shape.Box:
-				MPAPI.mpAddBoxCollider(ref cprops, trans.localToWorldMatrix, Vector3.one);
+			{
+				Matrix4x4 mat = trans.localToWorldMatrix;
+				Vector3 one = Vector3.one;
+				MPAPI.mpAddBoxCollider(ref cprops, ref mat, ref one);
+			}
 				break;
 			}
 		}

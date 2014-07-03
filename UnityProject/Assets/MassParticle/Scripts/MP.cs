@@ -157,7 +157,7 @@ public class MPAPI {
 	[DllImport ("MassParticle")] public static extern void mpUpdate (float dt);
 	[DllImport ("MassParticle")] public static extern void mpClearParticles();
 	[DllImport ("MassParticle")] public static extern void mpClearCollidersAndForces();
-	[DllImport ("MassParticle")] public static extern void mpSetViewProjectionMatrix(Matrix4x4 view, Matrix4x4 proj, Vector3 cameraPos);
+	[DllImport ("MassParticle")] public static extern void mpSetViewProjectionMatrix(ref Matrix4x4 view, ref Matrix4x4 proj, ref Vector3 cameraPos);
 	[DllImport ("MassParticle")] public static extern MPKernelParams mpGetKernelParams();
 	[DllImport ("MassParticle")] public static extern void mpSetKernelParams(ref MPKernelParams p);
 
@@ -167,15 +167,15 @@ public class MPAPI {
 	[DllImport ("MassParticle")] unsafe public static extern MPParticle* mpGetParticles();
 	[DllImport ("MassParticle")] unsafe public static extern void mpCopyParticles (MPParticle *dst);
 	[DllImport ("MassParticle")] unsafe public static extern void mpWriteParticles(MPParticle *from);
-	[DllImport ("MassParticle")] public static extern void mpScatterParticlesSphere(Vector3 center, float radius, int num, Vector3 velBase, float velDiffuse);
-	[DllImport ("MassParticle")] public static extern void mpScatterParticlesBox(Vector3 center, Vector3 size, int num, Vector3 velBase, float velDiffuse);
-	[DllImport ("MassParticle")] public static extern void mpScatterParticlesSphereTransform(Matrix4x4 trans, int num, Vector3 velBase, float velDiffuse);
-	[DllImport ("MassParticle")] public static extern void mpScatterParticlesBoxTransform(Matrix4x4 trans, int num, Vector3 velBase, float velDiffuse);
+	[DllImport ("MassParticle")] public static extern void mpScatterParticlesSphere(ref Vector3 center, float radius, int num, ref Vector3 velBase, float velDiffuse);
+	[DllImport ("MassParticle")] public static extern void mpScatterParticlesBox(ref Vector3 center, ref Vector3 size, int num, ref Vector3 velBase, float velDiffuse);
+	[DllImport ("MassParticle")] public static extern void mpScatterParticlesSphereTransform(ref Matrix4x4 trans, int num, ref Vector3 velBase, float velDiffuse);
+	[DllImport ("MassParticle")] public static extern void mpScatterParticlesBoxTransform(ref Matrix4x4 trans, int num, ref Vector3 velBase, float velDiffuse);
 
-	[DllImport ("MassParticle")] public static extern void mpAddSphereCollider(ref MPColliderProperties props, Vector3 center, float radius);
-	[DllImport ("MassParticle")] public static extern void mpAddCapsuleCollider(ref MPColliderProperties props, Vector3 pos1, Vector3 pos2, float radius);
-	[DllImport ("MassParticle")] public static extern void mpAddBoxCollider(ref MPColliderProperties props, Matrix4x4 transform, Vector3 size);
-	[DllImport ("MassParticle")] public static extern void mpAddForce (ref MPForceProperties regionType, Matrix4x4 regionMat);
+	[DllImport ("MassParticle")] public static extern void mpAddSphereCollider(ref MPColliderProperties props, ref Vector3 center, float radius);
+	[DllImport ("MassParticle")] public static extern void mpAddCapsuleCollider(ref MPColliderProperties props, ref Vector3 pos1, ref Vector3 pos2, float radius);
+	[DllImport ("MassParticle")] public static extern void mpAddBoxCollider(ref MPColliderProperties props, ref Matrix4x4 transform, ref Vector3 size);
+	[DllImport ("MassParticle")] public static extern void mpAddForce (ref MPForceProperties regionType, ref Matrix4x4 regionMat);
 
 }
 
@@ -194,7 +194,7 @@ public class MPUtils
 		p.attenuation_exp = 0.5f;
 		p.range_inner = 0.0f;
 		p.range_outer = radius;
-		MPAPI.mpAddForce(ref p, mat);
+		MPAPI.mpAddForce(ref p, ref mat);
 	}
 
 	public static void CallParticleHitHandler(MPWorld world, GameObject obj, ref MPParticle particle)

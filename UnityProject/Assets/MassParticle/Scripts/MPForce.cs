@@ -55,7 +55,8 @@ public class MPForce : MonoBehaviour {
 		fprops.range_inner = rangeInner;
 		fprops.range_outer = rangeOuter;
 		fprops.attenuation_exp = attenuationExp;
-		MPAPI.mpAddForce(ref fprops, transform.localToWorldMatrix);
+		Matrix4x4 mat = transform.localToWorldMatrix;
+		MPAPI.mpAddForce(ref fprops, ref mat);
 	}
 	
 	
