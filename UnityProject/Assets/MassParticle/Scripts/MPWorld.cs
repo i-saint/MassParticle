@@ -40,7 +40,9 @@ public unsafe class MPWorld : MonoBehaviour {
 
 	MPWorld()
 	{
-		//MPAPI.mphInitialize();
+#if UNITY_EDITOR_WIN || UNITY_STANDALONE_WIN
+		MPAPI.mphInitialize();
+#endif
 		particleProcessor = DefaultParticleProcessor;
 		gatheredHitProcessor = DefaultGatheredHitProcessor;
 	}
