@@ -179,7 +179,7 @@
 				}
 			}
 
-			float4 c = float4(float3(0.3, 0.25, 1.5) * vg, 0.0);
+			float4 c = float4(float3(0.45, 0.4, 2.0) * vg, 0.0);
 			ps_out r = {c,c};
 			return r;
 		}

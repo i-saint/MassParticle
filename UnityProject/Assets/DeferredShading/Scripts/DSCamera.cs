@@ -134,11 +134,6 @@ public class DSCamera : MonoBehaviour
 			DrawFullscreenQuad();
 		}
 
-		Graphics.SetRenderTarget(null);
-		GL.Clear(true, true, Color.black);
-		matReflection.SetPass(0);
-		DrawFullscreenQuad();
-
 		if (bloom)
 		{
 			Vector4 hscreen = new Vector4(rtBloomH[0].width, rtBloomH[0].height, 1.0f / rtBloomH[0].width, 1.0f / rtBloomH[0].height);
@@ -182,13 +177,18 @@ public class DSCamera : MonoBehaviour
 			matBloomVBlur.SetPass(0);
 			DrawFullscreenQuad();
 
-			Graphics.SetRenderTarget(null);
+			Graphics.SetRenderTarget(rtComposite[0]);
 			matBloom.SetTexture("_GlowBuffer", mrtTex[3]);
 			matBloom.SetTexture("_HalfGlowBuffer", rtBloomH[1]);
 			matBloom.SetTexture("_QuarterGlowBuffer", rtBloomQ[1]);
 			matBloom.SetPass(0);
 			DrawFullscreenQuad();
 		}
+		Graphics.SetRenderTarget(null);
+		GL.Clear(false, true, Color.black);
+		matReflection.SetPass(0);
+		DrawFullscreenQuad();
+
 
 		Graphics.SetRenderTarget(null);
 	}
@@ -204,7 +204,7 @@ public class DSCamera : MonoBehaviour
 			GUI.DrawTexture(new Rect(5, y, size.x, size.y), mrtTex[i], ScaleMode.ScaleToFit, false);
 			y += size.y + 5.0f;
 		}
-		GUI.DrawTexture(new Rect(5, y, size.x, size.y), rtComposite[1], ScaleMode.ScaleToFit, false);
+		GUI.DrawTexture(new Rect(5, y, size.x, size.y), rtComposite[0], ScaleMode.ScaleToFit, false);
 		y += size.y + 5.0f;
 	}
 
