@@ -1,5 +1,6 @@
 Shader "Custom/PostEffect_Reflection" {
 	Properties {
+		_Intensity ("Intensity", Float) = 0.3
 	}
 	SubShader {
 		Tags { "RenderType"="Opaque" }
@@ -13,6 +14,7 @@ Shader "Custom/PostEffect_Reflection" {
 		sampler2D _FrameBuffer;
 		sampler2D _PositionBuffer;
 		sampler2D _NormalBuffer;
+		float _Intensity;
 
 		float  modc(float  a, float  b) { return a - b * floor(a/b); }
 		float2 modc(float2 a, float2 b) { return a - b * floor(a/b); }
@@ -78,9 +80,9 @@ Shader "Custom/PostEffect_Reflection" {
 				float3(-0.36307729185097637, -0.7307245945773899, 0.6834118993358385)
 			};
 			for(int j=0; j<8; ++j) {
-				float3 refdir = normalize(refdirbase+g_noises[j]*0.05);
+				float3 refdir = normalize(refdirbase+g_noises[j]*0.075);
 				bool hit = false;
-				float s = 0.3/8;
+				float s = _Intensity/8;
 				for(int k=0; k<8; ++k) {
 					float adv = span * (k+1);
 					float4 tpos = mul(UNITY_MATRIX_MVP, float4((p+refdir*adv), 1.0) );

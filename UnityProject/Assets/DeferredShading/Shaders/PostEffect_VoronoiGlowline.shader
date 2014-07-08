@@ -131,6 +131,7 @@
 		struct ps_out
 		{
 			float4 color : COLOR0;
+			float4 glow : COLOR1;
 		};
 
 
@@ -178,8 +179,8 @@
 				}
 			}
 
-			ps_out r = {p};
-			r.color.xyz = float3(0.75, 0.75, 1.25) * vg;
+			float4 c = float4(float3(0.3, 0.25, 1.5) * vg, 0.0);
+			ps_out r = {c,c};
 			return r;
 		}
 		ENDCG

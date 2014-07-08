@@ -1,10 +1,9 @@
-﻿Shader "Custom/PostEffect_Bloom" {
+﻿Shader "Custom/PostEffect_BloomHBlur" {
 	Properties {
-		_Intensity ("Intensity", Float) = 0.3
 	}
 	SubShader {
 		Tags { "RenderType"="Opaque" }
-		Blend One One
+		Blend Off
 		ZTest Always
 		ZWrite Off
 		Cull Back
@@ -13,9 +12,8 @@
 
 		sampler2D _FrameBuffer;
 		sampler2D _GlowBuffer;
-		sampler2D _HalfGlowBuffer;
-		sampler2D _QuarterGlowBuffer;
-		float _Intensity;
+		float4 _Screen;
+
 
 
 		struct vs_in
@@ -45,17 +43,22 @@
 		ps_out frag (ps_in i)
 		{
 			float2 coord = (i.screen_pos.xy / i.screen_pos.w + 1.0) * 0.5;
-			// see: http://docs.unity3d.com/Manual/SL-PlatformDifferences.html
 			#if UNITY_UV_STARTS_AT_TOP
-			//	coord.y = 1.0-coord.y;
+				coord.y = 1.0-coord.y;
 			#endif
 
-			float4 c = 0;
-			c += tex2D(_GlowBuffer, coord) * _Intensity;
-			c += tex2D(_HalfGlowBuffer, coord) * _Intensity;
-			c += tex2D(_QuarterGlowBuffer, coord) * _Intensity;
-			c.w = 0.0;
-
+			const float Weight[5] = {0.05, 0.09, 0.12, 0.16, 0.16};
+			float2 s = float2((_Screen.z)*1.39, 0.0);
+			float4 c = 0.0;
+			c += tex2D(_GlowBuffer, coord - s*4.0) * Weight[0];
+			c += tex2D(_GlowBuffer, coord - s*3.0) * Weight[1];
+			c += tex2D(_GlowBuffer, coord - s*2.0) * Weight[2];
+			c += tex2D(_GlowBuffer, coord - s*1.0) * Weight[3];
+			c += tex2D(_GlowBuffer, coord        ) * Weight[4];
+			c += tex2D(_GlowBuffer, coord + s*1.0) * Weight[3];
+			c += tex2D(_GlowBuffer, coord + s*2.0) * Weight[2];
+			c += tex2D(_GlowBuffer, coord + s*3.0) * Weight[1];
+			c += tex2D(_GlowBuffer, coord + s*4.0) * Weight[0];
 			ps_out r = {c};
 			return r;
 		}

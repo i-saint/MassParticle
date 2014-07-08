@@ -3,7 +3,7 @@ using System.Collections;
 
 public class CameraController : MonoBehaviour {
 
-    public GameObject cube;
+	public GameObject cube;
 
 
 	// Use this for initialization
@@ -16,18 +16,18 @@ public class CameraController : MonoBehaviour {
 		Vector3 move = new Vector3 ();
 		move.x = Input.GetAxisRaw ("Horizontal");
 		move.z = Input.GetAxisRaw ("Vertical");
-        move *= 0.1f;
+		move *= 0.1f;
 
-        if (Input.GetButtonDown("Fire1"))
-        {
-            Instantiate(cube, new Vector3(Random.Range(-2.0f, 2.0f), 5.0f, Random.Range(-2.0f, 2.0f)), new Quaternion());
-        }
+		if (Input.GetButtonDown("Fire1"))
+		{
+			Instantiate(cube, new Vector3(Random.Range(-2.0f, 2.0f), 5.0f, Random.Range(-2.0f, 2.0f)), new Quaternion());
+		}
 
-        Collider[] colliders = Physics.OverlapSphere(transform.position, 10.0f);
-        for (int i = 0; i < colliders.Length; ++i)
-        {
-            Collider col = colliders[i];
-            col.transform.position += move;
-        }
-    }
+		Collider[] colliders = Physics.OverlapSphere(transform.position, 10.0f);
+		for (int i = 0; i < colliders.Length; ++i)
+		{
+			Collider col = colliders[i];
+			col.transform.position += move;
+		}
+	}
 }
