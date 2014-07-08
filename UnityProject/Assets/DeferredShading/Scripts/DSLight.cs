@@ -41,26 +41,14 @@ public class DSLight : MonoBehaviour
 			{
 				Matrix4x4 trans = Matrix4x4.TRS(l.transform.position, Quaternion.identity, Vector3.one);
 				Vector4 range = Vector4.zero;
-				Vector4 fs = Vector4.zero;
 				range.x = l.lit.range;
 				range.y = 1.0f / range.x;
 				matPointLight.SetVector("_LightColor", c);
 				matPointLight.SetVector("_ShadowParams", shadow);
 				matPointLight.SetVector("_LightPosition", l.transform.position);
 				matPointLight.SetVector("_LightRange", range);
-				if (Vector3.Magnitude(cam.transform.position - l.transform.position) <= range.x*1.1f)
-				{
-					fs.x = 1.0f;
-					matPointLight.SetVector("_Fullscreen", fs);
-					matPointLight.SetPass(0);
-					DSCamera.DrawFullscreenQuad();
-				}
-				else
-				{
-					matPointLight.SetVector("_Fullscreen", fs);
-					matPointLight.SetPass(0);
-					Graphics.DrawMeshNow(sphereMesh, trans);
-				}
+				matPointLight.SetPass(0);
+				Graphics.DrawMeshNow(sphereMesh, trans);
 			}
 			else if (l.lit.type == LightType.Directional)
 			{

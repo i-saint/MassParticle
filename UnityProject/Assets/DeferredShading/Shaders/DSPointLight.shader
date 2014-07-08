@@ -8,9 +8,9 @@
 	SubShader {
 		Tags { "RenderType"="Opaque" }
 		Blend One One
-		ZTest Always
+		ZTest GEqual
 		ZWrite Off
-		Cull Back
+		Cull Front
 
 		CGINCLUDE
 
@@ -22,7 +22,6 @@
 		float4 _LightPosition;
 		float4 _LightRange; // [0]: range, [1]: 1.0/range
 		float4 _ShadowParams; // [0]: 0=disabled, [1]: steps
-		float4 _Fullscreen; //
 
 
 		struct vs_in
@@ -45,15 +44,9 @@
 		ps_in vert(vs_in v)
 		{
 			ps_in o;
-			if(_Fullscreen[0]!=0.0) {
-				o.vertex = v.vertex;
-				o.screen_pos = v.vertex;
-			}
-			else {
-				float4 vertex = mul(UNITY_MATRIX_MVP, float4(v.vertex.xyz * (_LightRange.x*2.0), 1.0) );
-				o.vertex = vertex;
-				o.screen_pos = vertex;
-			}
+			float4 vertex = mul(UNITY_MATRIX_MVP, float4(v.vertex.xyz * (_LightRange.x*2.0), 1.0) );
+			o.vertex = vertex;
+			o.screen_pos = vertex;
 			o.lightpos_mvp = mul(UNITY_MATRIX_VP, float4(_LightPosition.xyz, 1.0f));
 			return o;
 		}
@@ -70,7 +63,7 @@
 			float4 FragPos4		= tex2D(_PositionBuffer, coord);
 			float4 AS		= tex2D(_ColorBuffer, coord);
 			float4 NS		= tex2D(_NormalBuffer, coord);
-			if(dot(AS.xyz,AS.xyz)==0.0) { discard; }
+			if(FragPos4.w==0.0) { discard; }
 
 			float3 FragPos		= FragPos4.xyz;
 			float3 LightColor	= _LightColor.rgb;

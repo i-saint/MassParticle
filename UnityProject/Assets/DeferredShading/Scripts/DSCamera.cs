@@ -12,8 +12,10 @@ public class DSCamera : MonoBehaviour
 	}
 
 	public bool showBuffers = false;
-	public bool enableVoronoiGlowline = true;
-	public bool enableNormalGlow = true;
+	public bool voronoiGlowline = true;
+	public bool normalGlow = true;
+	public bool reflection = true;
+	public bool bloom = true;
 	public TextureFormat textureFormat = TextureFormat.Half;
 	public Material matGBufferClear;
 	public Material matPointLight;
@@ -21,6 +23,7 @@ public class DSCamera : MonoBehaviour
 	public Material matGlowLine;
 	public Material matGlowNormal;
 	public Material matReflection;
+	public Material matBloom;
 	public GameObject sphereMeshObject;
 
 	public RenderTexture[] mrtTex = new RenderTexture[4];
@@ -57,6 +60,8 @@ public class DSCamera : MonoBehaviour
 		matReflection.SetTexture("_FrameBuffer", rtComposite);
 		matReflection.SetTexture("_PositionBuffer", mrtTex[1]);
 		matReflection.SetTexture("_NormalBuffer", mrtTex[0]);
+		matBloom.SetTexture("_FrameBuffer", rtComposite);
+		matBloom.SetTexture("_GlowBuffer", mrtTex[3]);
 	}
 	
 	void Update ()
@@ -80,18 +85,19 @@ public class DSCamera : MonoBehaviour
 	{
 		Graphics.SetRenderTarget(rtComposite);
 		GL.Clear(true, true, Color.black);
+		Graphics.SetRenderTarget(rtComposite.colorBuffer, mrtTex[0].depthBuffer);
 
 		DSLight.sphereMesh = sphereMeshObject.GetComponent<MeshFilter>().mesh;
 		DSLight.matPointLight = matPointLight;
 		DSLight.matDirectionalLight = matDirectionalLight;
 		DSLight.RenderLights(this);
 
-		if (enableVoronoiGlowline)
+		if (voronoiGlowline)
 		{
 			matGlowLine.SetPass(0);
 			DrawFullscreenQuad();
 		}
-		if(enableNormalGlow) {
+		if(normalGlow) {
 			matGlowNormal.SetPass(0);
 			DrawFullscreenQuad();
 		}
@@ -100,6 +106,12 @@ public class DSCamera : MonoBehaviour
 		GL.Clear(true, true, Color.black);
 		matReflection.SetPass(0);
 		DrawFullscreenQuad();
+
+		if (bloom)
+		{
+			matBloom.SetPass(0);
+			DrawFullscreenQuad();
+		}
 
 		Graphics.SetRenderTarget(null);
 	}

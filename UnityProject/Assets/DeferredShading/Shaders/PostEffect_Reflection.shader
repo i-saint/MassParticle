@@ -54,7 +54,7 @@ Shader "Custom/PostEffect_Reflection" {
 			#endif
 
 			float4 p = tex2D(_PositionBuffer, coord);
-			if(dot(p.xyz,p.xyz)==0.0) { discard; }
+			if(p.w==0.0) { discard; }
 
 			float4 n = tex2D(_NormalBuffer, coord);
 			float3 camDir = normalize(p.xyz - _WorldSpaceCameraPos);
@@ -63,10 +63,10 @@ Shader "Custom/PostEffect_Reflection" {
 			ps_out r;
 			r.color.xyz = tex2D(_FrameBuffer, coord).xyz;
 
-			float3 refdir = reflect(camDir, n.xyz);
+			float3 refdirbase = reflect(camDir, n.xyz);
 			float4 refpos = 0.0;
 			float2 refpos2 = 0.0;
-			float span = 0.1;
+			float span = 0.15;
 			const float3 g_noises[8] = {
 				float3(0.1080925165271518, -0.9546740999616308, -0.5485116160762447),
 				float3(-0.4753686437884934, -0.8417212473681748, 0.04781893710693619),
@@ -77,19 +77,19 @@ Shader "Custom/PostEffect_Reflection" {
 				float3(0.31851240326305463, -0.22207894547397555, 0.42542751740434204),
 				float3(-0.36307729185097637, -0.7307245945773899, 0.6834118993358385)
 			};
-			for(int ri=0; ri<16; ++ri) {
-				float adv = span * (ri+1);
-				float4 tpos = mul(UNITY_MATRIX_MVP, float4((p+refdir*adv), 1.0) );
-				float2 tcoord = (tpos.xy / tpos.w + 1.0) * 0.5;
-				float4 reffragpos = tex2D(_PositionBuffer, tcoord);
-				if(reffragpos.w!=0 && reffragpos.w<tpos.z && reffragpos.w>tpos.z-span) {
-					//for(int i=0; i<8; ++i) {
-					//	r.color.xyz += tex2D(_FrameBuffer, coordR).xyz*0.03;
-					//}
-					for(int k=0; k<8; ++k) {
-						r.color.xyz += tex2D(_FrameBuffer, tcoord+g_noises[k].xy*0.1).xyz*0.02;
+			for(int j=0; j<8; ++j) {
+				float3 refdir = normalize(refdirbase+g_noises[j]*0.05);
+				bool hit = false;
+				float s = 0.3/8;
+				for(int k=0; k<8; ++k) {
+					float adv = span * (k+1);
+					float4 tpos = mul(UNITY_MATRIX_MVP, float4((p+refdir*adv), 1.0) );
+					float2 tcoord = (tpos.xy / tpos.w + 1.0) * 0.5;
+					float4 reffragpos = tex2D(_PositionBuffer, tcoord);
+					if(!hit && reffragpos.w!=0 && reffragpos.w<tpos.z && reffragpos.w>tpos.z-span) {
+						r.color.xyz += tex2D(_FrameBuffer, tcoord).xyz*s;
+						hit = true;
 					}
-					break;
 				}
 			}
 

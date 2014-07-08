@@ -1,8 +1,8 @@
 ﻿Shader "DeferredShading/GBufferDefault" {
 	Properties {
 		_MainTex ("Base (RGB)", 2D) = "white" {}
-		_BaseColor ("BaseColor", Color) = (0.15, 0.15, 0.2, 1.0)
-		_GlowColor ("GlowColor", Color) = (0.75, 0.75, 1.0, 1.0)
+		_BaseColor ("BaseColor", Vector) = (0.15, 0.15, 0.2, 1.0)
+		_GlowColor ("GlowColor", Vector) = (0.75, 0.75, 1.0, 1.0)
 	}
 	SubShader {
 		Tags { "RenderType"="Opaque" }
@@ -44,7 +44,7 @@
 			o.vertex = vmvp;
 			o.screen_pos = vmvp;
 			o.position = mul(_Object2World, v.vertex);
-			o.normal = mul(_Object2World, float4(v.normal.xyz,0.0));
+			o.normal = normalize(mul(_Object2World, float4(v.normal.xyz,0.0)));
 			return o;
 		}
 
