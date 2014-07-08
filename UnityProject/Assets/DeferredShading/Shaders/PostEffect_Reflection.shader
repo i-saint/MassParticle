@@ -65,11 +65,8 @@ Shader "Custom/PostEffect_Reflection" {
 			ps_out r;
 			r.color.xyz = tex2D(_FrameBuffer, coord).xyz;
 
-			float3 refdirbase = reflect(camDir, n.xyz);
-			float4 refpos = 0.0;
-			float2 refpos2 = 0.0;
-			float span = 0.15;
-			const float3 g_noises[8] = {
+			const float3 rand[9] = {
+				float3(0.0, 0.0, 0.0),
 				float3(0.1080925165271518, -0.9546740999616308, -0.5485116160762447),
 				float3(-0.4753686437884934, -0.8417212473681748, 0.04781893710693619),
 				float3(0.7242715177221273, -0.6574584801064549, -0.7170447827462747),
@@ -79,17 +76,24 @@ Shader "Custom/PostEffect_Reflection" {
 				float3(0.31851240326305463, -0.22207894547397555, 0.42542751740434204),
 				float3(-0.36307729185097637, -0.7307245945773899, 0.6834118993358385)
 			};
-			for(int j=0; j<8; ++j) {
-				float3 refdir = normalize(refdirbase+g_noises[j]*0.075);
+			const int NumRays = 1;
+			const int Marching = 16;
+			const float MarchDistance = 2.0;
+			const float MarchSpan = MarchDistance / Marching;
+			float3 refdirbase = reflect(camDir, n.xyz);
+			float4 refpos = 0.0;
+			float2 refpos2 = 0.0;
+			float s = _Intensity/4;
+			for(int j=0; j<NumRays; ++j) {
+				float3 refdir = normalize(refdirbase+rand[j]*0.075);
 				bool hit = false;
-				float s = _Intensity/8;
-				for(int k=0; k<8; ++k) {
-					float adv = span * (k+1);
+				for(int k=0; k<Marching; ++k) {
+					float adv = MarchSpan * (k+1);
 					float4 tpos = mul(UNITY_MATRIX_MVP, float4((p+refdir*adv), 1.0) );
 					float2 tcoord = (tpos.xy / tpos.w + 1.0) * 0.5;
 					float4 reffragpos = tex2D(_PositionBuffer, tcoord);
-					if(!hit && reffragpos.w!=0 && reffragpos.w<tpos.z && reffragpos.w>tpos.z-span) {
-						r.color.xyz += tex2D(_FrameBuffer, tcoord).xyz*s;
+					if(!hit && reffragpos.w!=0 && reffragpos.w<tpos.z && reffragpos.w>tpos.z-MarchSpan) {
+						r.color.xyz += tex2D(_FrameBuffer, tcoord).xyz*s * (1.0-adv/MarchDistance);
 						hit = true;
 					}
 				}
