@@ -1,6 +1,6 @@
 Shader "Custom/PostEffect_Reflection" {
 	Properties {
-		_Intensity ("Intensity", Float) = 0.3
+		_Intensity ("Intensity", Float) = 1.5
 	}
 	SubShader {
 		Tags { "RenderType"="Opaque" }
@@ -75,7 +75,7 @@ Shader "Custom/PostEffect_Reflection" {
 				float2 tcoord = (tpos.xy / tpos.w + 1.0) * 0.5;
 				float4 reffragpos = tex2D(_PositionBuffer, tcoord);
 				if(reffragpos.w!=0 && reffragpos.w<tpos.z && reffragpos.w>tpos.z-MarchSpan) {
-					r.color.xyz += tex2D(_FrameBuffer, tcoord).xyz * (1.0-adv/MarchDistance);
+					r.color.xyz += tex2D(_FrameBuffer, tcoord).xyz * (1.0-adv/MarchDistance) * _Intensity;
 					break;
 				}
 			}

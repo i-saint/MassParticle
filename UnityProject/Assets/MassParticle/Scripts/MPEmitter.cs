@@ -39,6 +39,7 @@ public class MPEmitter : MonoBehaviour {
 
 	public void MPUpdate()
 	{
+		if (Time.deltaTime == 0.0f) { return; }
 		Matrix4x4 mat = transform.localToWorldMatrix;
 		switch (shape) {
 		case Shape.Sphere:

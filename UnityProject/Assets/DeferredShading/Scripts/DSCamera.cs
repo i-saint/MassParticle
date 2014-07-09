@@ -55,9 +55,9 @@ public class DSCamera : MonoBehaviour
 		rtComposite = new RenderTexture[2];
 		rtBloomH = new RenderTexture[2];
 		rtBloomQ = new RenderTexture[2];
+		cam = GetComponent<Camera>();
 
 		RenderTextureFormat format = textureFormat == TextureFormat.Half ? RenderTextureFormat.ARGBHalf : RenderTextureFormat.ARGBFloat;
-		cam = GetComponent<Camera>();
 		for (int i = 0; i < mrtTex.Length; ++i )
 		{
 			int depthbits = i == 0 ? 32 : 0;
@@ -103,7 +103,7 @@ public class DSCamera : MonoBehaviour
 		//for (int i = 0; i < mrtTex.Length; ++i)
 		//{
 		//	Graphics.SetRenderTarget(mrtTex[i]);
-		//	GL.Clear(true, true, Color.black);
+		//	GL.Clear(i==0, true, Color.black);
 		//}
 		matGBufferClear.SetPass(0);
 		DrawFullscreenQuad();

@@ -17,7 +17,7 @@ public unsafe class MPWorld : MonoBehaviour {
 	public MPSolverType solverType = MPSolverType.Impulse;
 	public float force = 1.0f;
 	public float particleLifeTime;
-	public float timeStep;
+	public float timeScale = 0.6f;
 	public float deceleration;
 	public float pressureStiffness;
 	public float wallStiffness;
@@ -54,7 +54,6 @@ public unsafe class MPWorld : MonoBehaviour {
 		transform.localScale = p.WorldSize;
 		solverType 			= (MPSolverType)p.SolverType;
 		particleLifeTime 	= p.LifeTime;
-		timeStep 			= p.Timestep;
 		deceleration 		= p.Decelerate;
 		pressureStiffness 	= p.PressureStiffness;
 		wallStiffness 		= p.WallStiffness;
@@ -83,10 +82,13 @@ public unsafe class MPWorld : MonoBehaviour {
 
 	void Update()
 	{
-		switch (updateMode)
+		if (Time.deltaTime != 0.0f)
 		{
-		case MPUpdateMode.Immediate: ImmediateUpdate(); break;
-		case MPUpdateMode.Deferred: DeferredUpdate(); break;
+			switch (updateMode)
+			{
+				case MPUpdateMode.Immediate: ImmediateUpdate(); break;
+				case MPUpdateMode.Deferred: DeferredUpdate(); break;
+			}
 		}
 	}
 
@@ -132,7 +134,7 @@ public unsafe class MPWorld : MonoBehaviour {
 		p.enableForces = enableForces ? 1 : 0;
 		p.SolverType = (int)solverType;
 		p.LifeTime = particleLifeTime;
-		p.Timestep = timeStep;
+		p.Timestep = Time.deltaTime * timeScale;
 		p.Decelerate = deceleration;
 		p.PressureStiffness = pressureStiffness;
 		p.WallStiffness = wallStiffness;

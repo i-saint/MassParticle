@@ -1,5 +1,6 @@
 ﻿Shader "Custom/PostEffect_VoronoiGlowline" {
 	Properties {
+		_Intensity ("Intensity", Float) = 1.0
 	}
 	SubShader {
 		Tags { "RenderType"="Opaque" }
@@ -12,6 +13,7 @@
 
 		sampler2D _PositionBuffer;
 		sampler2D _NormalBuffer;
+		float _Intensity;
 
 		float  modc(float  a, float  b) { return a - b * floor(a/b); }
 		float2 modc(float2 a, float2 b) { return a - b * floor(a/b); }
@@ -179,7 +181,7 @@
 				}
 			}
 
-			float4 c = float4(float3(0.45, 0.4, 2.0) * vg, 0.0);
+			float4 c = float4(float3(0.45, 0.4, 2.0) * (vg*_Intensity), 0.0);
 			ps_out r = {c,c};
 			return r;
 		}
