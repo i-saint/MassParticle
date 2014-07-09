@@ -67,5 +67,18 @@
 		#pragma glsl
 		ENDCG
 	}
+	Pass {
+		Name "DepthPrePass"
+		Tags { "DepthPrePass" = "DepthPrePass" }
+		ColorMask 0
+		ZWrite On
+		ZTest LEqual
+		CGPROGRAM
+		#pragma vertex vert
+		#pragma fragment frag
+		#pragma target 3.0
+		#pragma glsl
+		ENDCG
+	}
 	} 
 }
