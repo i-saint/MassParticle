@@ -3,13 +3,15 @@ using System.Collections;
 
 public class Enemy : MonoBehaviour {
 
+	Rigidbody rigid;
 	excDestroyable stat;
 
 	// Use this for initialization
 	void Start () {
+		rigid = GetComponent<Rigidbody> ();
 		stat = GetComponent<excDestroyable> ();
 		
-		rigidbody.maxAngularVelocity = 20.0f;
+		rigid.maxAngularVelocity = 20.0f;
 	}
 	
 	// Update is called once per frame

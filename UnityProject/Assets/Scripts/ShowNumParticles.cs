@@ -2,17 +2,17 @@
 using System.Collections;
 using System.Runtime.InteropServices;
 
-public class ShowNumParticles : MonoBehaviour {
-	
-	[DllImport ("MassParticle")] private static extern uint mpGetNumParticles();
+public class ShowNumParticles : MonoBehaviour
+{
+	GUIText text;
 
-	// Use this for initialization
-	void Start () {
-	
+	void Start ()
+	{
+		text = GetComponent<GUIText>();
 	}
 	
 	// Update is called once per frame
 	void Update () {
-		guiText.text = "particles: " + mpGetNumParticles ();
+		text.text = "particles: " + MPAPI.mpGetNumParticles();
 	}
 }

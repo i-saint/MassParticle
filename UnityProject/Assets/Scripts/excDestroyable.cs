@@ -40,7 +40,7 @@ public class excDestroyable : MonoBehaviour {
 		if(rigid) {
 			Vector3 vel = rigid.velocity;
 			vel.x -= accel;
-			rigidbody.velocity = vel;
+			rigid.velocity = vel;
 			
 			Vector3 pos = rigid.transform.position;
 			pos.y *= 0.98f;
