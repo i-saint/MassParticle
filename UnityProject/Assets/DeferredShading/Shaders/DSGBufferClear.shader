@@ -3,6 +3,11 @@
 	}
 	SubShader {
 		Tags { "RenderType"="Opaque" }
+		Stencil {
+			Ref 0
+			Comp Always
+			Pass Replace
+		}
 		ZTest Always
 		ZWrite On
 		Cull Back

@@ -100,11 +100,6 @@ public class DSCamera : MonoBehaviour
 	void OnPreRender()
 	{
 		Graphics.SetRenderTarget(mrtRB4, mrtTex[0].depthBuffer);
-		//for (int i = 0; i < mrtTex.Length; ++i)
-		//{
-		//	Graphics.SetRenderTarget(mrtTex[i]);
-		//	GL.Clear(i==0, true, Color.black);
-		//}
 		matGBufferClear.SetPass(0);
 		DrawFullscreenQuad();
 	}
