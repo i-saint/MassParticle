@@ -54,7 +54,7 @@
 
 			float t = _Time.x;
 			float4 p = tex2D(_PositionBuffer, coord);
-			if(dot(p.xyz,p.xyz)==0.0) { discard; }
+			if(p.w==0.0) { discard; }
 
 			float3 camDir = normalize(p.xyz - _WorldSpaceCameraPos);
 			float tw = _ScreenParams.z - 1.0;

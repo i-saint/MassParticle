@@ -56,7 +56,7 @@ Shader "Custom/PostEffect_Reflection" {
 			#endif
 
 			float4 p = tex2D(_PositionBuffer, coord);
-			//if(p.w==0.0) { discard; }
+			if(p.w==0.0) { discard; }
 
 			float4 n = tex2D(_NormalBuffer, coord);
 			float3 camDir = normalize(p.xyz - _WorldSpaceCameraPos);

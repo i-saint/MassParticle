@@ -154,8 +154,8 @@
 
 			float t = _Time.x;
 			float4 p = tex2D(_PositionBuffer, coord);
+			if(p.w==0.0) { discard; }
 			float4 n = tex2D(_NormalBuffer, coord);
-			if(dot(p.xyz,p.xyz)==0.0) { discard; }
 
 			float d = voronoi(p.xyz*0.075);
 			float vg = max(0.0, frac(1.0-d-t*5.0+p.z*0.01)*3.0-2.0);

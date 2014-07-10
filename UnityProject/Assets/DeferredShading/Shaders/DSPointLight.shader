@@ -61,9 +61,9 @@
 			#endif
 
 			float4 FragPos4		= tex2D(_PositionBuffer, coord);
+			if(FragPos4.w==0.0) { discard; }
 			float4 AS		= tex2D(_ColorBuffer, coord);
 			float4 NS		= tex2D(_NormalBuffer, coord);
-			if(FragPos4.w==0.0) { discard; }
 
 			float3 FragPos		= FragPos4.xyz;
 			float3 LightColor	= _LightColor.rgb;
