@@ -5,118 +5,114 @@
 #include <math.h>
 #include <stdio.h>
 #include <tbb/tbb.h>
-#include "mpTypes.h"
 #include "MassParticle.h"
+#include "mpTypes.h"
 
-extern mpWorld g_mpWorld;
+extern mpWorld *g_mpWorld;
 extern mpRenderer *g_mpRenderer;
 
 
-extern "C" EXPORT_API void mpReloadShader()
-{
-	if (g_mpRenderer) {
-		g_mpRenderer->reloadShader();
-	}
-}
-
 extern "C" EXPORT_API void mpGeneratePointMesh(int mi, mpMeshData *mds)
 {
-	g_mpWorld.generatePointMesh(mi, mds);
+	g_mpWorld->generatePointMesh(mi, mds);
 }
 
 extern "C" EXPORT_API void mpGenerateCubeMesh(int mi, mpMeshData *mds)
 {
-	g_mpWorld.generateCubeMesh(mi, mds);
+	g_mpWorld->generateCubeMesh(mi, mds);
 }
 
-extern "C" EXPORT_API int mpUpdateDataTexture(void *tex)
+extern "C" EXPORT_API int mpUpdateDataTexture(mpWorld *context, void *tex)
 {
-	return g_mpWorld.updateDataTexture(tex);
+    return context->updateDataTexture(tex);
 }
 
-extern "C" EXPORT_API void mpOnEnable()
+#ifdef mpWithCppScript
+extern "C" EXPORT_API int mpUpdateParticleBuffer(mpWorld *context, UnityEngine::ComputeBuffer buf)
 {
-	g_mpWorld.onEnable();
+    return context->updateDataBuffer(buf);
 }
-extern "C" EXPORT_API void mpOnDisable()
+#endif // mpWithCppScript
+
+
+
+
+extern "C" EXPORT_API mpWorld* mpCreateContext()
 {
-	g_mpWorld.onDisable();
+    mpWorld *p = new mpWorld();
+    return p;
 }
+extern "C" EXPORT_API void mpDestroyContext(mpWorld *c)
+{
+    delete c;
+}
+extern "C" EXPORT_API void mpMakeCurrent(mpWorld *c)
+{
+    g_mpWorld = c;
+}
+
 
 extern "C" EXPORT_API void mpBeginUpdate(float dt)
 {
-	g_mpWorld.beginUpdate(dt);
+	g_mpWorld->beginUpdate(dt);
 }
 extern "C" EXPORT_API void mpEndUpdate()
 {
-	g_mpWorld.endUpdate();
+	g_mpWorld->endUpdate();
 }
 extern "C" EXPORT_API void mpUpdate(float dt)
 {
-	g_mpWorld.update(dt);
+	g_mpWorld->update(dt);
 }
 
 extern "C" EXPORT_API void mpClearParticles()
 {
-	g_mpWorld.clearParticles();
+	g_mpWorld->clearParticles();
 }
 
 extern "C" EXPORT_API void mpClearCollidersAndForces()
 {
-	g_mpWorld.clearCollidersAndForces();
+	g_mpWorld->clearCollidersAndForces();
 }
 
 extern "C" EXPORT_API ispc::KernelParams mpGetKernelParams()
 {
-	return g_mpWorld.getKernelParams();
+	return g_mpWorld->getKernelParams();
 }
 
 extern "C" EXPORT_API void mpSetKernelParams(ispc::KernelParams *params)
 {
-	g_mpWorld.setKernelParams(*(mpKernelParams*)params);
-}
-
-extern "C" EXPORT_API void mpSetViewProjectionMatrix(mat4 *_view, mat4 *_proj, vec3 *camerapos)
-{
-    mat4 &view = *_view;
-    mat4 &proj = *_proj;
-	proj[0][2] = proj[0][2]*0.5f + proj[0][3]*0.5f;
-	proj[1][2] = proj[1][2]*0.5f + proj[1][3]*0.5f;
-	proj[2][2] = proj[2][2]*0.5f + proj[2][3]*0.5f;
-	proj[3][2] = proj[3][2]*0.5f + proj[3][3]*0.5f;
-
-	mat4 viewproj = proj*view;
-	g_mpWorld.setViewProjection(viewproj, *camerapos);
+	g_mpWorld->setKernelParams(*(mpKernelParams*)params);
 }
 
 
 extern "C" EXPORT_API int mpGetNumHitData()
 {
-	return g_mpWorld.getNumHitData();
+	return g_mpWorld->getNumHitData();
 }
 
 extern "C" EXPORT_API mpHitData* mpGetHitData()
 {
-	return g_mpWorld.getHitData();
+	return g_mpWorld->getHitData();
 }
 
 extern "C" EXPORT_API int mpGetNumParticles()
 {
-	return g_mpWorld.getNumParticles();
+	return g_mpWorld->getNumParticles();
 }
 extern "C" EXPORT_API mpParticle* mpGetParticles()
 {
-	return g_mpWorld.getParticles();
+	return g_mpWorld->getParticles();
 }
 
 extern "C" EXPORT_API void mpCopyParticles(mpParticle *dst)
 {
-	memcpy(dst, g_mpWorld.getParticles(), sizeof(mpParticle)*mpGetNumParticles());
+	memcpy(dst, g_mpWorld->getParticles(), sizeof(mpParticle)*mpGetNumParticles());
 }
 
 extern "C" EXPORT_API void mpWriteParticles(const mpParticle *from)
 {
-	memcpy(g_mpWorld.getParticles(), from, sizeof(mpParticle)*mpGetNumParticles());
+	memcpy(g_mpWorld->getParticles(), from, sizeof(mpParticle)*mpGetNumParticles());
 }
 
 
@@ -137,7 +133,7 @@ extern "C" EXPORT_API void mpScatterParticlesSphere(vec3 *center, float radius, 
 		(vec3&)particles[i].velocity = vel;
 		(vec3&)particles[i].position = pos;
 	}
-	g_mpWorld.addParticles(&particles[0], particles.size());
+	g_mpWorld->addParticles(&particles[0], particles.size());
 }
 
 extern "C" EXPORT_API void mpScatterParticlesBox(vec3 *center, vec3 *size, int32_t num, vec3 *vel_base, float vel_diffuse)
@@ -155,7 +151,7 @@ extern "C" EXPORT_API void mpScatterParticlesBox(vec3 *center, vec3 *size, int32
 		(vec3&)particles[i].position = pos;
 		(vec3&)particles[i].velocity = vel;
 	}
-	g_mpWorld.addParticles(&particles[0], particles.size());
+	g_mpWorld->addParticles(&particles[0], particles.size());
 }
 
 
@@ -178,7 +174,7 @@ extern "C" EXPORT_API void mpScatterParticlesSphereTransform(mat4 *transform, in
 		(vec3&)particles[i].position = (vec3&)pos;
 		(vec3&)particles[i].velocity = vel;
 	}
-	g_mpWorld.addParticles(&particles[0], particles.size());
+	g_mpWorld->addParticles(&particles[0], particles.size());
 }
 
 extern "C" EXPORT_API void mpScatterParticlesBoxTransform(mat4 *transform, int32_t num, vec3 *vel_base, float vel_diffuse)
@@ -198,14 +194,14 @@ extern "C" EXPORT_API void mpScatterParticlesBoxTransform(mat4 *transform, int32
 		(vec3&)particles[i].position = (vec3&)pos;
 		(vec3&)particles[i].velocity = vel;
 	}
-	g_mpWorld.addParticles(&particles[0], particles.size());
+	g_mpWorld->addParticles(&particles[0], particles.size());
 }
 
 
 
 inline void mpBuildBoxCollider(mpBoxCollider &o, mat4 transform, vec3 size)
 {
-	float psize = g_mpWorld.getKernelParams().particle_size;
+	float psize = g_mpWorld->getKernelParams().particle_size;
 	size.x = size.x * 0.5f;
 	size.y = size.y * 0.5f;
 	size.z = size.z * 0.5f;
@@ -260,7 +256,7 @@ inline void mpBuildBoxCollider(mpBoxCollider &o, mat4 transform, vec3 size)
 
 inline void mpBuildSphereCollider(mpSphereCollider &o, vec3 center, float radius)
 {
-	float psize = g_mpWorld.getKernelParams().particle_size;
+	float psize = g_mpWorld->getKernelParams().particle_size;
 	float er = radius + psize;
 	(vec3&)o.shape.center = center;
 	o.shape.radius = er;
@@ -270,7 +266,7 @@ inline void mpBuildSphereCollider(mpSphereCollider &o, vec3 center, float radius
 
 inline void mpBuildCapsuleCollider(mpCapsuleCollider &o, vec3 pos1, vec3 pos2, float radius)
 {
-	float psize = g_mpWorld.getKernelParams().particle_size;
+	float psize = g_mpWorld->getKernelParams().particle_size;
 	float er = radius + psize;
 
 	ispc::Capsule &shape = o.shape;
@@ -290,7 +286,7 @@ extern "C" EXPORT_API void mpAddBoxCollider(mpColliderProperties *props, mat4 *t
 	mpBoxCollider col;
 	col.props = *props;
 	mpBuildBoxCollider(col, *transform, *size);
-	g_mpWorld.addBoxColliders(&col, 1);
+	g_mpWorld->addBoxColliders(&col, 1);
 }
 
 extern "C" EXPORT_API void mpAddSphereCollider(mpColliderProperties *props, vec3 *center, float radius)
@@ -298,7 +294,7 @@ extern "C" EXPORT_API void mpAddSphereCollider(mpColliderProperties *props, vec3
 	mpSphereCollider col;
 	col.props = *props;
 	mpBuildSphereCollider(col, *center, radius);
-	g_mpWorld.addSphereColliders(&col, 1);
+	g_mpWorld->addSphereColliders(&col, 1);
 }
 
 extern "C" EXPORT_API void mpAddCapsuleCollider(mpColliderProperties *props, vec3 *pos1, vec3 *pos2, float radius)
@@ -306,7 +302,7 @@ extern "C" EXPORT_API void mpAddCapsuleCollider(mpColliderProperties *props, vec
 	mpCapsuleCollider col;
 	col.props = *props;
 	mpBuildCapsuleCollider(col, *pos1, *pos2, radius);
-	g_mpWorld.addCapsuleColliders(&col, 1);
+	g_mpWorld->addCapsuleColliders(&col, 1);
 }
 
 extern "C" EXPORT_API void mpAddForce(mpForceProperties *props, mat4 *_trans)
@@ -354,6 +350,6 @@ extern "C" EXPORT_API void mpAddForce(mpForceProperties *props, mat4 *_trans)
 		break;
 
 	}
-	g_mpWorld.addForces(&force, 1);
+	g_mpWorld->addForces(&force, 1);
 }
 

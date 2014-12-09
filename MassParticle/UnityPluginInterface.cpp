@@ -7,7 +7,7 @@
 #include "MassParticle.h"
 
 
-extern mpWorld g_mpWorld;
+extern mpWorld *g_mpWorld;
 extern mpRenderer *g_mpRenderer;
 
 
@@ -42,7 +42,4 @@ extern "C" void EXPORT_API UnitySetGraphicsDevice(void* device, int deviceType, 
 
 extern "C" void EXPORT_API UnityRenderEvent(int eventID)
 {
-	if (g_mpRenderer) {
-		g_mpRenderer->render(g_mpWorld);
-	}
 }

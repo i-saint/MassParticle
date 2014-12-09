@@ -1,6 +1,14 @@
 #include "UnityPluginInterface.h"
 
 #if SUPPORT_OPENGL
+#if UNITY_WIN
+#include <windows.h>
+#include <gl/GL.h>
+#else
+#include <OpenGL/gl.h>
+#include <OpenGL/glext.h>
+#endif
+
 #include <cstdio>
 #include "mpTypes.h"
 #include "mpCore_ispc.h"
@@ -11,8 +19,6 @@ class mpRendererOpenGL : public mpRenderer
 public:
 	mpRendererOpenGL();
 	~mpRendererOpenGL();
-	virtual void render(mpWorld &world);
-	virtual void reloadShader();
 	virtual void updateDataTexture(void *tex, const void *data, size_t data_size);
 
 private:
@@ -28,15 +34,6 @@ mpRendererOpenGL::mpRendererOpenGL()
 }
 
 mpRendererOpenGL::~mpRendererOpenGL()
-{
-}
-
-void mpRendererOpenGL::render(mpWorld &world)
-{
-	// I'll write this when I really need it
-}
-
-void mpRendererOpenGL::reloadShader()
 {
 }
 

@@ -66,15 +66,15 @@
     <OutDir>$(SolutionDir)build/$(ProjectName)_$(Configuration)/</OutDir>
     <IntDir>build/$(ProjectName)_$(Configuration)/</IntDir>
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>../external/glm;../external/tbb/include;$(DXSDK_DIR)Include;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
-    <LibraryPath>../external\tbb\lib\ia32\vc12;$(DXSDK_DIR)Lib\x86;$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);</LibraryPath>
+    <IncludePath>../external/UnityCppScript;../external/glm;../external/tbb/include;$(DXSDK_DIR)Include;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
+    <LibraryPath>../external/UnityCppScript;../external\tbb\lib\ia32\vc12;$(DXSDK_DIR)Lib\x86;$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>$(SolutionDir)build/$(ProjectName)_$(Configuration)/</OutDir>
     <IntDir>build/$(ProjectName)_$(Configuration)/</IntDir>
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>../external/glm;../external/tbb/include;$(DXSDK_DIR)Include;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
-    <LibraryPath>../external\tbb\lib\ia32\vc12;$(DXSDK_DIR)Lib\x86;$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);</LibraryPath>
+    <IncludePath>../external/UnityCppScript;../external/glm;../external/tbb/include;$(DXSDK_DIR)Include;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
+    <LibraryPath>../external/UnityCppScript;../external\tbb\lib\ia32\vc12;$(DXSDK_DIR)Lib\x86;$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Master|Win32'">
     <OutDir>$(SolutionDir)build/$(Configuration)\</OutDir>
@@ -87,8 +87,8 @@
     <OutDir>$(SolutionDir)build/$(ProjectName)_$(Configuration)/</OutDir>
     <IntDir>build/$(ProjectName)_$(Configuration)/</IntDir>
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>../external/glm;../external/tbb/include;$(DXSDK_DIR)Include;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
-    <LibraryPath>../external\tbb\lib\ia32\vc12;$(DXSDK_DIR)Lib\x86;$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);</LibraryPath>
+    <IncludePath>../external/UnityCppScript;../external/glm;../external/tbb/include;$(DXSDK_DIR)Include;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
+    <LibraryPath>../external/UnityCppScript;../external\tbb\lib\ia32\vc12;$(DXSDK_DIR)Lib\x86;$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>

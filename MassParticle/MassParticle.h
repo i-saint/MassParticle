@@ -1,6 +1,12 @@
 #ifndef MassParticle_h
 #define MassParticle_h
 
+#define mpWithCppScript
+
+#ifdef mpWithCppScript
+#include "cpsUnityEngine.h"
+#endif // mpWithCppScript
+
 #include "UnityPluginInterface.h"
 #include "mpCore_ispc.h"
 #include "mpTypes.h"
@@ -26,20 +32,22 @@ enum mpForceDirection
 	mpFD_VectorField, //
 };
 
-extern "C" EXPORT_API void			mpReloadShader();
 extern "C" EXPORT_API void			mpGeneratePointMesh(int mi, mpMeshData *mds);
 extern "C" EXPORT_API void			mpGenerateCubeMesh(int mi, mpMeshData *mds);
-extern "C" EXPORT_API int			mpUpdateDataTexture(void *tex);
+extern "C" EXPORT_API int			mpUpdateDataTexture(mpWorld *context, void *tex);
+#ifdef mpWithCppScript
+extern "C" EXPORT_API int			mpUpdateParticleBuffer(mpWorld *context, UnityEngine::ComputeBuffer buf);
+#endif // mpWithCppScript
 
-extern "C" EXPORT_API void			mpOnEnable();
-extern "C" EXPORT_API void			mpOnDisable();
+extern "C" EXPORT_API mpWorld*		mpCreateContext();
+extern "C" EXPORT_API void			mpDestroyContext(mpWorld *c);
+extern "C" EXPORT_API void			mpMakeCurrent(mpWorld *c);
 extern "C" EXPORT_API void			mpBeginUpdate(float dt);
 extern "C" EXPORT_API void			mpEndUpdate();
 extern "C" EXPORT_API void			mpUpdate(float dt);
 extern "C" EXPORT_API void			mpClearParticles();
 extern "C" EXPORT_API void			mpClearCollidersAndForces();
 
-extern "C" EXPORT_API void			mpSetViewProjectionMatrix(mat4 *view, mat4 *proj, vec3 *camerapos);
 extern "C" EXPORT_API ispc::KernelParams mpGetKernelParams();
 extern "C" EXPORT_API void			mpSetKernelParams(ispc::KernelParams *params);
 
