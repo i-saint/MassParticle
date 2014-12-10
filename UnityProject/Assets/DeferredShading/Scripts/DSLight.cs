@@ -29,7 +29,7 @@ public class DSLight : MonoBehaviour
 	static public Material matPointLight;
 	static public Material matDirectionalLight;
 
-	static public void RenderLights(DSCamera cam)
+	static public void RenderLights(DSRenderer cam)
 	{
 		foreach(DSLight l in instances) {
 			Vector4 c = l.lit.color * l.lit.intensity;
@@ -56,7 +56,7 @@ public class DSLight : MonoBehaviour
 				matDirectionalLight.SetVector("_LightDir", l.lit.transform.forward);
 				matDirectionalLight.SetVector("_ShadowParams", shadow);
 				matDirectionalLight.SetPass(0);
-				DSCamera.DrawFullscreenQuad();
+				DSRenderer.DrawFullscreenQuad();
 			}
 		}
 	}
@@ -68,6 +68,10 @@ public class DSLight : MonoBehaviour
 	void Start ()
 	{
 		lit = GetComponent<Light>();
+		if (!sphereMesh)
+		{
+			sphereMesh = Resources.GetBuiltinResource<Mesh>("Sphere.fbx");
+		}
 	}
 	
 	void Update ()
