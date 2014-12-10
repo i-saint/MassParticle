@@ -91,7 +91,7 @@ public unsafe class MPRenderer : MonoBehaviour
 
     void UpdateCubeMeshes()
     {
-        int numParticles = MPAPI.mpGetNumParticles();
+        int numParticles = MPAPI.mpGetNumParticles(world.GetContext());
         int numActiveChildren = numParticles / 2700 + (numParticles % 2700 == 0 ? 0 : 1);
         while (children.Count < numActiveChildren)
         {
@@ -122,7 +122,7 @@ public unsafe class MPRenderer : MonoBehaviour
 
     void UpdatePointMeshes()
     {
-        int numParticles = MPAPI.mpGetNumParticles();
+        int numParticles = MPAPI.mpGetNumParticles(world.GetContext());
         int numActiveChildren = numParticles / 65000 + (numParticles % 65000 == 0 ? 0 : 1);
         while (children.Count < numActiveChildren)
         {

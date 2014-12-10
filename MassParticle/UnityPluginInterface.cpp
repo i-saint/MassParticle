@@ -7,7 +7,6 @@
 #include "MassParticle.h"
 
 
-extern mpWorld *g_mpWorld;
 extern mpRenderer *g_mpRenderer;
 
 

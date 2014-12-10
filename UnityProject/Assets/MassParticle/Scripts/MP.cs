@@ -149,43 +149,41 @@ public class MPAPI {
     [DllImport ("MassParticle")] public static extern void mpGeneratePointMesh(int i, ref MPMeshData md);
     [DllImport ("MassParticle")] public static extern void mpGenerateCubeMesh(int i, ref MPMeshData md);
     [DllImport ("MassParticle")] public static extern int mpUpdateDataTexture(IntPtr context, IntPtr tex);
-    [DllImport ("MassParticle")] public static extern void mpReloadShader ();
     [MethodImplAttribute(MethodImplOptions.InternalCall)]
     public static extern int mpUpdateDataBuffer(IntPtr context, ComputeBuffer buf);
 
     [DllImport ("MassParticle")] public static extern IntPtr mpCreateContext();
-    [DllImport ("MassParticle")] public static extern void mpDestroyContext(IntPtr ctx);
-    [DllImport ("MassParticle")] public static extern void mpMakeCurrent(IntPtr ctx);
-    [DllImport ("MassParticle")] public static extern void mpBeginUpdate(float dt);
-    [DllImport ("MassParticle")] public static extern void mpEndUpdate();
-    [DllImport ("MassParticle")] public static extern void mpUpdate (float dt);
-    [DllImport ("MassParticle")] public static extern void mpClearParticles();
-    [DllImport ("MassParticle")] public static extern void mpClearCollidersAndForces();
-    [DllImport ("MassParticle")] public static extern MPKernelParams mpGetKernelParams();
-    [DllImport ("MassParticle")] public static extern void mpSetKernelParams(ref MPKernelParams p);
+    [DllImport ("MassParticle")] public static extern void mpDestroyContext(IntPtr context);
+    [DllImport ("MassParticle")] public static extern void mpBeginUpdate(IntPtr context, float dt);
+    [DllImport ("MassParticle")] public static extern void mpEndUpdate(IntPtr context);
+    [DllImport ("MassParticle")] public static extern void mpUpdate (IntPtr context, float dt);
+    [DllImport ("MassParticle")] public static extern void mpClearParticles(IntPtr context);
+    [DllImport ("MassParticle")] public static extern void mpClearCollidersAndForces(IntPtr context);
+    [DllImport ("MassParticle")] public static extern MPKernelParams mpGetKernelParams(IntPtr context);
+    [DllImport ("MassParticle")] public static extern void mpSetKernelParams(IntPtr context, ref MPKernelParams p);
 
-    [DllImport ("MassParticle")] public static extern int mpGetNumHitData();
-    [DllImport ("MassParticle")] unsafe public static extern MPHitData* mpGetHitData();
-    [DllImport ("MassParticle")] public static extern int mpGetNumParticles();
-    [DllImport ("MassParticle")] unsafe public static extern MPParticle* mpGetParticles();
-    [DllImport ("MassParticle")] unsafe public static extern void mpCopyParticles (MPParticle *dst);
-    [DllImport ("MassParticle")] unsafe public static extern void mpWriteParticles(MPParticle *from);
-    [DllImport ("MassParticle")] public static extern void mpScatterParticlesSphere(ref Vector3 center, float radius, int num, ref Vector3 velBase, float velDiffuse);
-    [DllImport ("MassParticle")] public static extern void mpScatterParticlesBox(ref Vector3 center, ref Vector3 size, int num, ref Vector3 velBase, float velDiffuse);
-    [DllImport ("MassParticle")] public static extern void mpScatterParticlesSphereTransform(ref Matrix4x4 trans, int num, ref Vector3 velBase, float velDiffuse);
-    [DllImport ("MassParticle")] public static extern void mpScatterParticlesBoxTransform(ref Matrix4x4 trans, int num, ref Vector3 velBase, float velDiffuse);
+    [DllImport ("MassParticle")] public static extern int mpGetNumHitData(IntPtr context);
+    [DllImport ("MassParticle")] unsafe public static extern MPHitData* mpGetHitData(IntPtr context);
+    [DllImport ("MassParticle")] public static extern int mpGetNumParticles(IntPtr context);
+    [DllImport ("MassParticle")] unsafe public static extern MPParticle* mpGetParticles(IntPtr context);
+    [DllImport ("MassParticle")] unsafe public static extern void mpCopyParticles (IntPtr context, MPParticle *dst);
+    [DllImport ("MassParticle")] unsafe public static extern void mpWriteParticles(IntPtr context, MPParticle *from);
+    [DllImport ("MassParticle")] public static extern void mpScatterParticlesSphere(IntPtr context, ref Vector3 center, float radius, int num, ref Vector3 velBase, float velDiffuse);
+    [DllImport ("MassParticle")] public static extern void mpScatterParticlesBox(IntPtr context, ref Vector3 center, ref Vector3 size, int num, ref Vector3 velBase, float velDiffuse);
+    [DllImport ("MassParticle")] public static extern void mpScatterParticlesSphereTransform(IntPtr context, ref Matrix4x4 trans, int num, ref Vector3 velBase, float velDiffuse);
+    [DllImport ("MassParticle")] public static extern void mpScatterParticlesBoxTransform(IntPtr context, ref Matrix4x4 trans, int num, ref Vector3 velBase, float velDiffuse);
 
-    [DllImport ("MassParticle")] public static extern void mpAddSphereCollider(ref MPColliderProperties props, ref Vector3 center, float radius);
-    [DllImport ("MassParticle")] public static extern void mpAddCapsuleCollider(ref MPColliderProperties props, ref Vector3 pos1, ref Vector3 pos2, float radius);
-    [DllImport ("MassParticle")] public static extern void mpAddBoxCollider(ref MPColliderProperties props, ref Matrix4x4 transform, ref Vector3 size);
-    [DllImport ("MassParticle")] public static extern void mpAddForce (ref MPForceProperties regionType, ref Matrix4x4 regionMat);
+    [DllImport ("MassParticle")] public static extern void mpAddSphereCollider(IntPtr context, ref MPColliderProperties props, ref Vector3 center, float radius);
+    [DllImport ("MassParticle")] public static extern void mpAddCapsuleCollider(IntPtr context, ref MPColliderProperties props, ref Vector3 pos1, ref Vector3 pos2, float radius);
+    [DllImport ("MassParticle")] public static extern void mpAddBoxCollider(IntPtr context, ref MPColliderProperties props, ref Matrix4x4 transform, ref Vector3 size);
+    [DllImport ("MassParticle")] public static extern void mpAddForce (IntPtr context, ref MPForceProperties regionType, ref Matrix4x4 regionMat);
 
 }
 
 
 public class MPUtils
 {
-    public static void AddRadialSphereForce(Vector3 pos, float radius, float strength)
+    public static void AddRadialSphereForce(IntPtr context, Vector3 pos, float radius, float strength)
     {
         Matrix4x4 mat = Matrix4x4.TRS(pos, Quaternion.identity, Vector3.one * radius);
         MPForceProperties p = new MPForceProperties();
@@ -197,7 +195,7 @@ public class MPUtils
         p.attenuation_exp = 0.5f;
         p.range_inner = 0.0f;
         p.range_outer = radius;
-        MPAPI.mpAddForce(ref p, ref mat);
+        MPAPI.mpAddForce(context, ref p, ref mat);
     }
 
     public static void CallParticleHitHandler(MPWorld world, GameObject obj, ref MPParticle particle)

@@ -5,7 +5,17 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
 
-public unsafe class MPWorld : MonoBehaviour {
+public unsafe class MPWorld : MonoBehaviour
+{
+    static List<MPWorld> _instances;
+    public static List<MPWorld> instances
+    {
+        get
+        {
+            if (_instances == null) { _instances = new List<MPWorld>(); }
+            return _instances;
+        }
+    }
 
     public delegate void ParticleProcessor(MPWorld world, int numParticles, MPParticle* particles);
     public delegate void GatheredHitProcessor(MPWorld world, int numColliders, MPHitData* hits);
@@ -43,6 +53,8 @@ public unsafe class MPWorld : MonoBehaviour {
     bool dataTextureNeedsUpdate;
     ComputeBuffer dataBuffer;
     bool dataBufferNeedsUpdate;
+
+    public IntPtr GetContext() { return context; }
 
 
     public RenderTexture GetDataTexture()
@@ -85,18 +97,19 @@ public unsafe class MPWorld : MonoBehaviour {
         gatheredHitProcessor = DefaultGatheredHitProcessor;
     }
 
-    void Awake()
+    void OnEnable()
     {
+        instances.Add(this);
         context = MPAPI.mpCreateContext();
-        MPAPI.mpMakeCurrent(context);
     }
 
-    void OnDestroy()
+    void OnDisable()
     {
         colliders.Clear();
         MPAPI.mpDestroyContext(context);
-        if (dataTexture!=null) { DestroyImmediate(dataTexture); }
+        if (dataTexture != null) { DestroyImmediate(dataTexture); }
         if (dataBuffer != null) { dataBuffer.Release(); }
+        instances.Remove(this);
     }
 
     void Start()
@@ -106,7 +119,6 @@ public unsafe class MPWorld : MonoBehaviour {
 
     void Update()
     {
-        MPAPI.mpMakeCurrent(context);
         if (Time.deltaTime != 0.0f)
         {
             switch (updateMode)
@@ -124,20 +136,20 @@ public unsafe class MPWorld : MonoBehaviour {
     {
         UpdateKernelParams();
         UpdateMPObjects();
-        MPAPI.mpUpdate(Time.deltaTime);
+        MPAPI.mpUpdate(context, Time.deltaTime);
         ExecuteProcessors();
-        MPAPI.mpClearCollidersAndForces();
+        MPAPI.mpClearCollidersAndForces(context);
     }
 
     void DeferredUpdate()
     {
-        MPAPI.mpEndUpdate();
+        MPAPI.mpEndUpdate(context);
         ExecuteProcessors();
 
-        MPAPI.mpClearCollidersAndForces();
+        MPAPI.mpClearCollidersAndForces(context);
         UpdateKernelParams();
         UpdateMPObjects();
-        MPAPI.mpBeginUpdate(Time.deltaTime);
+        MPAPI.mpBeginUpdate(context, Time.deltaTime);
     }
 
 
@@ -150,7 +162,7 @@ public unsafe class MPWorld : MonoBehaviour {
 
     void UpdateKernelParams()
     {
-        MPKernelParams p = MPAPI.mpGetKernelParams();
+        MPKernelParams p = MPAPI.mpGetKernelParams(context);
         p.WorldCenter = transform.position;
         p.WorldSize = transform.localScale;
         p.WorldDiv_x = divX;
@@ -168,7 +180,7 @@ public unsafe class MPWorld : MonoBehaviour {
         p.Scaler = coordScale;
         p.ParticleSize = particleSize;
         p.MaxParticles = maxParticleNum;
-        MPAPI.mpSetKernelParams(ref p);
+        MPAPI.mpSetKernelParams(context, ref p);
     }
 
     void UpdateMPObjects()
@@ -207,7 +219,7 @@ public unsafe class MPWorld : MonoBehaviour {
                 if (sphere)
                 {
                     Vector3 pos = sphere.transform.position;
-                    MPAPI.mpAddSphereCollider(ref cprops, ref pos, sphere.radius * col.gameObject.transform.localScale.magnitude * 0.5f);
+                    MPAPI.mpAddSphereCollider(context, ref cprops, ref pos, sphere.radius * col.gameObject.transform.localScale.magnitude * 0.5f);
                 }
                 else if (capsule)
                 {
@@ -226,13 +238,13 @@ public unsafe class MPWorld : MonoBehaviour {
                     pos2 = capsule.transform.localToWorldMatrix * pos2;
                     Vector3 pos13 = pos1;
                     Vector3 pos23 = pos2;
-                    MPAPI.mpAddCapsuleCollider(ref cprops, ref pos13, ref pos23, r);
+                    MPAPI.mpAddCapsuleCollider(context, ref cprops, ref pos13, ref pos23, r);
                 }
                 else if (box)
                 {
                     Matrix4x4 mat = box.transform.localToWorldMatrix;
                     Vector3 size = box.size;
-                    MPAPI.mpAddBoxCollider(ref cprops, ref mat, ref size);
+                    MPAPI.mpAddBoxCollider(context, ref cprops, ref mat, ref size);
                 }
             }
         }
@@ -270,13 +282,13 @@ public unsafe class MPWorld : MonoBehaviour {
                 if (sphere)
                 {
                     Vector3 pos = sphere.transform.position;
-                    MPAPI.mpAddSphereCollider(ref cprops, ref pos, sphere.radius * col.gameObject.transform.localScale.x);
+                    MPAPI.mpAddSphereCollider(context, ref cprops, ref pos, sphere.radius * col.gameObject.transform.localScale.x);
                 }
                 else if (box)
                 {
                     Matrix4x4 mat = box.transform.localToWorldMatrix;
                     Vector3 size = new Vector3(box.size.x, box.size.y, box.size.x);
-                    MPAPI.mpAddBoxCollider(ref cprops, ref mat, ref size);
+                    MPAPI.mpAddBoxCollider(context, ref cprops, ref mat, ref size);
                 }
             }
         }
@@ -307,11 +319,11 @@ public unsafe class MPWorld : MonoBehaviour {
     {
         if (particleProcessor != null)
         {
-            particleProcessor(this, MPAPI.mpGetNumParticles(), MPAPI.mpGetParticles());
+            particleProcessor(this, MPAPI.mpGetNumParticles(context), MPAPI.mpGetParticles(context));
         }
         if (gatheredHitProcessor != null)
         {
-            gatheredHitProcessor(this, MPAPI.mpGetNumHitData(), MPAPI.mpGetHitData());
+            gatheredHitProcessor(this, MPAPI.mpGetNumHitData(context), MPAPI.mpGetHitData(context));
         }
     }
 

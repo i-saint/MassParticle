@@ -6,67 +6,94 @@ using System.Runtime.InteropServices;
 
 public class MPEmitter : MonoBehaviour {
 
-	static HashSet<MPEmitter> _instances;
-	public static HashSet<MPEmitter> instances
-	{
-		get
-		{
-			if (_instances == null) { _instances = new HashSet<MPEmitter>(); }
-			return _instances;
-		}
-	}
+    static List<MPEmitter> _instances;
+    public static List<MPEmitter> instances
+    {
+        get
+        {
+            if (_instances == null) { _instances = new List<MPEmitter>(); }
+            return _instances;
+        }
+    }
 
-	public enum Shape {
-		Sphere,
-		Box,
-	}
+    public enum Shape {
+        Sphere,
+        Box,
+    }
 
-	public Shape shape = Shape.Sphere;
-	public Vector3 velosityBase = Vector3.zero;
-	public float velosityDiffuse = 0.5f;
-	public int emitCount = 8;
+    public MPWorld[] targets;
+    public Shape shape = Shape.Sphere;
+    public Vector3 velosityBase = Vector3.zero;
+    public float velosityDiffuse = 0.5f;
+    public int emitCount = 8;
 
 
-	void OnEnable()
-	{
-		instances.Add(this);
-	}
+    delegate void TargetEnumerator(MPWorld world);
+    void EachTargets(TargetEnumerator e)
+    {
+        if (targets.Length != 0)
+        {
+            foreach (var w in targets)
+            {
+                e(w);
+            }
+        }
+        else
+        {
+            foreach (var w in MPWorld.instances)
+            {
+                e(w);
+            }
+        }
+    }
 
-	void OnDisable()
-	{
-		instances.Remove(this);
-	}
 
-	public void MPUpdate()
-	{
-		if (Time.deltaTime == 0.0f) { return; }
-		Matrix4x4 mat = transform.localToWorldMatrix;
-		switch (shape) {
-		case Shape.Sphere:
-			MPAPI.mpScatterParticlesSphereTransform (ref mat, emitCount, ref velosityBase, velosityDiffuse);
-			break;
+    void OnEnable()
+    {
+        instances.Add(this);
+    }
 
-		case Shape.Box:
-			MPAPI.mpScatterParticlesBoxTransform (ref mat, emitCount, ref velosityBase, velosityDiffuse);
-			break;
-		}
-	}
-	
-	
-	void OnDrawGizmos()
-	{
-		Gizmos.color = Color.yellow;
-		Gizmos.matrix = transform.localToWorldMatrix;
-		switch(shape) {
-		case Shape.Sphere:
-			Gizmos.DrawWireSphere(Vector3.zero, 0.5f);
-			break;
-			
-		case Shape.Box:
-			Gizmos.color = Color.yellow;
-			Gizmos.DrawWireCube(Vector3.zero, Vector3.one);
-			break;
-		}
-		Gizmos.matrix = Matrix4x4.identity;
-	}
+    void OnDisable()
+    {
+        instances.Remove(this);
+    }
+
+    public void MPUpdate()
+    {
+        if (Time.deltaTime == 0.0f) { return; }
+        Matrix4x4 mat = transform.localToWorldMatrix;
+        switch (shape) {
+        case Shape.Sphere:
+            EachTargets((w) =>
+            {
+                MPAPI.mpScatterParticlesSphereTransform(w.GetContext(), ref mat, emitCount, ref velosityBase, velosityDiffuse);
+            });
+            break;
+
+        case Shape.Box:
+            EachTargets((w) =>
+            {
+                MPAPI.mpScatterParticlesBoxTransform(w.GetContext(), ref mat, emitCount, ref velosityBase, velosityDiffuse);
+            });
+            break;
+        }
+    }
+    
+    
+    void OnDrawGizmos()
+    {
+        Gizmos.color = Color.yellow;
+        Gizmos.matrix = transform.localToWorldMatrix;
+        switch(shape) {
+        case Shape.Sphere:
+            Gizmos.DrawWireSphere(Vector3.zero, 0.5f);
+            break;
+            
+        case Shape.Box:
+            Gizmos.color = Color.yellow;
+            Gizmos.DrawWireCube(Vector3.zero, Vector3.one);
+            break;
+        }
+        Gizmos.matrix = Matrix4x4.identity;
+    }
 }

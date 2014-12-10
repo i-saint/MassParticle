@@ -30,7 +30,6 @@ mpKernelParams::mpKernelParams()
 
 
 
-mpWorld *g_mpWorld;
 mpRenderer *g_mpRenderer;
 
 
