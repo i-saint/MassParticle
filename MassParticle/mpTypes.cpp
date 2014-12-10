@@ -168,6 +168,7 @@ mpWorld::mpWorld()
     , m_num_particles_gpu_prev(0)
 #ifdef mpWithCppScript
     , m_mono_array()
+    , m_mono_gchandle()
 #endif // mpWithCppScript
 {
     m_sphere_colliders.reserve(64);
@@ -181,6 +182,11 @@ mpWorld::mpWorld()
 
 mpWorld::~mpWorld()
 {
+#ifdef mpWithCppScript
+    if (m_mono_array) {
+        cpsUnpin(m_mono_gchandle);
+    }
+#endif // mpWithCppScript
 }
 
 void mpWorld::addParticles(mpParticle *p, int num)
@@ -725,7 +731,9 @@ int mpWorld::updateDataBuffer(UnityEngine::ComputeBuffer buf)
 {
     if (!m_mono_array) {
         m_mono_array = cpsArray::create(cpsTypeinfo<uint8_t>(), sizeof(mpParticle)*m_kparams.max_particles);
+        m_mono_gchandle = cpsPin(m_mono_array);
     }
+
     memcpy(m_mono_array.getDataPtr(), &m_particles_gpu[0], sizeof(mpParticle)*m_num_particles_gpu);
     buf.SetData(m_mono_array);
     return m_num_particles_gpu;

@@ -28,10 +28,18 @@ extern "C" EXPORT_API int mpUpdateDataTexture(mpWorld *context, void *tex)
 }
 
 #ifdef mpWithCppScript
-extern "C" EXPORT_API int mpUpdateParticleBuffer(mpWorld *context, UnityEngine::ComputeBuffer buf)
+extern "C" EXPORT_API int mpUpdateDataBuffer(mpWorld *context, UnityEngine::ComputeBuffer buf)
 {
     return context->updateDataBuffer(buf);
 }
+struct mpUpdateDataBufferHelper
+{
+    mpUpdateDataBufferHelper()
+    {
+        cpsAddMethod("MPAPI::mpUpdateDataBuffer", &mpUpdateDataBuffer);
+    }
+} g_mpUpdateDataBufferHelper;
+
 #endif // mpWithCppScript
 
 
@@ -39,6 +47,10 @@ extern "C" EXPORT_API int mpUpdateParticleBuffer(mpWorld *context, UnityEngine::
 
 extern "C" EXPORT_API mpWorld* mpCreateContext()
 {
+#ifdef mpWithCppScript
+    cpsClearCache();
+#endif // mpWithCppScript
+
     mpWorld *p = new mpWorld();
     return p;
 }

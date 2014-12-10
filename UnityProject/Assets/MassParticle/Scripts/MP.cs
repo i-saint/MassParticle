@@ -3,6 +3,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using System.Runtime.CompilerServices;
 
 
 [StructLayout(LayoutKind.Explicit)]
@@ -145,11 +146,12 @@ public class MPAPI {
     
     [DllImport ("MassParticleHelper")] unsafe public static extern void mphInitialize();
 
-    [DllImport ("MassParticle")] unsafe public static extern void mpGeneratePointMesh(int i, ref MPMeshData md);
-    [DllImport ("MassParticle")] unsafe public static extern void mpGenerateCubeMesh(int i, ref MPMeshData md);
-    [DllImport ("MassParticle")] unsafe public static extern int mpUpdateDataTexture(IntPtr context, IntPtr tex);
-    [DllImport ("MassParticle")] unsafe public static extern int mpUpdateDataBuffer(IntPtr context, ComputeBuffer buf);
+    [DllImport ("MassParticle")] public static extern void mpGeneratePointMesh(int i, ref MPMeshData md);
+    [DllImport ("MassParticle")] public static extern void mpGenerateCubeMesh(int i, ref MPMeshData md);
+    [DllImport ("MassParticle")] public static extern int mpUpdateDataTexture(IntPtr context, IntPtr tex);
     [DllImport ("MassParticle")] public static extern void mpReloadShader ();
+    [MethodImplAttribute(MethodImplOptions.InternalCall)]
+    public static extern int mpUpdateDataBuffer(IntPtr context, ComputeBuffer buf);
 
     [DllImport ("MassParticle")] public static extern IntPtr mpCreateContext();
     [DllImport ("MassParticle")] public static extern void mpDestroyContext(IntPtr ctx);

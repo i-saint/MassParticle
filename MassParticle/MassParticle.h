@@ -4,6 +4,7 @@
 #define mpWithCppScript
 
 #ifdef mpWithCppScript
+#include "cpsBinder.h"
 #include "cpsUnityEngine.h"
 #endif // mpWithCppScript
 
@@ -36,7 +37,7 @@ extern "C" EXPORT_API void			mpGeneratePointMesh(int mi, mpMeshData *mds);
 extern "C" EXPORT_API void			mpGenerateCubeMesh(int mi, mpMeshData *mds);
 extern "C" EXPORT_API int			mpUpdateDataTexture(mpWorld *context, void *tex);
 #ifdef mpWithCppScript
-extern "C" EXPORT_API int			mpUpdateParticleBuffer(mpWorld *context, UnityEngine::ComputeBuffer buf);
+extern "C" EXPORT_API int			mpUpdateDataBuffer(mpWorld *context, UnityEngine::ComputeBuffer buf);
 #endif // mpWithCppScript
 
 extern "C" EXPORT_API mpWorld*		mpCreateContext();

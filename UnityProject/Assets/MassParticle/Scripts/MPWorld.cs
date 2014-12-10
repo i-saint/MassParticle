@@ -29,6 +29,7 @@ public unsafe class MPWorld : MonoBehaviour {
     public int divZ = 256;
     public float particleSize = 0.08f;
     public int maxParticleNum = 65536;
+    public int particleNum = 0;
 
     public ParticleProcessor particleProcessor;
     public GatheredHitProcessor gatheredHitProcessor;
@@ -56,7 +57,7 @@ public unsafe class MPWorld : MonoBehaviour {
         if (dataTextureNeedsUpdate)
         {
             dataTextureNeedsUpdate = false;
-            MPAPI.mpUpdateDataTexture(context, dataTexture.GetNativeTexturePtr());
+            particleNum = MPAPI.mpUpdateDataTexture(context, dataTexture.GetNativeTexturePtr());
         }
         return dataTexture;
     }
@@ -69,7 +70,7 @@ public unsafe class MPWorld : MonoBehaviour {
         if (dataBufferNeedsUpdate)
         {
             dataBufferNeedsUpdate = false;
-            MPAPI.mpUpdateDataBuffer(context, dataBuffer);
+            particleNum = MPAPI.mpUpdateDataBuffer(context, dataBuffer);
         }
         return dataBuffer;
     }
@@ -94,6 +95,8 @@ public unsafe class MPWorld : MonoBehaviour {
     {
         colliders.Clear();
         MPAPI.mpDestroyContext(context);
+        if (dataTexture!=null) { DestroyImmediate(dataTexture); }
+        if (dataBuffer != null) { dataBuffer.Release(); }
     }
 
     void Start()

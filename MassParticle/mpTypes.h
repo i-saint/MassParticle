@@ -315,6 +315,7 @@ private:
 
 #ifdef mpWithCppScript
     cpsArray                m_mono_array;
+    uint32_t                m_mono_gchandle;
 #endif // mpWithCppScript
 };
 
