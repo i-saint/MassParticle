@@ -8,6 +8,7 @@ using System.Runtime.InteropServices;
 public unsafe class MPWorld : MonoBehaviour
 {
     static List<MPWorld> _instances;
+    static int _update_count;
     public static List<MPWorld> instances
     {
         get
@@ -40,6 +41,7 @@ public unsafe class MPWorld : MonoBehaviour
     public float particleSize = 0.08f;
     public int maxParticleNum = 65536;
     public int particleNum = 0;
+    public Material mat;
 
     public ParticleProcessor particleProcessor;
     public GatheredHitProcessor gatheredHitProcessor;
@@ -121,16 +123,63 @@ public unsafe class MPWorld : MonoBehaviour
     {
         if (Time.deltaTime != 0.0f)
         {
-            switch (updateMode)
+            if (_update_count++ == 0)
             {
-                case MPUpdateMode.Immediate: ImmediateUpdate(); break;
-                case MPUpdateMode.Deferred: DeferredUpdate(); break;
+                ActualUpdate();
             }
-            dataTextureNeedsUpdate = true;
-            dataBufferNeedsUpdate = true;
         }
     }
 
+    void LateUpdate()
+    {
+        --_update_count;
+    }
+
+
+    static void ActualUpdate()
+    {
+        foreach (MPWorld w in instances)
+        {
+            if (w.updateMode == MPUpdateMode.Immediate)
+            {
+                w.ImmediateUpdate();
+            }
+        }
+
+        // deferred update
+        foreach (MPWorld w in instances)
+        {
+            if (w.updateMode == MPUpdateMode.Deferred)
+            {
+                MPAPI.mpEndUpdate(w.GetContext());
+            }
+        }
+        foreach (MPWorld w in instances)
+        {
+            if (w.updateMode == MPUpdateMode.Deferred)
+            {
+                w.ExecuteProcessors();
+
+                MPAPI.mpClearCollidersAndForces(w.GetContext());
+                w.UpdateKernelParams();
+                w.UpdateMPObjects();
+            }
+        }
+        foreach (MPWorld w in instances)
+        {
+            if (w.updateMode == MPUpdateMode.Deferred)
+            {
+                MPAPI.mpBeginUpdate(w.GetContext(), Time.deltaTime);
+            }
+        }
+
+
+        foreach (MPWorld w in instances)
+        {
+            w.dataTextureNeedsUpdate = true;
+            w.dataBufferNeedsUpdate = true;
+        }
+    }
 
     void ImmediateUpdate()
     {
@@ -141,16 +190,16 @@ public unsafe class MPWorld : MonoBehaviour
         MPAPI.mpClearCollidersAndForces(context);
     }
 
-    void DeferredUpdate()
-    {
-        MPAPI.mpEndUpdate(context);
-        ExecuteProcessors();
+    //void DeferredUpdate()
+    //{
+    //    MPAPI.mpEndUpdate(context);
+    //    ExecuteProcessors();
 
-        MPAPI.mpClearCollidersAndForces(context);
-        UpdateKernelParams();
-        UpdateMPObjects();
-        MPAPI.mpBeginUpdate(context, Time.deltaTime);
-    }
+    //    MPAPI.mpClearCollidersAndForces(context);
+    //    UpdateKernelParams();
+    //    UpdateMPObjects();
+    //    MPAPI.mpBeginUpdate(context, Time.deltaTime);
+    //}
 
 
     void OnDrawGizmos()

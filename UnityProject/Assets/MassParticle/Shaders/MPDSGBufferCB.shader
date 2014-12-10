@@ -104,6 +104,14 @@ SubShader {
 		return o;
 	}
 
+	float4 frag_dummy(vs_out vo) : COLOR0
+	{
+		if(vo.emission.w==0.0) {
+			discard;
+		}
+		return 0.0;
+	}
+
 	ENDCG
 
 	Pass {
@@ -122,10 +130,11 @@ SubShader {
 		ColorMask 0
 		ZWrite On
 		ZTest Less
+		Cull Back
 
 		CGPROGRAM
 		#pragma vertex vert
-		#pragma fragment frag
+		#pragma fragment frag_dummy
 		#pragma target 5.0
 		#ifdef SHADER_API_OPENGL 
 			#pragma glsl

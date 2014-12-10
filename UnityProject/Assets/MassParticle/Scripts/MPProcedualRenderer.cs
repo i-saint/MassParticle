@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
+
 public unsafe class MPProcedualRenderer : MonoBehaviour
 {
     public struct Vertex
@@ -12,7 +13,7 @@ public unsafe class MPProcedualRenderer : MonoBehaviour
     }
 
     public bool enableDepthPrePass = true;
-    public MPWorld[] mpworlds;
+    public MPWorld[] targets;
     public Material mpmaterial;
     ComputeBuffer cbCubeVertices;
 
@@ -64,8 +65,9 @@ public unsafe class MPProcedualRenderer : MonoBehaviour
         DSRenderer dsr = GetComponent<DSRenderer>();
         if (dsr != null)
         {
+            dsr.AddCallbackPreGBuffer(() => { UpdateBuffer(); }, 0);
             dsr.AddCallbackPreGBuffer(() => { DepthPrePass(); });
-            dsr.AddCallbackPostGBuffer(() => { GBufferPass(); });
+            dsr.AddCallbackPostGBuffer(() => { GBufferPass(); }, 10);
         }
     }
 
@@ -74,36 +76,60 @@ public unsafe class MPProcedualRenderer : MonoBehaviour
         cbCubeVertices.Release();
     }
 
-    public void OnPostRender()
+
+    delegate void TargetEnumerator(MPWorld world);
+    void EachTargets(TargetEnumerator e)
     {
-        DepthPrePass();
-        GBufferPass();
+        if (targets.Length != 0)
+        {
+            foreach (var w in targets)
+            {
+                e(w);
+            }
+        }
+        else
+        {
+            foreach (var w in MPWorld.instances)
+            {
+                e(w);
+            }
+        }
+    }
+
+    public void UpdateBuffer()
+    {
+        EachTargets((w) =>
+        {
+            w.GetDataBuffer();
+        });
     }
 
     public void DepthPrePass()
     {
-        if (mpmaterial == null) { return; }
         if (!enableDepthPrePass) { return; }
-        foreach (MPWorld mpworld in mpworlds)
+        EachTargets((w) =>
         {
-            mpmaterial.SetBuffer("vertices", cbCubeVertices);
-            mpmaterial.SetBuffer("particles", mpworld.GetDataBuffer());
-            mpmaterial.SetInt("_FlipY", 1);
-            mpmaterial.SetPass(1);
-            Graphics.DrawProcedural(MeshTopology.Triangles, 36, mpworld.particleNum);
-        }
+            Material mat = w.mat;
+            if (mat == null) { return; }
+            mat.SetBuffer("vertices", cbCubeVertices);
+            mat.SetBuffer("particles", w.GetDataBuffer());
+            mat.SetInt("_FlipY", 1);
+            mat.SetPass(1);
+            Graphics.DrawProcedural(MeshTopology.Triangles, 36, w.particleNum);
+        });
     }
 
     public void GBufferPass()
     {
-        if (mpmaterial == null) { return; }
-        foreach (MPWorld mpworld in mpworlds)
+        EachTargets((w) =>
         {
-            mpmaterial.SetBuffer("vertices", cbCubeVertices);
-            mpmaterial.SetBuffer("particles", mpworld.GetDataBuffer());
-            mpmaterial.SetInt("_FlipY", 0);
-            mpmaterial.SetPass(enableDepthPrePass ? 2 : 0);
-            Graphics.DrawProcedural(MeshTopology.Triangles, 36, mpworld.particleNum);
-        }
+            Material mat = w.mat;
+            if (mat == null) { return; }
+            mat.SetBuffer("vertices", cbCubeVertices);
+            mat.SetBuffer("particles", w.GetDataBuffer());
+            mat.SetInt("_FlipY", 0);
+            mat.SetPass(enableDepthPrePass ? 2 : 0);
+            Graphics.DrawProcedural(MeshTopology.Triangles, 36, w.particleNum);
+        });
     }
 }

@@ -296,7 +296,7 @@ private:
     mpBoxColliderCont       m_box_colliders;
     mpForceCont             m_forces;
 
-    tbb::task               *m_update_task;
+    tbb::task_group         m_taskgroup;
     std::mutex              m_mutex;
     mpKernelParams          m_kparams;
     mpTempParams            m_tparams;
@@ -311,7 +311,6 @@ private:
 
     bool                    m_trail_enabled;
     int                     m_trail_length;
-    tbb::task               *m_trail_update_task;
 
 #ifdef mpWithCppScript
     cpsArray                m_mono_array;

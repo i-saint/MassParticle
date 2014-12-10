@@ -151,8 +151,8 @@ public class MPAPI {
     
     [DllImport ("MassParticleHelper")] unsafe public static extern void mphInitialize();
 
-    [DllImport ("MassParticle")] public static extern void mpGeneratePointMesh(int i, ref MPMeshData md);
-    [DllImport ("MassParticle")] public static extern void mpGenerateCubeMesh(int i, ref MPMeshData md);
+    [DllImport ("MassParticle")] public static extern void mpGeneratePointMesh(IntPtr context, int i, ref MPMeshData md);
+    [DllImport ("MassParticle")] public static extern void mpGenerateCubeMesh(IntPtr context, int i, ref MPMeshData md);
     [DllImport ("MassParticle")] public static extern int mpUpdateDataTexture(IntPtr context, IntPtr tex);
     [MethodImplAttribute(MethodImplOptions.InternalCall)]
     public static extern int mpUpdateDataBuffer(IntPtr context, ComputeBuffer buf);

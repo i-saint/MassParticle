@@ -161,7 +161,6 @@ static const int g_cells_par_task = 256;
 mpWorld::mpWorld()
     : m_num_particles(0)
     , m_trail_enabled(false)
-    , m_update_task(nullptr)
     , m_hitdata_needs_update(false)
     , m_num_particles_gpu(0)
     , m_num_particles_gpu_prev(0)
@@ -247,37 +246,14 @@ void mpWorld::clearCollidersAndForces()
 }
 
 
-class mpUpdateTask : public tbb::task
-{
-private:
-    typedef std::function<void()> func_t;
-    func_t func;
-public:
-    mpUpdateTask(const func_t &f) : func(f)
-    {
-        set_ref_count(2);
-    }
-
-    tbb::task* execute()
-    {
-        func();
-        decrement_ref_count();
-        return nullptr;
-    }
-};
-
 void mpWorld::beginUpdate(float dt)
 {
-    m_update_task = new (tbb::task::allocate_root()) mpUpdateTask([=](){ update(dt); });
-    tbb::task::enqueue(*m_update_task);
+    m_taskgroup.run([=](){ update(dt); });
 }
 
 void mpWorld::endUpdate()
 {
-    if (m_update_task) {
-        m_update_task->wait_for_all();
-        m_update_task = nullptr;
-    }
+    m_taskgroup.wait();
 }
 
 void mpWorld::update(float32 dt)

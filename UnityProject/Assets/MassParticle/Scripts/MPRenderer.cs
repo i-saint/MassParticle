@@ -108,7 +108,7 @@ public unsafe class MPRenderer : MonoBehaviour
                 meshData.normals = n;
                 meshData.uv = t;
                 meshData.indices = idx;
-                MPAPI.mpGenerateCubeMesh(children.Count, ref meshData);
+                MPAPI.mpGenerateCubeMesh(world.GetContext(), children.Count, ref meshData);
             }}}}
             Mesh mesh = child.GetComponent<MeshFilter>().mesh;
             mesh.vertices = vertices;
@@ -136,7 +136,7 @@ public unsafe class MPRenderer : MonoBehaviour
                 meshData.vertices = v;
                 meshData.uv = t;
                 meshData.indices = idx;
-                MPAPI.mpGeneratePointMesh(children.Count, ref meshData);
+                MPAPI.mpGeneratePointMesh(world.GetContext(), children.Count, ref meshData);
             }}}
             Mesh mesh = child.GetComponent<MeshFilter>().mesh;
             mesh.vertices = vertices;
