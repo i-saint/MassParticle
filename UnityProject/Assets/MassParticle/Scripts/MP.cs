@@ -57,6 +57,11 @@ public struct MPKernelParams
     public float SPHRestDensity;
     public float SPHParticleMass;
     public float SPHViscosity;
+
+    public float RcpParticleSize2;
+    public float SPHDensityCoef;
+    public float SPHGradPressureCoef;
+    public float SPHLapViscosityCoef;
 };
 
 public enum MPSolverType

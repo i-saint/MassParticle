@@ -328,7 +328,13 @@ void mpWorld::update(float32 dt)
     m_hitdata.resize(num_colliders);
 
 
-    ispc::UpdateConstants(m_kparams);
+    {
+        const float PI = 3.14159265359f;
+        m_kparams.RcpParticleSize2 = 1.0f / (m_kparams.particle_size*2.0f);
+        m_kparams.SPHDensityCoef = m_kparams.SPHParticleMass * 315.0f / (64.0f * PI * pow(m_kparams.particle_size, 9));
+        m_kparams.SPHGradPressureCoef = m_kparams.SPHParticleMass * -45.0f / (PI * pow(m_kparams.particle_size, 6));
+        m_kparams.SPHLapViscosityCoef = m_kparams.SPHParticleMass * m_kparams.SPHViscosity * 45.0f / (PI * pow(m_kparams.particle_size, 6));
+    }
 
     // clear grid
     tbb::parallel_for(tbb::blocked_range<int>(0, cell_num, g_cells_par_task),
@@ -425,12 +431,14 @@ void mpWorld::update(float32 dt)
                 mpGenIndex(*this, i, xi, yi, zi);
                 if (kp.enable_interactions) {
                     ispc::impUpdatePressure(
+                        m_kparams,
                         (ispc::Particle*)&m_particles_soa[0],
                         (ispc::ParticleIMData*)&m_imd_soa[0],
                         ce, xi, yi, zi);
                 }
                 if (kp.enable_forces) {
                     ispc::ProcessExternalForce(
+                        m_kparams,
                         (ispc::Particle*)&m_particles_soa[0],
                         (ispc::ParticleIMData*)&m_imd_soa[0],
                         ce, xi, yi, zi,
@@ -438,6 +446,7 @@ void mpWorld::update(float32 dt)
                 }
                 if (kp.enable_colliders) {
                     ispc::ProcessColliders(
+                        m_kparams,
                         (ispc::Particle*)&m_particles_soa[0],
                         (ispc::ParticleIMData*)&m_imd_soa[0],
                         ce, xi, yi, zi,
@@ -456,6 +465,7 @@ void mpWorld::update(float32 dt)
                 int xi, yi, zi;
                 mpGenIndex(*this, i, xi, yi, zi);
                 ispc::Integrate(
+                    m_kparams,
                     (ispc::Particle*)&m_particles_soa[0],
                     (ispc::ParticleIMData*)&m_imd_soa[0],
                     ce, xi, yi, zi);
@@ -472,6 +482,7 @@ void mpWorld::update(float32 dt)
                     int xi, yi, zi;
                     mpGenIndex(*this, i, xi, yi, zi);
                     ispc::sphUpdateDensity(
+                        m_kparams,
                         (ispc::Particle*)&m_particles_soa[0],
                         (ispc::ParticleIMData*)&m_imd_soa[0],
                         ce, xi, yi, zi);
@@ -485,6 +496,7 @@ void mpWorld::update(float32 dt)
                     int xi, yi, zi;
                     mpGenIndex(*this, i, xi, yi, zi);
                     ispc::sphUpdateForce(
+                        m_kparams,
                         (ispc::Particle*)&m_particles_soa[0],
                         (ispc::ParticleIMData*)&m_imd_soa[0],
                         ce, xi, yi, zi);
@@ -500,6 +512,7 @@ void mpWorld::update(float32 dt)
                     int xi, yi, zi;
                     mpGenIndex(*this, i, xi, yi, zi);
                     ispc::sphUpdateDensityEst1(
+                        m_kparams,
                         (ispc::Particle*)&m_particles_soa[0],
                         (ispc::ParticleIMData*)&m_imd_soa[0],
                         ce, xi, yi, zi);
@@ -513,6 +526,7 @@ void mpWorld::update(float32 dt)
                     int xi, yi, zi;
                     mpGenIndex(*this, i, xi, yi, zi);
                     ispc::sphUpdateDensityEst2(
+                        m_kparams,
                         (ispc::Particle*)&m_particles_soa[0],
                         (ispc::ParticleIMData*)&m_imd_soa[0],
                         ce, xi, yi, zi);
@@ -526,6 +540,7 @@ void mpWorld::update(float32 dt)
                     int xi, yi, zi;
                     mpGenIndex(*this, i, xi, yi, zi);
                     ispc::sphUpdateForce(
+                        m_kparams,
                         (ispc::Particle*)&m_particles_soa[0],
                         (ispc::ParticleIMData*)&m_imd_soa[0],
                         ce, xi, yi, zi);
@@ -542,6 +557,7 @@ void mpWorld::update(float32 dt)
                 mpGenIndex(*this, i, xi, yi, zi);
                 if (kp.enable_forces) {
                     ispc::ProcessExternalForce(
+                        m_kparams,
                         (ispc::Particle*)&m_particles_soa[0],
                         (ispc::ParticleIMData*)&m_imd_soa[0],
                         ce, xi, yi, zi,
@@ -549,6 +565,7 @@ void mpWorld::update(float32 dt)
                 }
                 if (kp.enable_colliders) {
                     ispc::ProcessColliders(
+                        m_kparams,
                         (ispc::Particle*)&m_particles_soa[0],
                         (ispc::ParticleIMData*)&m_imd_soa[0],
                         ce, xi, yi, zi,
@@ -558,6 +575,7 @@ void mpWorld::update(float32 dt)
                         boxes, (int32)m_box_colliders.size());
                 }
                 ispc::Integrate(
+                    m_kparams,
                     (ispc::Particle*)&m_particles_soa[0],
                     (ispc::ParticleIMData*)&m_imd_soa[0],
                     ce, xi, yi, zi);
