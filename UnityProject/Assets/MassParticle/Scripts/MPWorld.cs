@@ -106,6 +106,7 @@ public unsafe class MPWorld : MonoBehaviour {
 
     void Update()
     {
+        MPAPI.mpMakeCurrent(context);
         if (Time.deltaTime != 0.0f)
         {
             switch (updateMode)
@@ -121,7 +122,6 @@ public unsafe class MPWorld : MonoBehaviour {
 
     void ImmediateUpdate()
     {
-        MPAPI.mpMakeCurrent(context);
         UpdateKernelParams();
         UpdateMPObjects();
         MPAPI.mpUpdate(Time.deltaTime);
@@ -131,7 +131,6 @@ public unsafe class MPWorld : MonoBehaviour {
 
     void DeferredUpdate()
     {
-        MPAPI.mpMakeCurrent(context);
         MPAPI.mpEndUpdate();
         ExecuteProcessors();
 

@@ -143,7 +143,7 @@ SubShader {
 
 
 		float2 hit_coord;
-		int MaxMarch = 24;
+		int MaxMarch = 16;
 		float MaxDistance = _RayMarchDistance*(MaxMarch);
 		float3 refdir = reflect(camDir, n.xyz) + diverge(p, _RayDiffusion);
 		float adv = _RayMarchDistance * jitter(p);
@@ -174,7 +174,7 @@ SubShader {
 		}
 		r.color.w = prev_result.w+1.0;
 		r.color.rgb = (base_color+blend_color)/r.color.w;
-		r.color.w = min(r.color.w, 100.0);
+		r.color.w = min(r.color.w, 10.00);
 		return r;
 	}
 	ENDCG

@@ -35,7 +35,7 @@ public class SceneTestDeferredShading : MonoBehaviour
 
 		if (Input.GetKey(KeyCode.LeftArrow) || Input.GetKey(KeyCode.A)) { cameraRot -= 0.01f; }
 		else if (Input.GetKey(KeyCode.RightArrow) || Input.GetKey(KeyCode.D)) { cameraRot += 0.01f; }
-		cameraRot += Time.deltaTime * 0.10f;
+		//cameraRot += Time.deltaTime * 0.10f;
 
 		cam.transform.position = new Vector3(
 			Mathf.Cos(cameraRot) * rotateRadius,
