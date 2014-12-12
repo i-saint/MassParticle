@@ -203,21 +203,19 @@ public class MPUtils
         MPAPI.mpAddForce(context, ref p, ref mat);
     }
 
-    public static void CallParticleHitHandler(MPWorld world, GameObject obj, ref MPParticle particle)
+    public static void CallParticleHitHandler(MPWorld world, MPCollider obj, ref MPParticle particle)
     {
-        var mpcattr = obj.GetComponent<MPColliderAttribute>();
-        if (mpcattr)
+        if (obj.particleHitHandler!=null)
         {
-            mpcattr.particleHitHandler(world, obj, ref particle);
+            obj.particleHitHandler(world, obj, ref particle);
         }
     }
 
-    public static void CallGathereditHandler(MPWorld world, GameObject obj, ref MPHitData hit)
+    public static void CallGathereditHandler(MPWorld world, MPCollider obj, ref MPHitData hit)
     {
-        var mpcattr = obj.GetComponent<MPColliderAttribute>();
-        if (mpcattr)
+        if (obj.gatheredHitHandler!=null)
         {
-            mpcattr.gatheredHitHandler(world, obj, ref hit);
+            obj.gatheredHitHandler(world, obj, ref hit);
         }
     }
 }

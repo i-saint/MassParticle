@@ -18,7 +18,7 @@ public class MPColliderAttribute : MonoBehaviour {
 	public MPColliderProperties cprops;
 
 
-	public MPColliderAttribute()
+	public void Start()
 	{
 		particleHitHandler = DefaultParticleHitHandler;
 		gatheredHitHandler = DefaultGatheredHitHandler;

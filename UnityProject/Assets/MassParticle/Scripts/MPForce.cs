@@ -7,15 +7,7 @@ using System.Runtime.InteropServices;
 
 public class MPForce : MonoBehaviour {
 
-    static HashSet<MPForce> _instances;
-    public static HashSet<MPForce> instances
-    {
-        get
-        {
-            if (_instances == null) { _instances = new HashSet<MPForce>(); }
-            return _instances;
-        }
-    }
+    static List<MPForce> instances = new List<MPForce>();
 
     public MPWorld[] targets;
     public MPForceShape regionType;
@@ -79,8 +71,14 @@ public class MPForce : MonoBehaviour {
             MPAPI.mpAddForce(w.GetContext(), ref fprops, ref mat);
         });
     }
-    
-    
+
+    public static void MPUpdateAll()
+    {
+        foreach(var o in  instances) {
+            o.MPUpdate();
+        }
+    }
+
     void OnDrawGizmos()
     {
         {

@@ -2,33 +2,31 @@
 using System.Collections;
 using System.Collections.Generic;
 
-public class MPCollider : MPColliderAttribute
+public class MPCollider : MonoBehaviour
 {
-    public enum Shape {
-        Sphere,
-        Capsule,
-        Box,
-    }
+    public delegate void ParticleHitHandler(MPWorld world, MPCollider obj, ref MPParticle particle);
+    public delegate void GatheredHitHandler(MPWorld world, MPCollider obj, ref MPHitData hit);
 
-    static List<MPCollider> _instances;
-    public static List<MPCollider> instances
-    {
-        get
-        {
-            if (_instances == null) { _instances = new List<MPCollider>(); }
-            return _instances;
-        }
-    }
+    public static List<MPCollider> instances = new List<MPCollider>();
+    public static List<MPCollider> instances_prev = new List<MPCollider>();
 
     public MPWorld[] targets;
-    public Shape shape = Shape.Box;
-    Transform trans;
-    Vector4 pos1;
-    Vector4 pos2;
-    float radius;
 
-    delegate void TargetEnumerator(MPWorld world);
-    void EachTargets(TargetEnumerator e)
+    public bool sendCollision = true;
+    public bool receiveCollision = false;
+    public float stiffness = 1500.0f;
+    public float bounce = 1.0f;
+
+    public ParticleHitHandler particleHitHandler = DefaultParticleHitHandler;
+    public GatheredHitHandler gatheredHitHandler = DefaultGatheredHitHandler;
+    public MPColliderProperties cprops;
+
+    protected Transform trans;
+    protected Rigidbody rigid3d;
+    protected Rigidbody2D rigid2d;
+
+    protected delegate void TargetEnumerator(MPWorld world);
+    protected void EachTargets(TargetEnumerator e)
     {
         if (targets.Length != 0)
         {
@@ -47,10 +45,22 @@ public class MPCollider : MPColliderAttribute
     }
 
 
+    public static MPCollider GetHitOwner(int id)
+    {
+        if (id == -1) { return null; }
+        return instances_prev[id];
+    }
+
+    void Awake()
+    {
+        trans = GetComponent<Transform>();
+        rigid3d = GetComponent<Rigidbody>();
+        rigid2d = GetComponent<Rigidbody2D>();
+    }
+
     void OnEnable()
     {
         instances.Add(this);
-        trans = GetComponent<Transform>();
     }
 
     void OnDisable()
@@ -58,80 +68,53 @@ public class MPCollider : MPColliderAttribute
         instances.Remove(this);
     }
 
-    void UpdateCapsule()
+    public virtual void MPUpdate()
     {
-        radius = (trans.localScale.x + trans.localScale.z) * 0.5f * 0.5f;
-        float h = Mathf.Max(0.0f, trans.localScale.y - radius * 2.0f);
-        pos1.Set(0.0f, h * 0.5f, 0.0f, 1.0f);
-        pos2.Set(0.0f, -h * 0.5f, 0.0f, 1.0f);
-        pos1 = trans.localToWorldMatrix * pos1;
-        pos2 = trans.localToWorldMatrix * pos2;
+        cprops.group_mask = 0;
+        cprops.stiffness = stiffness;
+        cprops.bounce = bounce;
+        cprops.damage_on_hit = 0.0f;
     }
 
-    public void MPUpdate()
+    public static void MPUpdateAll()
     {
-        UpdateColliderProperties();
-        if (sendCollision) {
-            switch (shape)
-            {
-            case Shape.Sphere:
-            {
-                Vector3 pos = trans.position;
-                EachTargets((w) =>
-                {
-                    MPAPI.mpAddSphereCollider(w.GetContext(), ref cprops, ref pos, trans.localScale.magnitude * 0.25f);
-                });
-            }
-                break;
-            case Shape.Capsule:
-            {
-                UpdateCapsule();
-                Vector3 pos13 = pos1;
-                Vector3 pos23 = pos2;
-                EachTargets((w) =>
-                {
-                    MPAPI.mpAddCapsuleCollider(w.GetContext(), ref cprops, ref pos13, ref pos23, radius);
-                });
-            }
-                break;
-            case Shape.Box:
-            {
-                Matrix4x4 mat = trans.localToWorldMatrix;
-                Vector3 one = Vector3.one;
-                EachTargets((w) =>
-                {
-                    MPAPI.mpAddBoxCollider(w.GetContext(), ref cprops, ref mat, ref one);
-                });
-            }
-                break;
-            }
+        int i = 0;
+        foreach(var o in instances) {
+            o.cprops.owner_id = i++;
+            o.MPUpdate();
         }
+        instances_prev = instances;
     }
 
-    void OnDrawGizmos()
+
+
+    public static void DefaultParticleHitHandler(MPWorld world, MPCollider obj, ref MPParticle particle)
     {
-        trans = GetComponent<Transform>();
-        Gizmos.color = Color.yellow;
-        switch (shape)
+        float force = world.force;
+        Vector3 vel = particle.velocity3;
+
+        if (obj.rigid3d)
         {
-            case Shape.Sphere:
-                Gizmos.matrix = trans.localToWorldMatrix;
-                Gizmos.DrawWireSphere(Vector3.zero, 0.5f);
-                break;
-
-            case Shape.Capsule:
-                UpdateCapsule();
-                Gizmos.DrawWireSphere(pos1, radius);
-                Gizmos.DrawWireSphere(pos2, radius);
-                Gizmos.DrawLine(pos1, pos2);
-                break;
-
-            case Shape.Box:
-                Gizmos.matrix = trans.localToWorldMatrix;
-                Gizmos.DrawWireCube(Vector3.zero, Vector3.one);
-                break;
+            obj.rigid3d.AddForceAtPosition(vel * force, particle.position3);
         }
-        Gizmos.matrix = Matrix4x4.identity;
+        if (obj.rigid2d)
+        {
+            obj.rigid2d.AddForceAtPosition(vel * force, particle.position3);
+        }
     }
 
+    public static void DefaultGatheredHitHandler(MPWorld world, MPCollider obj, ref MPHitData hit)
+    {
+        float force = world.force;
+        Vector3 vel = hit.velocity3;
+
+        if (obj.rigid3d)
+        {
+            obj.rigid3d.AddForceAtPosition(vel * force, hit.position3);
+        }
+        if (obj.rigid2d)
+        {
+            obj.rigid2d.AddForceAtPosition(vel * force, hit.position3);
+        }
+    }
 }

@@ -26,14 +26,14 @@ public unsafe class ParticleHandler : MonoBehaviour {
 		{
 			if (particles[i].hit==-1 || particles[i].hit == particles[i].hit_prev) { continue; }
 
-			GameObject col = world.colliders[particles[i].hit];
+            MPCollider col = MPCollider.GetHitOwner(particles[i].hit);
 			RedirectForceToParent cp = col.GetComponent<RedirectForceToParent>();
 			if (cp)
 			{
 				Transform parent = col.transform.parent;
 				if (parent)
 				{
-					MPUtils.CallParticleHitHandler(world, parent.gameObject, ref particles[i]);
+					MPUtils.CallParticleHitHandler(world, parent.gameObject.GetComponent<MPCollider>(), ref particles[i]);
 				}
 			}
 			else
@@ -49,14 +49,14 @@ public unsafe class ParticleHandler : MonoBehaviour {
 		for (int i = 0; i < numHits; ++i)
 		{
 			if (hits[i].num_hits == 0) { continue; }
-			GameObject col = world.colliders[i];
+            MPCollider col = MPCollider.GetHitOwner(i);
 			RedirectForceToParent cp = col.GetComponent<RedirectForceToParent>();
 			if (cp)
 			{
 				Transform parent = col.transform.parent;
 				if (parent)
 				{
-					MPUtils.CallGathereditHandler(world, parent.gameObject, ref hits[i]);
+                    MPUtils.CallGathereditHandler(world, parent.gameObject.GetComponent<MPCollider>(), ref hits[i]);
 				}
 			}
 			else

@@ -6,15 +6,7 @@ using System.Runtime.InteropServices;
 
 public class MPEmitter : MonoBehaviour {
 
-    static List<MPEmitter> _instances;
-    public static List<MPEmitter> instances
-    {
-        get
-        {
-            if (_instances == null) { _instances = new List<MPEmitter>(); }
-            return _instances;
-        }
-    }
+    static List<MPEmitter> instances = new List<MPEmitter>();
 
     public enum Shape {
         Sphere,
@@ -78,8 +70,15 @@ public class MPEmitter : MonoBehaviour {
             break;
         }
     }
-    
-    
+
+    public static void MPUpdateAll()
+    {
+        foreach (var o in instances)
+        {
+            o.MPUpdate();
+        }
+    }
+
     void OnDrawGizmos()
     {
         Gizmos.color = Color.yellow;
