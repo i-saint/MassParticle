@@ -13,7 +13,7 @@ public unsafe class MPRenderer : MonoBehaviour
     public MPWorld world;
     public RenderMode renderMode = RenderMode.Cubes;
     public Material material;
-    public float size = 0.02f;
+    public float size = 0.2f;
     public bool castShadows = true;
     public bool receiveShadows = true;
 
