@@ -658,7 +658,7 @@ void mpWorld::generatePointMesh(int mi, mpMeshData *mds)
 void mpWorld::generateCubeMesh(int mi, mpMeshData *mds)
 {
     const int batch_size = 2700;
-    const float s = 0.01f;
+    const float s = 0.5f / 100.0f;
     const float p = 1.0f;
     const float n = -1.0f;
     const float z = 0.0f;

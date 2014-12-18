@@ -1,4 +1,4 @@
-﻿Shader "Custom/mpDefaultSurface" {
+﻿Shader "MassParticle/Lambert" {
 
 Properties {
 	_ParticleSize ("Particle Size", Float) = 0.08
@@ -37,7 +37,7 @@ SubShader {
 		float4 params = tex2Dlod(_DataTex, v.texcoord+pitch*2.0);
 		float lifetime = params.w;
 
-		v.vertex.xyz *= (_ParticleSize*100.0);
+		v.vertex.xyz *= _ParticleSize * 100.0;
 		v.vertex.xyz *= min(1.0, lifetime/_FadeTime);
 		v.vertex.xyz += tex2Dlod(_DataTex,v.texcoord).xyz;
 

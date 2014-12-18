@@ -7,16 +7,14 @@ using System.Runtime.InteropServices;
 
 public unsafe class MPWorld : MonoBehaviour
 {
-    static List<MPWorld> _instances;
-    static int _update_count;
-    public static List<MPWorld> instances
+    public static List<MPWorld> s_instances = new List<MPWorld>();
+    static int s_update_count = 0;
+
+    void EachWorld(Action<MPWorld> f)
     {
-        get
-        {
-            if (_instances == null) { _instances = new List<MPWorld>(); }
-            return _instances;
-        }
+        s_instances.ForEach(f);
     }
+
 
     public delegate void ParticleProcessor(MPWorld world, int numParticles, MPParticle* particles);
     public delegate void GatheredHitProcessor(MPWorld world, int numColliders, MPHitData* hits);
@@ -33,59 +31,29 @@ public unsafe class MPWorld : MonoBehaviour
     public float pressureStiffness;
     public float wallStiffness;
     public Vector3 coordScale;
-    public bool include3DColliders = true;
-    public bool include2DColliders = true;
     public int divX = 256;
     public int divY = 1;
     public int divZ = 256;
     public float particleSize = 0.08f;
     public int maxParticleNum = 65536;
     public int particleNum = 0;
-    public Material mat;
 
     public ParticleProcessor particleProcessor;
     public GatheredHitProcessor gatheredHitProcessor;
     IntPtr context;
-    MPRenderer mprenderer;
 
+    public const int cubeBatchSize = 2700;
+    public const int pointBatchSize = 65000;
     public const int dataTextureWidth = 3072;
-    public const int dataTextureHeight = 2048;
-    RenderTexture dataTexture;
-    bool dataTextureNeedsUpdate;
-    ComputeBuffer dataBuffer;
-    bool dataBufferNeedsUpdate;
+    public const int dataTextureHeight = 256;
 
     public IntPtr GetContext() { return context; }
 
 
-    public RenderTexture GetDataTexture()
+    public int UpdateDataTexture(RenderTexture rt)
     {
-        if (dataTexture == null)
-        {
-            dataTexture = new RenderTexture(dataTextureWidth, dataTextureHeight, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Default);
-            dataTexture.isPowerOfTwo = false;
-            dataTexture.filterMode = FilterMode.Point;
-            dataTexture.Create();
-        }
-        if (dataTextureNeedsUpdate)
-        {
-            dataTextureNeedsUpdate = false;
-            particleNum = MPAPI.mpUpdateDataTexture(context, dataTexture.GetNativeTexturePtr());
-        }
-        return dataTexture;
-    }
-
-    public ComputeBuffer GetDataBuffer()
-    {
-        if(dataBuffer == null) {
-            dataBuffer = new ComputeBuffer(maxParticleNum, 48);
-        }
-        if (dataBufferNeedsUpdate)
-        {
-            dataBufferNeedsUpdate = false;
-            particleNum = MPAPI.mpUpdateDataBuffer(context, dataBuffer);
-        }
-        return dataBuffer;
+        particleNum = MPAPI.mpUpdateDataTexture(context, rt.GetNativeTexturePtr());
+        return particleNum;
     }
 
 
@@ -98,30 +66,23 @@ public unsafe class MPWorld : MonoBehaviour
         gatheredHitProcessor = DefaultGatheredHitProcessor;
     }
 
-    void OnEnable()
+    void Awake()
     {
-        instances.Add(this);
+        s_instances.Add(this);
         context = MPAPI.mpCreateContext();
     }
 
-    void OnDisable()
+    void OnDestroy()
     {
         MPAPI.mpDestroyContext(context);
-        if (dataTexture != null) { DestroyImmediate(dataTexture); }
-        if (dataBuffer != null) { dataBuffer.Release(); }
-        instances.Remove(this);
-    }
-
-    void Start()
-    {
-        mprenderer = GetComponent<MPRenderer>();
+        s_instances.Remove(this);
     }
 
     void Update()
     {
-        if (Time.deltaTime != 0.0f)
+        if (s_update_count++ == 0)
         {
-            if (_update_count++ == 0)
+            if (Time.deltaTime != 0.0f)
             {
                 ActualUpdate();
             }
@@ -130,38 +91,31 @@ public unsafe class MPWorld : MonoBehaviour
 
     void LateUpdate()
     {
-        --_update_count;
+        --s_update_count;
     }
 
 
     static void ActualUpdate()
     {
-        if (instances.Count == 0) { return; }
-        if (instances[0].updateMode == MPUpdateMode.Immediate)
+        if (s_instances.Count == 0) { return; }
+        if (s_instances[0].updateMode == MPUpdateMode.Immediate)
         {
             ImmediateUpdate();
         }
-        else if (instances[0].updateMode == MPUpdateMode.Deferred)
+        else if (s_instances[0].updateMode == MPUpdateMode.Deferred)
         {
             DeferredUpdate();
-        }
-
-        foreach (MPWorld w in instances)
-        {
-            w.dataTextureNeedsUpdate = true;
-            w.dataBufferNeedsUpdate = true;
         }
     }
 
     static void ImmediateUpdate()
     {
-        foreach (MPWorld w in instances)
+        foreach (MPWorld w in s_instances)
         {
             w.UpdateKernelParams();
-            w.UpdateRenderer();
         }
         UpdateMPObjects();
-        foreach (MPWorld w in instances)
+        foreach (MPWorld w in s_instances)
         {
             MPAPI.mpUpdate(w.GetContext(), Time.deltaTime);
             w.ExecuteProcessors();
@@ -171,20 +125,19 @@ public unsafe class MPWorld : MonoBehaviour
 
     static void DeferredUpdate()
     {
-        foreach (MPWorld w in instances)
+        foreach (MPWorld w in s_instances)
         {
             MPAPI.mpEndUpdate(w.GetContext());
         }
-        foreach (MPWorld w in instances)
+        foreach (MPWorld w in s_instances)
         {
             w.ExecuteProcessors();
 
             MPAPI.mpClearCollidersAndForces(w.GetContext());
             w.UpdateKernelParams();
-            w.UpdateRenderer();
         }
         UpdateMPObjects();
-        foreach (MPWorld w in instances)
+        foreach (MPWorld w in s_instances)
         {
             MPAPI.mpBeginUpdate(w.GetContext(), Time.deltaTime);
         }
@@ -226,14 +179,6 @@ public unsafe class MPWorld : MonoBehaviour
         MPCollider.MPUpdateAll();
         MPForce.MPUpdateAll();
         MPEmitter.MPUpdateAll();
-    }
-
-    void UpdateRenderer()
-    {
-        if (mprenderer)
-        {
-            mprenderer.MPUpdate();
-        }
     }
 
 

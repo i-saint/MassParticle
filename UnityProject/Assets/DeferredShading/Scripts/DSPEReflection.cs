@@ -28,6 +28,7 @@ public class DSPEReflection : DSEffectBase
         rtTemp = new RenderTexture[2];
     }
 
+
     void UpdateRenderTargets()
     {
         Vector2 reso = GetDSRenderer().GetInternalResolution() * resolution_scale;

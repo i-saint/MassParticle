@@ -62,7 +62,7 @@ public class Player : MonoBehaviour {
 		fprops.strength_near = strength;
 		fprops.strength_far = strength;
 		fprops.radial_center = pos - (trans.forward * 6.0f);
-		MPAPI.mpAddForce(MPWorld.instances[0].GetContext(), ref fprops, ref blowMatrix);
+		MPAPI.mpAddForce(MPWorld.s_instances[0].GetContext(), ref fprops, ref blowMatrix);
 	}
 	
 	void OnDrawGizmos()

@@ -32,7 +32,7 @@ public class MPEmitter : MonoBehaviour {
         }
         else
         {
-            foreach (var w in MPWorld.instances)
+            foreach (var w in MPWorld.s_instances)
             {
                 e(w);
             }

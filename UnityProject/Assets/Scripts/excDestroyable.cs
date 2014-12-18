@@ -59,7 +59,7 @@ public class excDestroyable : MonoBehaviour {
         int numFraction = (int)(volume * 1000.0f);
         Matrix4x4 mat = trans.localToWorldMatrix;
         Vector3 zero = Vector3.zero;
-        MPAPI.mpScatterParticlesBoxTransform(MPWorld.instances[0].GetContext(), ref mat, numFraction, ref zero, 3.0f);
+        MPAPI.mpScatterParticlesBoxTransform(MPWorld.s_instances[0].GetContext(), ref mat, numFraction, ref zero, 3.0f);
     }
 
     public void Damage(float v)
@@ -75,6 +75,6 @@ public class excDestroyable : MonoBehaviour {
     void OnDestroy()
     {
         float radius = (trans.localScale.x + trans.localScale.y + trans.localScale.z) * 0.5f;
-        MPUtils.AddRadialSphereForce(MPWorld.instances[0].GetContext(), trans.position, radius, radius * 100.0f);
+        MPUtils.AddRadialSphereForce(MPWorld.s_instances[0].GetContext(), trans.position, radius, radius * 100.0f);
     }
 }

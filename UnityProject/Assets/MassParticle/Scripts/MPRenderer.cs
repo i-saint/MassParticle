@@ -3,61 +3,51 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
-[RequireComponent(typeof(MPWorld))]
 public unsafe class MPRenderer : MonoBehaviour
 {
     public enum RenderMode {
         Points,
-        Cubes
+        Cubes,
     }
 
-    MPMeshData meshData;
-    List<GameObject> children;
-    public RenderMode renderMode;
+    public MPWorld world;
+    public RenderMode renderMode = RenderMode.Cubes;
     public Material material;
-    public float scale = 1.0f;
+    public float size = 0.02f;
     public bool castShadows = true;
     public bool receiveShadows = true;
-    RenderMode renderModePrev;
 
 
-    RenderTexture dataTexture;
+    MaterialPropertyBlock mpb;
+    MPMeshData mesh_data;
+    List<GameObject> children;
+    RenderTexture data_texture;
     GameObject meshes;
-    Transform trans;
     Bounds bounds;
-    MPWorld world;
-    Mesh dummyMesh;
 
 
-    void Start ()
+    void Awake()
     {
-        trans = gameObject.GetComponent<Transform>();
-        world = gameObject.GetComponent<MPWorld>();
-        dummyMesh = new Mesh();
         meshes = new GameObject("MPMeshes");
-        gameObject.GetComponent<MeshFilter>().mesh = dummyMesh;
-
-        meshData = new MPMeshData();
+        mesh_data = new MPMeshData();
         children = new List<GameObject>();
+        mpb = new MaterialPropertyBlock();
     }
 
-    public void MPUpdate()
+    void Update()
     {
-        Vector3 min = trans.position - trans.localScale;
-        Vector3 max = trans.position + trans.localScale;
-        bounds.SetMinMax(min, max);
-        dummyMesh.bounds = bounds;
-
-        if (renderMode != renderModePrev)
+        if (data_texture == null || !data_texture.IsCreated())
         {
-            foreach (GameObject child in children)
-            {
-                DestroyImmediate(child.GetComponent<MeshFilter>().sharedMesh, true);
-                DestroyImmediate(child);
-            }
-            children.Clear();
+            data_texture = new RenderTexture(MPWorld.dataTextureWidth, MPWorld.dataTextureHeight, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Default);
+            data_texture.filterMode = FilterMode.Point;
+            data_texture.Create();
         }
-        renderModePrev = renderMode;
+
+        Transform t = world.GetComponent<Transform>();
+        Vector3 min = t.position - t.localScale;
+        Vector3 max = t.position + t.localScale;
+        bounds.SetMinMax(min, max);
+
         switch (renderMode)
         {
             case RenderMode.Points:
@@ -69,46 +59,37 @@ public unsafe class MPRenderer : MonoBehaviour
         }
     }
 
-    void OnWillRenderObject()
-    {
-        dataTexture = world.GetDataTexture();
-        if (material)
-        {
-            material.SetTexture("_DataTex", dataTexture);
-            material.SetFloat("_DataTexPitch", 1.0f / MPWorld.dataTextureWidth);
-            material.SetFloat("_ParticleSize", world.particleSize * scale);
-        }
-    }
-
     GameObject CreateChildMesh()
     {
         GameObject child = new GameObject("MPMesh");
         child.transform.parent = meshes.transform;
         child.AddComponent<MeshFilter>();
-        child.AddComponent<MeshRenderer>();
+        MeshRenderer mr = child.AddComponent<MeshRenderer>();
+        mr.SetPropertyBlock(mpb);
         return child;
     }
 
     void UpdateCubeMeshes()
     {
-        int numParticles = MPAPI.mpGetNumParticles(world.GetContext());
-        int numActiveChildren = numParticles / 2700 + (numParticles % 2700 == 0 ? 0 : 1);
-        while (children.Count < numActiveChildren)
+        int batch_size = MPWorld.cubeBatchSize;
+        int num_particles = MPAPI.mpGetNumParticles(world.GetContext());
+        int num_active_children = num_particles / batch_size + (num_particles % batch_size == 0 ? 0 : 1);
+        while (children.Count < num_active_children)
         {
             GameObject child = CreateChildMesh();
-            Vector3[] vertices = new Vector3[64800];
-            Vector3[] normals = new Vector3[64800];
-            Vector2[] uv = new Vector2[64800];
-            int[] indices = new int[97200];
+            Vector3[] vertices = new Vector3[batch_size * 24];
+            Vector3[] normals = new Vector3[batch_size * 24];
+            Vector2[] uv = new Vector2[batch_size * 24];
+            int[] indices = new int[batch_size * 36];
             fixed (Vector3* v = vertices) {
             fixed (Vector3* n = normals) {
             fixed (Vector2* t = uv) {
             fixed (int* idx = indices) {
-                meshData.vertices = v;
-                meshData.normals = n;
-                meshData.uv = t;
-                meshData.indices = idx;
-                MPAPI.mpGenerateCubeMesh(world.GetContext(), children.Count, ref meshData);
+                mesh_data.vertices = v;
+                mesh_data.normals = n;
+                mesh_data.uv = t;
+                mesh_data.indices = idx;
+                MPAPI.mpGenerateCubeMesh(world.GetContext(), children.Count, ref mesh_data);
             }}}}
             Mesh mesh = child.GetComponent<MeshFilter>().mesh;
             mesh.vertices = vertices;
@@ -117,26 +98,27 @@ public unsafe class MPRenderer : MonoBehaviour
             mesh.SetIndices(indices, MeshTopology.Triangles, 0);
             children.Add(child);
         }
-        UpdateChildMeshes(numActiveChildren);
+        UpdateChildMeshes(num_active_children);
     }
 
     void UpdatePointMeshes()
     {
-        int numParticles = MPAPI.mpGetNumParticles(world.GetContext());
-        int numActiveChildren = numParticles / 65000 + (numParticles % 65000 == 0 ? 0 : 1);
-        while (children.Count < numActiveChildren)
+        int batch_size = MPWorld.pointBatchSize;
+        int num_particles = MPAPI.mpGetNumParticles(world.GetContext());
+        int num_active_children = num_particles / batch_size + (num_particles % batch_size == 0 ? 0 : 1);
+        while (children.Count < num_active_children)
         {
             GameObject child = CreateChildMesh();
-            Vector3[] vertices = new Vector3[65000];
-            Vector2[] uv = new Vector2[65000];
-            int[] indices = new int[65000];
+            Vector3[] vertices = new Vector3[batch_size];
+            Vector2[] uv = new Vector2[batch_size];
+            int[] indices = new int[batch_size];
             fixed (Vector3* v = vertices) {
             fixed (Vector2* t = uv) {
             fixed (int* idx = indices) {
-                meshData.vertices = v;
-                meshData.uv = t;
-                meshData.indices = idx;
-                MPAPI.mpGeneratePointMesh(world.GetContext(), children.Count, ref meshData);
+                mesh_data.vertices = v;
+                mesh_data.uv = t;
+                mesh_data.indices = idx;
+                MPAPI.mpGeneratePointMesh(world.GetContext(), children.Count, ref mesh_data);
             }}}
             Mesh mesh = child.GetComponent<MeshFilter>().mesh;
             mesh.vertices = vertices;
@@ -144,12 +126,16 @@ public unsafe class MPRenderer : MonoBehaviour
             mesh.SetIndices(indices, MeshTopology.Points, 0);
             children.Add(child);
         }
-        UpdateChildMeshes(numActiveChildren);
+        UpdateChildMeshes(num_active_children);
     }
 
-    void UpdateChildMeshes(int numActiveChildren)
+    void UpdateChildMeshes(int num_active_children)
     {
-        for (int i = 0; i < numActiveChildren; ++i)
+        mpb.AddTexture("_DataTex", data_texture);
+        mpb.AddFloat("_DataTexPitch", 1.0f / MPWorld.dataTextureWidth);
+        mpb.AddFloat("_ParticleSize", size);
+
+        for (int i = 0; i < num_active_children; ++i)
         {
             GameObject child = children[i];
             Mesh mesh = child.GetComponent<MeshFilter>().mesh;
@@ -158,15 +144,18 @@ public unsafe class MPRenderer : MonoBehaviour
             renderer.castShadows = castShadows;
             renderer.receiveShadows = receiveShadows;
             renderer.material = material;
+            renderer.SetPropertyBlock(mpb);
             mesh.bounds = bounds;
         }
-        for (int i = numActiveChildren; i < children.Count; ++i)
+        for (int i = num_active_children; i < children.Count; ++i)
         {
             children[i].GetComponent<MeshRenderer>().enabled = false;
         }
     }
 
-    void OnRenderObject()
+    void OnPreRender()
     {
+        world.UpdateDataTexture(data_texture);
     }
+
 }

@@ -237,7 +237,7 @@ mpRenderer* mpCreateRendererD3D11(void *dev);
 mpRenderer* mpCreateRendererOpenGL(void *dev);
 
 const int mpDataTextureWidth = 3072;
-const int mpDataTextureHeight = 2048;
+const int mpDataTextureHeight = 256;
 const int mpTexelsEachParticle = 3;
 const int mpParticlesEachLine = mpDataTextureWidth / mpTexelsEachParticle;
 
