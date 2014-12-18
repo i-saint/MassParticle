@@ -1,4 +1,4 @@
-﻿Shader "DeferredShading/DSGBufferMotionTrail" {
+﻿Shader "DeferredShading/GBufferMotionTrail" {
 
 Properties {
 	_BaseColor ("BaseColor", Vector) = (0.15, 0.15, 0.2, 1.0)
@@ -28,7 +28,7 @@ vs_out vert_motiontrail(ia_out v)
 	o.vertex = vmvp;
 	o.screen_pos = vmvp;
 	o.position = pos;
-	o.normal = normalize(mul(_Object2World, float4(v.normal.xyz,0.0)));
+	o.normal = normalize(mul(_Object2World, float4(v.normal.xyz,0.0)).xyz);
 	return o;
 }
 ENDCG
@@ -41,7 +41,7 @@ ENDCG
 
 		CGPROGRAM
 		#pragma vertex vert_motiontrail
-		#pragma fragment frag
+		#pragma fragment frag_no_texture
 		#pragma target 3.0
 		#ifdef SHADER_API_OPENGL 
 			#pragma glsl

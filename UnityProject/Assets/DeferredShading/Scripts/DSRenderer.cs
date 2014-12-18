@@ -3,20 +3,15 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
+
 //[ExecuteInEditMode]
 [RequireComponent(typeof(Camera))]
 public class DSRenderer : MonoBehaviour
 {
-    public enum TextureFormat
+    public enum RenderFormat
     {
-        Half,
-        Float,
-    }
-    public enum Resolution
-    {
-        Native,
-        Half,
-        Quarter,
+        float16,
+        float32,
     }
 
     public delegate void Callback();
@@ -40,14 +35,13 @@ public class DSRenderer : MonoBehaviour
         }
     }
 
-    public Resolution resolution;
+    public float resolution_scale = 1.0f;
     public bool showBuffers = false;
-    public TextureFormat textureFormat = TextureFormat.Half;
+    public RenderFormat textureFormat = RenderFormat.float16;
     public Material matFill;
     public Material matGBufferClear;
-    public Material matPointLight;
-    public Material matDirectionalLight;
     public Material matCombine;
+    public Mesh dummy_mesh;
 
     public Matrix4x4 prevViewProj;
     public Matrix4x4 prevViewProjInv;
@@ -67,6 +61,7 @@ public class DSRenderer : MonoBehaviour
 
     public RenderBuffer[] rbGBuffer;
     public RenderTexture rtComposite;
+    public RenderTexture rtCompositeShadow;
     public Camera cam;
 
     List<PriorityCallback> cbPreGBuffer = new List<PriorityCallback>();
@@ -75,6 +70,9 @@ public class DSRenderer : MonoBehaviour
     List<PriorityCallback> cbPostLighting = new List<PriorityCallback>();
     List<PriorityCallback> cbTransparent = new List<PriorityCallback>();
     List<PriorityCallback> cbPostEffect = new List<PriorityCallback>();
+
+    [System.NonSerialized] bool needs_reflesh = true;
+
 
     public void AddCallbackPreGBuffer(Callback cb, int priority = 1000)
     {
@@ -107,12 +105,9 @@ public class DSRenderer : MonoBehaviour
         cbPostEffect.Sort(new PriorityCallbackComp());
     }
 
-    public Vector2 GetRenderResolution()
+    public Vector2 GetInternalResolution()
     {
-        float x = 1.0f;
-        if (resolution == Resolution.Half) { x = 0.5f; }
-        else if (resolution == Resolution.Quarter) { x = 0.25f; }
-        return new Vector2(cam.pixelWidth, cam.pixelHeight) * x;
+        return new Vector2(cam.pixelWidth, cam.pixelHeight) * resolution_scale;
     }
 
 
@@ -124,25 +119,56 @@ public class DSRenderer : MonoBehaviour
         r.generateMips = false;
         r.enableRandomWrite = true;
         //r.wrapMode = TextureWrapMode.Repeat;
+        r.Create();
         return r;
     }
 
-    void Start ()
+    void Awake ()
     {
         rtGBuffer = new RenderTexture[4];
         rtPrevGBuffer = new RenderTexture[4];
         rbGBuffer = new RenderBuffer[4];
         cam = GetComponent<Camera>();
 
-        RenderTextureFormat format = textureFormat == TextureFormat.Half ? RenderTextureFormat.ARGBHalf : RenderTextureFormat.ARGBFloat;
-        Vector2 reso = GetRenderResolution();
-        for (int i = 0; i < rtGBuffer.Length; ++i)
-        {
-            int depthbits = i == 0 ? 32 : 0;
-            rtGBuffer[i] = CreateRenderTexture((int)reso.x, (int)reso.y, depthbits, format);
-            rtPrevGBuffer[i] = CreateRenderTexture((int)reso.x, (int)reso.y, depthbits, format);
+        UpdateRenderTargets();
+        needs_reflesh = false;
+    }
+
+    void Update()
+    {
+        if (needs_reflesh) Awake();
+    }
+
+    void UpdateRenderTargets()
+    {
+        RenderTextureFormat format = textureFormat == RenderFormat.float16 ? RenderTextureFormat.ARGBHalf : RenderTextureFormat.ARGBFloat;
+        Vector2 reso = GetInternalResolution();
+        if (rtGBuffer[0]!=null && rtGBuffer[0].width != reso.x) {
+            for (int i = 0; i < rtGBuffer.Length; ++i)
+            {
+                rtGBuffer[i].Release();
+                rtPrevGBuffer[i].Release();
+                rtPrevGBuffer[i] = null;
+            }
+            rtComposite.Release();
+            rtComposite = null;
+            if (rtCompositeShadow!=null)
+            {
+                rtCompositeShadow.Release();
+                rtCompositeShadow = null;
+            }
         }
-        rtComposite = CreateRenderTexture((int)reso.x, (int)reso.y, 0, format);
+        if (rtGBuffer[0] == null || !rtGBuffer[0].IsCreated())
+        {
+            for (int i = 0; i < rtGBuffer.Length; ++i)
+            {
+                int depthbits = i == 0 ? 32 : 0;
+                rtGBuffer[i] = CreateRenderTexture((int)reso.x, (int)reso.y, depthbits, format);
+                rtPrevGBuffer[i] = CreateRenderTexture((int)reso.x, (int)reso.y, depthbits, format);
+            }
+            rtComposite = CreateRenderTexture((int)reso.x, (int)reso.y, 0, format);
+            rtComposite.filterMode = FilterMode.Trilinear;
+        }
     }
 
 
@@ -156,8 +182,24 @@ public class DSRenderer : MonoBehaviour
         Graphics.SetRenderTarget(rtComposite);
     }
 
+    public RenderTexture UpdateShadowFramebuffer()
+    {
+        if (rtCompositeShadow == null)
+        {
+            RenderTextureFormat format = textureFormat == RenderFormat.float16 ? RenderTextureFormat.ARGBHalf : RenderTextureFormat.ARGBFloat;
+            Vector2 reso = GetInternalResolution();
+            rtCompositeShadow = CreateRenderTexture((int)reso.x, (int)reso.y, 0, format);
+            rtCompositeShadow.filterMode = FilterMode.Trilinear;
+        }
+        Graphics.Blit(rtComposite, rtCompositeShadow);
+        Shader.SetGlobalTexture("frame_buffer", rtCompositeShadow);
+        Graphics.SetRenderTarget(rtComposite.colorBuffer, rtNormalBuffer.depthBuffer);
+        return rtCompositeShadow;
+    }
+
     void OnPreRender()
     {
+        UpdateRenderTargets();
         Matrix4x4 proj = cam.projectionMatrix;
         Matrix4x4 view = cam.worldToCameraMatrix;
         proj[2, 0] = proj[2, 0] * 0.5f + proj[3, 0] * 0.5f;
@@ -177,18 +219,14 @@ public class DSRenderer : MonoBehaviour
         {
             rbGBuffer[i] = rtGBuffer[i].colorBuffer;
         }
-        matPointLight.SetTexture("_NormalBuffer", rtNormalBuffer);
-        matPointLight.SetTexture("_PositionBuffer", rtPositionBuffer);
-        matPointLight.SetTexture("_ColorBuffer", rtColorBuffer);
-        matPointLight.SetTexture("_GlowBuffer", rtGlowBuffer);
-        matDirectionalLight.SetTexture("_NormalBuffer", rtNormalBuffer);
-        matDirectionalLight.SetTexture("_PositionBuffer", rtPositionBuffer);
-        matDirectionalLight.SetTexture("_ColorBuffer", rtColorBuffer);
-        matDirectionalLight.SetTexture("_GlowBuffer", rtGlowBuffer);
 
         Graphics.SetRenderTarget(rbGBuffer, rtNormalBuffer.depthBuffer);
         matGBufferClear.SetPass(0);
         DrawFullscreenQuad();
+
+        // なんか OnPreRender() の段階で Graphics.Draw 一族で描こうとすると、最初の一回は view project 行列掛けた結果の y が反転する。
+        // しょうがないので何も描かない Graphics.DrawMeshNow() をここでやることで回避。
+        Graphics.DrawMeshNow(dummy_mesh, Matrix4x4.Scale(Vector3.zero));
 
         foreach (PriorityCallback cb in cbPreGBuffer) { cb.callback.Invoke(); }
     }
@@ -205,16 +243,21 @@ public class DSRenderer : MonoBehaviour
         Graphics.SetRenderTarget(rtComposite.colorBuffer, rtNormalBuffer.depthBuffer);
 
         foreach (PriorityCallback cb in cbPreLighting) { cb.callback.Invoke(); }
-        DSLight.matPointLight = matPointLight;
-        DSLight.matDirectionalLight = matDirectionalLight;
         DSLight.RenderLights(this);
         foreach (PriorityCallback cb in cbPostLighting) { cb.callback.Invoke(); }
         foreach (PriorityCallback cb in cbTransparent) { cb.callback.Invoke(); }
         foreach (PriorityCallback cb in cbPostEffect) { cb.callback.Invoke(); }
 
+        //// debug
+        //if (Time.frameCount % 60 == 0)
+        //{
+        //    Debug.Log("cbPreLighting: " + cbPreLighting.Count);
+        //    Debug.Log("cbPostLighting: " + cbPostLighting.Count);
+        //    Debug.Log("cbTransparent: " + cbTransparent.Count);
+        //    Debug.Log("cbPostEffect: " + cbPostEffect.Count);
+        //}
+
         Graphics.SetRenderTarget(null);
-        //rtComposite.filterMode = resolution == Resolution.Native ? FilterMode.Point : FilterMode.Bilinear;
-        rtComposite.filterMode = FilterMode.Point;
         matCombine.SetTexture("_MainTex", rtComposite);
         matCombine.SetPass(1);
         DrawFullscreenQuad();
@@ -235,7 +278,7 @@ public class DSRenderer : MonoBehaviour
         y += size.y + 5.0f;
     }
 
-    static public void DrawFullscreenQuad(float z=1.0f)
+    public static void DrawFullscreenQuad(float z=1.0f)
     {
         GL.Begin(GL.QUADS);
         GL.Vertex3(-1.0f, -1.0f, z);

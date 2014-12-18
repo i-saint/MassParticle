@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-public class DSLogicOpRenderer : MonoBehaviour
+public class DSLogicOpRenderer : DSEffectBase
 {
     public static DSLogicOpRenderer instance;
 
@@ -16,35 +16,48 @@ public class DSLogicOpRenderer : MonoBehaviour
     public RenderTexture rtAndColorBuffer		{ get { return rtAndGBuffer[2]; } }
     public RenderTexture rtAndGlowBuffer		{ get { return rtAndGBuffer[3]; } }
 
-    DSRenderer dscam;
-
-    DSLogicOpRenderer()
+    public override void Awake()
     {
+        base.Awake();
         instance = this;
-    }
-
-    void Start()
-    {
-        dscam = GetComponent<DSRenderer>();
-        dscam.AddCallbackPreGBuffer(() => { Render(); }, 900);
-
-        Camera cam = GetComponent<Camera>();
+        GetDSRenderer().AddCallbackPreGBuffer(() => { Render(); }, 900);
+        rtAndGBuffer = new RenderTexture[4];
+        rbAndGBuffer = new RenderBuffer[4];
+        Camera cam = GetCamera();
         cam.cullingMask = cam.cullingMask & (~(1 << layerLogicOp));
     }
 
-    void InitializeResources()
+    void OnDestroy()
     {
-        Vector2 reso = dscam.GetRenderResolution();
-        if (rtRDepth == null)
+        if (instance == this) instance = null;
+    }
+
+    void UpdateRenderTargets()
+    {
+        Vector2 reso = GetDSRenderer().GetInternalResolution();
+        if (rtRDepth != null && rtRDepth.width != (int)reso.x)
+        {
+            rtRDepth.Release();
+            rtRDepth = null;
+        }
+        if (rtAndRDepth != null && rtAndRDepth.width != (int)reso.x)
+        {
+            rtAndRDepth.Release();
+            rtAndRDepth = null;
+            for (int i = 0; i < rtAndGBuffer.Length; ++i)
+            {
+                rtAndGBuffer[i].Release();
+                rtAndGBuffer[i] = null;
+            }
+        }
+
+        if (rtRDepth == null || !rtRDepth.IsCreated())
         {
             rtRDepth = DSRenderer.CreateRenderTexture((int)reso.x, (int)reso.y, 32, RenderTextureFormat.RHalf);
         }
-        if (DSAnd.instances.Count > 0 && rtAndRDepth==null)
+        if (DSAnd.instances.Count > 0 && (rtAndRDepth == null || !rtAndRDepth.IsCreated()))
         {
-            Camera cam = dscam.cam;
             rtAndRDepth = DSRenderer.CreateRenderTexture((int)reso.x, (int)reso.y, 32, RenderTextureFormat.RHalf);
-            rtAndGBuffer = new RenderTexture[4];
-            rbAndGBuffer = new RenderBuffer[4];
             for (int i = 0; i < rtAndGBuffer.Length; ++i)
             {
                 int depthbits = i == 0 ? 32 : 0;
@@ -58,6 +71,8 @@ public class DSLogicOpRenderer : MonoBehaviour
     {
         if (!enabled) { return; }
 
+        DSRenderer dsr = GetDSRenderer();
+
         // if there is no subtract or and object, just create g-buffer
         if (DSSubtract.instances.Count == 0 && DSAnd.instances.Count==0)
         {
@@ -69,9 +84,7 @@ public class DSLogicOpRenderer : MonoBehaviour
             return;
         }
 
-
-        InitializeResources();
-
+        UpdateRenderTargets();
 
         // and
         if (DSAnd.instances.Count>0)
@@ -85,14 +98,14 @@ public class DSLogicOpRenderer : MonoBehaviour
             }
 
             Graphics.SetRenderTarget(rbAndGBuffer, rtAndNormalBuffer.depthBuffer);
-            dscam.matGBufferClear.SetPass(0);
+            dsr.matGBufferClear.SetPass(0);
             DSRenderer.DrawFullscreenQuad();
             foreach (DSAnd l in DSAnd.instances)
             {
                 l.matGBuffer.SetPass(0);
                 Graphics.DrawMeshNow(l.mesh, l.trans.localToWorldMatrix);
             }
-            dscam.SetRenderTargetsGBuffer();
+            dsr.SetRenderTargetsGBuffer();
         }
 
         // create g-buffer 
@@ -106,7 +119,7 @@ public class DSLogicOpRenderer : MonoBehaviour
                 l.matReverseDepth.SetPass(0);
                 Graphics.DrawMeshNow(l.mesh, l.trans.localToWorldMatrix);
 
-                dscam.SetRenderTargetsGBuffer();
+                dsr.SetRenderTargetsGBuffer();
                 l.matGBuffer.SetInt("_EnableLogicOp", 1);
                 l.matGBuffer.SetTexture("_RDepthBuffer", rtRDepth);
                 l.matGBuffer.SetTexture("_AndRDepthBuffer", rtAndRDepth);
@@ -121,7 +134,7 @@ public class DSLogicOpRenderer : MonoBehaviour
                 l.matDepthClear.SetPass(0);
                 Graphics.DrawMeshNow(l.mesh, l.trans.localToWorldMatrix);
             }
-            dscam.SetRenderTargetsGBuffer();
+            dsr.SetRenderTargetsGBuffer();
         }
         else
         {
@@ -142,7 +155,7 @@ public class DSLogicOpRenderer : MonoBehaviour
                 l.matReverseDepth.SetPass(0);
                 Graphics.DrawMeshNow(l.mesh, l.trans.localToWorldMatrix);
             }
-            dscam.SetRenderTargetsGBuffer();
+            dsr.SetRenderTargetsGBuffer();
         }
 
         // subtraction

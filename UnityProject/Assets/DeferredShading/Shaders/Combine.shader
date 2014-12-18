@@ -11,7 +11,6 @@ SubShader {
 	CGINCLUDE
 	#include "Compat.cginc"
 	sampler2D _MainTex;
-	float4 _PixelSize;
 
 	struct ia_out
 	{

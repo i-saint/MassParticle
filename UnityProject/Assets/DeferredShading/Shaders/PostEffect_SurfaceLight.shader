@@ -86,7 +86,7 @@ ps_out frag(vs_out i)
 
 	float3 n = tex2D(_NormalBuffer, coord).xyz;
 	float4 as = tex2D(_ColorBuffer, coord);
-	float3 EyeDir	= normalize(_WorldSpaceCameraPos.xyz - p.xyz);
+	float3 EyeDir = normalize(_WorldSpaceCameraPos.xyz - p.xyz);
 
 	const int NumRays = 8;
 	ps_out r;
