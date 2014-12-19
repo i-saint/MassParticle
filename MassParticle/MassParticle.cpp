@@ -52,7 +52,11 @@ extern "C" EXPORT_API int mpCreateContext()
 #endif // mpWithCppScript
 
     mpWorld *p = new mpWorld();
-    for (int i = 0; i < (int)g_worlds.size(); ++i) {
+
+    if (g_worlds.empty()) {
+        g_worlds.push_back(nullptr);
+    }
+    for (int i = 1; i < (int)g_worlds.size(); ++i) {
         if (g_worlds[i] == nullptr) {
             g_worlds[i] = p;
             return i;
@@ -364,12 +368,19 @@ extern "C" EXPORT_API void mpAddForce(int context, mpForceProperties *props, mat
     g_worlds[context]->addForces(&force, 1);
 }
 
-extern "C" EXPORT_API int mpScanSphere(int context, mpHitHandler handler, vec3 *center, float radius)
+extern "C" EXPORT_API void mpScanSphere(int context, mpHitHandler handler, vec3 *center, float radius)
 {
     return g_worlds[context]->scanSphere(handler, *center, radius);
 }
-
-extern "C" EXPORT_API int mpScanAABB(int context, mpHitHandler handler, vec3 *center, vec3 *extent)
+extern "C" EXPORT_API void mpScanAABB(int context, mpHitHandler handler, vec3 *center, vec3 *extent)
 {
     return g_worlds[context]->scanAABB(handler, *center, *extent);
+}
+extern "C" EXPORT_API void mpScanSphereParallel(int context, mpHitHandler handler, vec3 *center, float radius)
+{
+    return g_worlds[context]->scanSphereParallel(handler, *center, radius);
+}
+extern "C" EXPORT_API void mpScanAABBParallel(int context, mpHitHandler handler, vec3 *center, vec3 *extent)
+{
+    return g_worlds[context]->scanAABBParallel(handler, *center, *extent);
 }

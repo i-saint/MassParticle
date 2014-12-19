@@ -16,7 +16,7 @@ public class MPCollider : MonoBehaviour
     public bool m_receive_force = false;
     public float m_stiffness = 1500.0f;
 
-    public MPParticleHandler m_hit_handler;
+    public MPHitHandler m_hit_handler;
     public MPForceHandler m_force_handler;
     public MPColliderProperties cprops;
 
@@ -93,34 +93,33 @@ public class MPCollider : MonoBehaviour
     {
         //Debug.Log("DefaultHitHandler(): " + GetHashCode());
 
-        float mass = 0.5f;
-        Vector3 vel = particle.velocity3;
+        Vector3 f = particle.velocity3 * MPWorld.s_current.m_particle_mass;
         particle.lifetime = 0.0f;
 
         if (m_rigid3d)
         {
-            m_rigid3d.AddForceAtPosition(vel * mass, particle.position3);
+            m_rigid3d.AddForceAtPosition(f, particle.position3);
         }
         if (m_rigid2d)
         {
-            m_rigid2d.AddForceAtPosition(vel * mass, particle.position3);
+            m_rigid2d.AddForceAtPosition(f, particle.position3);
         }
     }
 
     public void DefaultForceHandler(ref MPForceData force)
     {
-        Debug.Log("DefaultForceHandler(): " + GetHashCode());
+        //Debug.Log("DefaultForceHandler(): " + GetHashCode());
 
         Vector3 pos = force.position;
-        Vector3 vel = force.velocity;
+        Vector3 f = force.velocity * MPWorld.s_current.m_particle_mass;
 
         if (m_rigid3d)
         {
-            m_rigid3d.AddForceAtPosition(vel, pos);
+            m_rigid3d.AddForceAtPosition(f, pos);
         }
         if (m_rigid2d)
         {
-            m_rigid2d.AddForceAtPosition(vel, pos);
+            m_rigid2d.AddForceAtPosition(f, pos);
         }
     }
 }

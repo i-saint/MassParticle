@@ -47,11 +47,14 @@ public unsafe class MPWorld : MonoBehaviour
     public int m_world_div_y = 1;
     public int m_world_div_z = 256;
     public int m_particle_num = 0;
-    public int m_context;
+    public int m_context = 0;
+    List<Action> m_updater = new List<Action>();
 
 
 
     public int GetContext() { return m_context; }
+    public void AddUpdateRoutine(Action a) { m_updater.Add(a); }
+    public void RemoveUpdateRoutine(Action a) { m_updater.Remove(a); }
 
 
     public int UpdateDataTexture(RenderTexture rt)
@@ -73,7 +76,7 @@ public unsafe class MPWorld : MonoBehaviour
 
     void Awake()
     {
-        m_context = (int)MPAPI.mpCreateContext();
+        m_context = MPAPI.mpCreateContext();
     }
 
     void OnDestroy()
@@ -88,8 +91,10 @@ public unsafe class MPWorld : MonoBehaviour
 
     void OnDisable()
     {
+        MPAPI.mpEndUpdate(GetContext());
         s_instances.Remove(this);
     }
+
 
 
     void Update()
@@ -133,9 +138,11 @@ public unsafe class MPWorld : MonoBehaviour
         UpdateMPObjects();
         foreach (MPWorld w in s_instances)
         {
-            s_current = w;
             MPAPI.mpUpdate(w.GetContext(), Time.deltaTime);
+            s_current = w;
             MPAPI.mpCallHandlers(w.GetContext());
+            w.CallUpdateRoutines();
+            s_current = null;
             MPAPI.mpClearCollidersAndForces(w.GetContext());
         }
     }
@@ -150,6 +157,8 @@ public unsafe class MPWorld : MonoBehaviour
         {
             s_current = w;
             MPAPI.mpCallHandlers(w.GetContext());
+            w.CallUpdateRoutines();
+            s_current = null;
             MPAPI.mpClearCollidersAndForces(w.GetContext());
             w.UpdateKernelParams();
         }
@@ -158,6 +167,11 @@ public unsafe class MPWorld : MonoBehaviour
         {
             MPAPI.mpBeginUpdate(w.GetContext(), Time.deltaTime);
         }
+    }
+
+    void CallUpdateRoutines()
+    {
+        m_updater.ForEach((a) => { a.Invoke(); });
     }
 
 

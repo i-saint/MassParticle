@@ -82,14 +82,14 @@ public enum MPUpdateMode
     Deferred = 1,
 }
 
-public delegate void MPParticleHandler(ref MPParticle particle);
+public delegate void MPHitHandler(ref MPParticle particle);
 public delegate void MPForceHandler(ref MPForceData force);
 
 public struct MPColliderProperties
 {
     public int owner_id;
     public float stiffness;
-    public MPParticleHandler hit_handler;
+    public MPHitHandler hit_handler;
     public MPForceHandler force_handler;
 
     public void SetDefaultValues()
@@ -186,6 +186,11 @@ public class MPAPI {
     [DllImport ("MassParticle")] public static extern void mpAddCapsuleCollider(int context, ref MPColliderProperties props, ref Vector3 pos1, ref Vector3 pos2, float radius);
     [DllImport ("MassParticle")] public static extern void mpAddBoxCollider(int context, ref MPColliderProperties props, ref Matrix4x4 transform, ref Vector3 size);
     [DllImport ("MassParticle")] public static extern void mpAddForce (int context, ref MPForceProperties regionType, ref Matrix4x4 regionMat);
+
+    [DllImport ("MassParticle")] public static extern void mpScanSphere (int context, MPHitHandler h, ref Vector3 center, float radius);
+    [DllImport ("MassParticle")] public static extern void mpScanSphereParallel (int context, MPHitHandler h, ref Vector3 center, float radius);
+    [DllImport ("MassParticle")] public static extern void mpScanAABB (int context, MPHitHandler h, ref Vector3 center, ref Vector3 extent);
+    [DllImport ("MassParticle")] public static extern void mpScanAABBParallel (int context, MPHitHandler h, ref Vector3 center, ref Vector3 extent);
 
 }
 

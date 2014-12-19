@@ -81,7 +81,7 @@ void mpSoAnize( int32 num, const mpParticle *particles, ispc::Particle_SOA8 *out
         simd_store(out[bi].hit+0, _mm_set1_epi32(-1));
         simd_store(out[bi].hit+4, _mm_set1_epi32(-1));
 
-        //// •s—v
+        //// 
         //soas = ist::simdvec4_set(particles[i+0].params.density, particles[i+1].params.density, particles[i+2].params.density, particles[i+3].params.density);
         //_mm_store_ps(out[bi].density+0, soas);
         //soas = ist::simdvec4_set(particles[i+4].params.density, particles[i+5].params.density, particles[i+6].params.density, particles[i+7].params.density);
@@ -225,15 +225,225 @@ void mpWorld::addForces(mpForce *force, int num)
     m_forces.insert(m_forces.end(), force, force+num);
 }
 
-int mpWorld::scanSphere(mpHitHandler handler, const vec3 &pos, float radius)
+
+inline ivec3 Position2Index(mpWorld &w, const vec3 &pos)
 {
-    return 0;
+    const mpKernelParams &p = w.getKernelParams();
+    mpTempParams &t = w.getTempParams();
+    vec3 &bl = (vec3&)t.world_bounds_bl;
+    vec3 &rcpCell = (vec3&)t.rcp_cell_size;
+    int xb = clamp<int32>(int32((pos.x - bl.x)*rcpCell.x), 0, p.world_div.x - 1);
+    int zb = clamp<int32>(int32((pos.z - bl.z)*rcpCell.z), 0, p.world_div.z - 1);
+    int yb = clamp<int32>(int32((pos.y - bl.y)*rcpCell.y), 0, p.world_div.y - 1);
+    return ivec3(xb, yb, zb);
 }
 
-int mpWorld::scanAABB(mpHitHandler handler, const vec3 &center, const vec3 &extent)
+// 0: not overlapped, 1: overlapped, 2: completely inside
+int overlapAABB_AABB(const vec3 &aabb1_bl, const vec3 &aabb1_ur, const vec3 &aabb2_bl, const vec3 &aabb2_ur)
 {
-    return 0;
+    if (aabb1_ur.x < aabb2_bl.x || aabb1_bl.x > aabb2_ur.x ||
+        aabb1_ur.y < aabb2_bl.y || aabb1_bl.y > aabb2_ur.y ||
+        aabb1_ur.z < aabb2_bl.z || aabb1_bl.z > aabb2_ur.z)
+    {
+        return 0;
+    }
+    else if (
+        aabb1_ur.x < aabb2_ur.x && aabb1_bl.x > aabb2_bl.x &&
+        aabb1_ur.y < aabb2_ur.y && aabb1_bl.y > aabb2_bl.y &&
+        aabb1_ur.z < aabb2_ur.z && aabb1_bl.z > aabb2_bl.z)
+    {
+        return 2;
+    }
+    else if (
+        aabb2_ur.x < aabb1_ur.x && aabb2_bl.x > aabb1_bl.x &&
+        aabb2_ur.y < aabb1_ur.y && aabb2_bl.y > aabb1_bl.y &&
+        aabb2_ur.z < aabb1_ur.z && aabb2_bl.z > aabb1_bl.z)
+    {
+        return 2;
+    }
+    return 1;
 }
+
+
+// 0: not overlapped, 1: overlapped, 2: completely inside
+int overlapSphere_AABB(const vec3 &sphere_pos, float sphere_radius, const vec3 &aabb_bl, const vec3 &aabb_ur)
+{
+    return overlapAABB_AABB(sphere_pos - sphere_radius, sphere_pos + sphere_radius, aabb_bl, aabb_ur);
+}
+
+bool testSphere_AABB(const vec3 &sphere_pos, float sphere_radius, vec3 aabb_bl, vec3 &aabb_ur)
+{
+    aabb_bl -= sphere_radius;
+    aabb_ur += sphere_radius;
+    return
+        sphere_pos.x > aabb_bl.x && sphere_pos.x < aabb_ur.x &&
+        sphere_pos.y > aabb_bl.y && sphere_pos.y < aabb_ur.y &&
+        sphere_pos.z > aabb_bl.z && sphere_pos.z < aabb_ur.z;
+}
+
+bool testSphere_Sphere(const vec3 &sphere1_pos, float sphere1_radius, const vec3 &sphere2_pos, float sphere2_radius)
+{
+    float r = sphere1_radius + sphere2_radius;
+    return glm::length_sq(sphere2_pos-sphere1_pos) < r*r;
+}
+
+
+// f: [](const mpCell &cell, const ivec3 &cell_index)
+template<class F>
+inline void ScanCells(mpWorld &w, const ivec3 &imin, const ivec3 &imax, const F &f)
+{
+    const mpCellCont &cells = w.getCells();
+    ivec3 bits = w.getTempParams().world_div_bits;
+    mpParticle *particles = w.getParticles();
+    for (int iy = imin.y; iy < imax.y; ++iy) {
+        for (int iz = imin.z; iz < imax.z; ++iz) {
+            for (int ix = imin.x; ix < imax.x; ++ix) {
+                uint32 ci = ix | (iz << bits.x) | (iy << (bits.x + bits.z));
+                const mpCell &cell = cells[ci];
+                f(cell, ivec3(ix, iy, iz));
+            }
+        }
+    }
+}
+
+// f: [](const mpCell &cell, const ivec3 &cell_index)
+template<class F>
+inline void ScanCellsParallel(mpWorld &w, const ivec3 &imin, const ivec3 &imax, const F &f)
+{
+    const mpCellCont &cells = w.getCells();
+    ivec3 bits = w.getTempParams().world_div_bits;
+    mpParticle *particles = w.getParticles();
+    int lz = imax.z - imin.z;
+    int ly = imax.y - imin.y;
+    if (ly > 4) {
+        tbb::parallel_for(imin.y, imax.y, [&](int iy){
+            for (int iz = imin.z; iz < imax.z; ++iz) {
+                for (int ix = imin.x; ix < imax.x; ++ix) {
+                    uint32 ci = ix | (iz << bits.x) | (iy << (bits.x + bits.z));
+                    const mpCell &cell = cells[ci];
+                    f(cell, ivec3(ix, iy, iz));
+                }
+            }
+        });
+    }
+    else if(lz > 4) {
+        for (int iy = imin.y; iy < imax.y; ++iy) {
+            tbb::parallel_for(imin.z, imax.z, [&](int iz){
+                for (int ix = imin.x; ix < imax.x; ++ix) {
+                    uint32 ci = ix | (iz << bits.x) | (iy << (bits.x + bits.z));
+                    const mpCell &cell = cells[ci];
+                    f(cell, ivec3(ix, iy, iz));
+                }
+            });
+        }
+    }
+    else {
+        ScanCells(w, imin, imax, f);
+    }
+}
+
+void mpWorld::scanSphere(mpHitHandler handler, const vec3 &pos, float radius)
+{
+    const mpKernelParams &k = m_kparams;
+    const mpTempParams &t = m_tparams;
+    ivec3 imin = Position2Index(*this, pos - radius);
+    ivec3 imax = Position2Index(*this, pos + radius) + 1;
+    int r = 0;
+    ScanCells(*this, imin, imax, [&](const mpCell &cell, const ivec3 &ci){
+        vec3 cell_bl = t.world_bounds_bl + (t.cell_size * vec3(ci));
+        vec3 cell_ur = cell_bl + t.cell_size;
+        int o = overlapSphere_AABB(pos, radius, cell_bl, cell_ur);
+        if (o == 2) {
+            for (int i = cell.begin; i < cell.end; ++i) {
+                handler(&m_particles[i]);
+            }
+        }
+        else if (o == 1) {
+            for (int i = cell.begin; i < cell.end; ++i) {
+                if (testSphere_Sphere((vec3&)m_particles[i].position, k.particle_size, pos, radius)) {
+                    handler(&m_particles[i]);
+                }
+            }
+        }
+    });
+}
+
+void mpWorld::scanAABB(mpHitHandler handler, const vec3 &center, const vec3 &extent)
+{
+    const mpKernelParams &k = m_kparams;
+    const mpTempParams &t = m_tparams;
+    ivec3 imin = Position2Index(*this, center - extent);
+    ivec3 imax = Position2Index(*this, center + extent) + 1;
+    ScanCells(*this, imin, imax, [&](const mpCell &cell, const ivec3 &ci){
+        vec3 cell_bl = t.world_bounds_bl + (t.cell_size * vec3(ci));
+        vec3 cell_ur = cell_bl + t.cell_size;
+        int o = overlapAABB_AABB(center - extent, center + extent, cell_bl, cell_ur);
+        if (o == 2) {
+            for (int i = cell.begin; i < cell.end; ++i) {
+                handler(&m_particles[i]);
+            }
+        }
+        else if (o == 1) {
+            for (int i = cell.begin; i < cell.end; ++i) {
+                if (testSphere_AABB((vec3&)m_particles[i].position, k.particle_size, center - extent, center + extent)) {
+                    handler(&m_particles[i]);
+                }
+            }
+        }
+    });
+}
+
+void mpWorld::scanSphereParallel(mpHitHandler handler, const vec3 &pos, float radius)
+{
+    const mpKernelParams &k = m_kparams;
+    const mpTempParams &t = m_tparams;
+    ivec3 imin = Position2Index(*this, pos - radius);
+    ivec3 imax = Position2Index(*this, pos + radius) + 1;
+    int r = 0;
+    ScanCellsParallel(*this, imin, imax, [&](const mpCell &cell, const ivec3 &ci){
+        vec3 cell_bl = t.world_bounds_bl + (t.cell_size * vec3(ci));
+        vec3 cell_ur = cell_bl + t.cell_size;
+        int o = overlapSphere_AABB(pos, radius, cell_bl, cell_ur);
+        if (o == 2) {
+            for (int i = cell.begin; i < cell.end; ++i) {
+                handler(&m_particles[i]);
+            }
+        }
+        else if (o == 1) {
+            for (int i = cell.begin; i < cell.end; ++i) {
+                if (testSphere_Sphere((vec3&)m_particles[i].position, k.particle_size, pos, radius)) {
+                    handler(&m_particles[i]);
+                }
+            }
+        }
+    });
+}
+
+void mpWorld::scanAABBParallel(mpHitHandler handler, const vec3 &center, const vec3 &extent)
+{
+    const mpKernelParams &k = m_kparams;
+    const mpTempParams &t = m_tparams;
+    ivec3 imin = Position2Index(*this, center - extent);
+    ivec3 imax = Position2Index(*this, center + extent) + 1;
+    ScanCellsParallel(*this, imin, imax, [&](const mpCell &cell, const ivec3 &ci){
+        vec3 cell_bl = t.world_bounds_bl + (t.cell_size * vec3(ci));
+        vec3 cell_ur = cell_bl + t.cell_size;
+        int o = overlapAABB_AABB(center - extent, center + extent, cell_bl, cell_ur);
+        if (o == 2) {
+            for (int i = cell.begin; i < cell.end; ++i) {
+                handler(&m_particles[i]);
+            }
+        }
+        else if (o == 1) {
+            for (int i = cell.begin; i < cell.end; ++i) {
+                if (testSphere_AABB((vec3&)m_particles[i].position, k.particle_size, center - extent, center + extent)) {
+                    handler(&m_particles[i]);
+                }
+            }
+        }
+    });
+}
+
 
 void mpWorld::clearParticles()
 {
@@ -280,7 +490,8 @@ void mpWorld::update(float32 dt)
     {
         vec3 &wpos = (vec3&)kp.world_center;
         vec3 &wsize = (vec3&)kp.world_extent;
-        vec3 &rcpCell = (vec3&)tp.rcp_cell_size;
+        vec3 &cellsize = (vec3&)tp.cell_size;
+        vec3 &cellsize_r = (vec3&)tp.rcp_cell_size;
         vec3 &bl = (vec3&)tp.world_bounds_bl;
         vec3 &ur = (vec3&)tp.world_bounds_ur;
         kp.particle_size = std::max<float>(kp.particle_size, 0.00001f);
@@ -292,7 +503,8 @@ void mpWorld::update(float32 dt)
         tp.world_div_bits.x = mpMSB(kp.world_div.x);
         tp.world_div_bits.y = mpMSB(kp.world_div.y);
         tp.world_div_bits.z = mpMSB(kp.world_div.z);
-        rcpCell = vec3(1.0f, 1.0f, 1.0f) / (wsize*2.0f / vec3((float)kp.world_div.x, (float)kp.world_div.y, (float)kp.world_div.z));
+        cellsize = (wsize*2.0f / vec3((float)kp.world_div.x, (float)kp.world_div.y, (float)kp.world_div.z));
+        cellsize_r = vec3(1.0f, 1.0f, 1.0f) / cellsize;
         bl = wpos - wsize;
         ur = wpos + wsize;
 

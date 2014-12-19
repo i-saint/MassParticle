@@ -68,8 +68,10 @@ extern "C" EXPORT_API void			mpAddCapsuleCollider(int context, mpColliderPropert
 extern "C" EXPORT_API void			mpAddBoxCollider(int context, mpColliderProperties *props, mat4 *transform, vec3 *size);
 extern "C" EXPORT_API void			mpAddForce(int context, mpForceProperties *p, mat4 *trans);
 
-extern "C" EXPORT_API int			mpScanSphere(int context, mpHitHandler handler, vec3 *center, float radius);
-extern "C" EXPORT_API int			mpScanAABB(int context, mpHitHandler handler, vec3 *center, vec3 *extent);
+extern "C" EXPORT_API void			mpScanSphere(int context, mpHitHandler handler, vec3 *center, float radius);
+extern "C" EXPORT_API void			mpScanAABB(int context, mpHitHandler handler, vec3 *center, vec3 *extent);
+extern "C" EXPORT_API void			mpScanSphereParallel(int context, mpHitHandler handler, vec3 *center, float radius);
+extern "C" EXPORT_API void			mpScanAABBParallel(int context, mpHitHandler handler, vec3 *center, vec3 *extent);
 
 
 

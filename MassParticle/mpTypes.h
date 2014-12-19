@@ -102,6 +102,7 @@ struct mpKernelParams : ispc::KernelParams
 
 struct mpTempParams
 {
+    vec3 cell_size;
     vec3 rcp_cell_size;
     vec3 world_bounds_bl;
     vec3 world_bounds_ur;
@@ -260,14 +261,17 @@ public:
     void addCapsuleColliders(mpCapsuleCollider *col, int num);
     void addBoxColliders(mpBoxCollider *col, int num);
     void addForces(mpForce *force, int num);
-    int scanSphere(mpHitHandler handler, const vec3 &pos, float radius);
-    int scanAABB(mpHitHandler handler, const vec3 &center, const vec3 &extent);
+    void scanSphere(mpHitHandler handler, const vec3 &pos, float radius);
+    void scanAABB(mpHitHandler handler, const vec3 &center, const vec3 &extent);
+    void scanSphereParallel(mpHitHandler handler, const vec3 &pos, float radius);
+    void scanAABBParallel(mpHitHandler handler, const vec3 &center, const vec3 &extent);
     void clearParticles();
     void clearCollidersAndForces();
 
     const mpKernelParams& getKernelParams() const { return m_kparams;  }
     mpTempParams& getTempParams() { return m_tparams; }
     void setKernelParams(const mpKernelParams &v) { m_kparams = v; }
+    const mpCellCont& getCells() { return m_cells; }
 
     int			getNumParticles() const	{ return m_num_particles; }
     mpParticle*	getParticles()			{ return m_particles.empty() ? nullptr : &m_particles[0]; }
