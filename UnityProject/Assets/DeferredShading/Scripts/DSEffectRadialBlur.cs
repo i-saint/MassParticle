@@ -38,9 +38,10 @@ public class DSEffectRadialBlur : DSEffectBase
 
     public Material m_material;
     public Mesh m_mesh;
+    public List<DSRadialBlur> m_entries = new List<DSRadialBlur>();
     int m_i_radialblur_params;
     int m_i_base_position;
-    public List<DSRadialBlur> m_entries = new List<DSRadialBlur>();
+    Action m_render;
 
 
     public static DSRadialBlur AddEntry(
@@ -60,23 +61,26 @@ public class DSEffectRadialBlur : DSEffectBase
     }
 
 
-    public override void Awake()
+    void OnEnable()
     {
-        base.Awake();
+        ResetDSRenderer();
         s_instance = this;
-        GetDSRenderer().AddCallbackPostEffect(() => { Render(); }, 10000);
-        m_i_radialblur_params = Shader.PropertyToID("radialblur_params");
-        m_i_base_position = Shader.PropertyToID("base_position");
+        if (m_render == null)
+        {
+            m_render = Render;
+            GetDSRenderer().AddCallbackPostEffect(m_render, 10000);
+            m_i_radialblur_params = Shader.PropertyToID("radialblur_params");
+            m_i_base_position = Shader.PropertyToID("base_position");
+        }
     }
 
-    void OnDestroy()
+    void OnDisable()
     {
         if (s_instance == this) s_instance = null;
     }
 
-    public override void Update()
+    void Update()
     {
-        base.Update();
         m_entries.ForEach((a) => { a.Update(); });
         m_entries.RemoveAll((a) => { return a.IsDead(); });
     }

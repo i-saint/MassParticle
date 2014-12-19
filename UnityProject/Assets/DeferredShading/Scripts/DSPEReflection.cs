@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using System;
 using System.Collections;
 
 public class DSPEReflection : DSEffectBase
@@ -19,13 +20,18 @@ public class DSPEReflection : DSEffectBase
     public RenderTexture[] rtTemp;
     public Material matReflection;
     public Material matCombine;
+    Action m_render;
 
 
-    public override void Awake()
+    void OnEnable()
     {
-        base.Awake();
-        GetDSRenderer().AddCallbackPostEffect(() => { Render(); }, 5000);
-        rtTemp = new RenderTexture[2];
+        ResetDSRenderer();
+        if (m_render == null)
+        {
+            m_render = Render;
+            GetDSRenderer().AddCallbackPostEffect(m_render, 5000);
+            rtTemp = new RenderTexture[2];
+        }
     }
 
 

@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using System;
 using System.Collections;
 
 public class DSLogicOpRenderer : DSEffectBase
@@ -15,16 +16,21 @@ public class DSLogicOpRenderer : DSEffectBase
     public RenderTexture rtAndPositionBuffer	{ get { return rtAndGBuffer[1]; } }
     public RenderTexture rtAndColorBuffer		{ get { return rtAndGBuffer[2]; } }
     public RenderTexture rtAndGlowBuffer		{ get { return rtAndGBuffer[3]; } }
+    Action m_render;
 
-    public override void Awake()
+    void OnEnable()
     {
-        base.Awake();
+        ResetDSRenderer();
         instance = this;
-        GetDSRenderer().AddCallbackPreGBuffer(() => { Render(); }, 900);
-        rtAndGBuffer = new RenderTexture[4];
-        rbAndGBuffer = new RenderBuffer[4];
-        Camera cam = GetCamera();
-        cam.cullingMask = cam.cullingMask & (~(1 << layerLogicOp));
+        if (m_render == null)
+        {
+            m_render = Render;
+            GetDSRenderer().AddCallbackPreGBuffer(m_render, 900);
+            rtAndGBuffer = new RenderTexture[4];
+            rbAndGBuffer = new RenderBuffer[4];
+            Camera cam = GetCamera();
+            cam.cullingMask = cam.cullingMask & (~(1 << layerLogicOp));
+        }
     }
 
     void OnDestroy()

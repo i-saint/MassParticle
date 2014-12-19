@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using System;
 using System.Collections;
 
 public class DSPEGlowline : DSEffectBase
@@ -21,12 +22,17 @@ public class DSPEGlowline : DSEffectBase
     public Vector4 baseColor = new Vector4(0.45f, 0.4f, 2.0f, 0.0f);
     public Material matGlowLine;
     RenderBuffer[] rbBuffers;
+    Action m_render;
 
-    public override void Awake()
+    void OnEnable()
     {
-        base.Awake();
-        rbBuffers = new RenderBuffer[2];
-        GetDSRenderer().AddCallbackPostGBuffer(() => { Render(); }, 100);
+        ResetDSRenderer();
+        if (m_render == null)
+        {
+            m_render = Render;
+            GetDSRenderer().AddCallbackPostGBuffer(m_render, 100);
+            rbBuffers = new RenderBuffer[2];
+        }
     }
 
     void Render()

@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
@@ -17,23 +18,38 @@ public unsafe class MPProcedualRenderer : MonoBehaviour
     public float size = 0.2f;
     ComputeBuffer cube_vertices;
     RenderTexture data_texture;
-    [System.NonSerialized] bool m_needs_reflesh = true;
+
+    Action m_update_buffer;
+    Action m_depth_prepass;
+    Action m_gbuffer;
 
 
-    void Awake ()
+    void OnEnable()
     {
-        m_needs_reflesh = false;
         DSRenderer dsr = GetComponent<DSRenderer>();
-        if (dsr != null)
+        if (dsr == null) dsr = GetComponentInParent<DSRenderer>();
+
+        if (m_update_buffer == null)
         {
-            dsr.AddCallbackPreGBuffer(() => { UpdateBuffer(); }, 0);
-            dsr.AddCallbackPreGBuffer(() => { DepthPrePass(); });
-            dsr.AddCallbackPostGBuffer(() => { GBufferPass(); }, 10);
+            m_update_buffer = UpdateBuffer;
+            m_depth_prepass = DepthPrePass;
+            m_gbuffer = GBufferPass;
+            dsr.AddCallbackPreGBuffer(m_update_buffer, 0);
+            dsr.AddCallbackPreGBuffer(m_depth_prepass);
+            dsr.AddCallbackPostGBuffer(m_gbuffer, 10);
         }
 
-
-        if (cube_vertices==null) cube_vertices = new ComputeBuffer(36, 24);
+        if (data_texture == null || !data_texture.IsCreated())
         {
+            data_texture = new RenderTexture(MPWorld.DataTextureWidth, MPWorld.DataTextureHeight, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Default);
+            data_texture.filterMode = FilterMode.Point;
+            data_texture.Create();
+        }
+
+        if (cube_vertices==null)
+        {
+            cube_vertices = new ComputeBuffer(36, 24);
+
             const float s = 0.5f / 100.0f;
             const float p = 1.0f;
             const float n = -1.0f;
@@ -70,26 +86,17 @@ public unsafe class MPProcedualRenderer : MonoBehaviour
             }
             cube_vertices.SetData(vertices);
         }
-
-        if (data_texture == null || !data_texture.IsCreated())
-        {
-            data_texture = new RenderTexture(MPWorld.DataTextureWidth, MPWorld.DataTextureHeight, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Default);
-            data_texture.filterMode = FilterMode.Point;
-            data_texture.Create();
-        }
     }
 
-    void OnDestroy()
+    void OnDisable()
     {
         cube_vertices.Release();
+        cube_vertices = null;
     }
-
 
     void Update()
     {
-        if (m_needs_reflesh) Awake();
     }
-
 
     public void UpdateBuffer()
     {

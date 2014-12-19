@@ -60,9 +60,11 @@ public class DSEffectBeam : DSEffectBase
 
     public Material m_material;
     public Mesh m_mesh;
+    public List<DSBeam> m_entries = new List<DSBeam>();
     int m_i_beam_direction;
     int m_i_base_position;
-    public List<DSBeam> m_entries = new List<DSBeam>();
+    Action m_depth_prepass;
+    Action m_render;
 
     public static DSBeam AddEntry(Vector3 pos, Vector3 dir, float fade_speed = 0.025f, float lifetime = 2.0f, float scale = 1.0f)
     {
@@ -79,24 +81,29 @@ public class DSEffectBeam : DSEffectBase
     }
 
 
-    public override void Awake()
+    void OnEnable()
     {
-        base.Awake();
+        ResetDSRenderer();
         s_instance = this;
-        GetDSRenderer().AddCallbackPreGBuffer(() => { DepthPrePass(); });
-        GetDSRenderer().AddCallbackPostGBuffer(() => { Render(); });
-        m_i_beam_direction = Shader.PropertyToID("beam_direction");
-        m_i_base_position = Shader.PropertyToID("base_position");
+        if (m_depth_prepass==null)
+        {
+            m_depth_prepass = DepthPrePass;
+            m_render = Render;
+            GetDSRenderer().AddCallbackPreGBuffer(m_depth_prepass);
+            GetDSRenderer().AddCallbackPostGBuffer(m_render);
+
+            m_i_beam_direction = Shader.PropertyToID("beam_direction");
+            m_i_base_position = Shader.PropertyToID("base_position");
+        }
     }
 
-    void OnDestroy()
+    void OnDisable()
     {
         if (s_instance == this) s_instance = null;
     }
 
-    public override void Update()
+    void Update()
     {
-        base.Update();
         m_entries.ForEach((a) => { a.Update(); });
         m_entries.RemoveAll((a) => { return a.IsDead(); });
     }

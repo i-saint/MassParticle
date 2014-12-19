@@ -8,7 +8,6 @@ public class DSEffectBase : MonoBehaviour
 {
     DSRenderer m_dsr;
     Camera m_cam;
-    [System.NonSerialized] bool needs_reflesh = true;
 
     protected void ResetDSRenderer()
     {
@@ -26,19 +25,6 @@ public class DSEffectBase : MonoBehaviour
     public Camera GetCamera()
     {
         return m_cam;
-    }
-
-
-    public virtual void Awake()
-    {
-        needs_reflesh = false;
-        ResetDSRenderer();
-    }
-
-
-    public virtual void Update()
-    {
-        if (needs_reflesh) Awake();
     }
 }
 

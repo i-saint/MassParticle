@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
+using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 
 
 //[ExecuteInEditMode]
@@ -14,13 +14,12 @@ public class DSRenderer : MonoBehaviour
         float32,
     }
 
-    public delegate void Callback();
     public struct PriorityCallback
     {
         public int priority;
-        public Callback callback;
+        public Action callback;
 
-        public PriorityCallback(Callback cb, int p)
+        public PriorityCallback(Action cb, int p)
         {
             priority = p;
             callback = cb;
@@ -71,35 +70,33 @@ public class DSRenderer : MonoBehaviour
     List<PriorityCallback> cbTransparent = new List<PriorityCallback>();
     List<PriorityCallback> cbPostEffect = new List<PriorityCallback>();
 
-    [System.NonSerialized] bool needs_reflesh = true;
 
-
-    public void AddCallbackPreGBuffer(Callback cb, int priority = 1000)
+    public void AddCallbackPreGBuffer(Action cb, int priority = 1000)
     {
         cbPreGBuffer.Add(new PriorityCallback(cb, priority));
         cbPreGBuffer.Sort(new PriorityCallbackComp());
     }
-    public void AddCallbackPostGBuffer(Callback cb, int priority = 1000)
+    public void AddCallbackPostGBuffer(Action cb, int priority = 1000)
     {
         cbPostGBuffer.Add(new PriorityCallback(cb, priority));
         cbPostGBuffer.Sort(new PriorityCallbackComp());
     }
-    public void AddCallbackPreLighting(Callback cb, int priority = 1000)
+    public void AddCallbackPreLighting(Action cb, int priority = 1000)
     {
         cbPreLighting.Add(new PriorityCallback(cb, priority));
         cbPreLighting.Sort(new PriorityCallbackComp());
     }
-    public void AddCallbackPostLighting(Callback cb, int priority = 1000)
+    public void AddCallbackPostLighting(Action cb, int priority = 1000)
     {
         cbPostLighting.Add(new PriorityCallback(cb, priority));
         cbPostLighting.Sort(new PriorityCallbackComp());
     }
-    public void AddCallbackTransparent(Callback cb, int priority = 1000)
+    public void AddCallbackTransparent(Action cb, int priority = 1000)
     {
         cbTransparent.Add(new PriorityCallback(cb, priority));
         cbTransparent.Sort(new PriorityCallbackComp());
     }
-    public void AddCallbackPostEffect(Callback cb, int priority = 1000)
+    public void AddCallbackPostEffect(Action cb, int priority = 1000)
     {
         cbPostEffect.Add(new PriorityCallback(cb, priority));
         cbPostEffect.Sort(new PriorityCallbackComp());
@@ -123,7 +120,7 @@ public class DSRenderer : MonoBehaviour
         return r;
     }
 
-    void Awake ()
+    void OnEnable()
     {
         rtGBuffer = new RenderTexture[4];
         rtPrevGBuffer = new RenderTexture[4];
@@ -131,12 +128,18 @@ public class DSRenderer : MonoBehaviour
         cam = GetComponent<Camera>();
 
         UpdateRenderTargets();
-        needs_reflesh = false;
     }
+
+    void OnDisable()
+    {
+        rtGBuffer = null;
+        rtPrevGBuffer = null;
+        rbGBuffer = null;
+    }
+
 
     void Update()
     {
-        if (needs_reflesh) Awake();
     }
 
     void UpdateRenderTargets()

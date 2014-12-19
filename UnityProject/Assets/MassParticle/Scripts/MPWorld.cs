@@ -6,11 +6,6 @@ using System.Runtime.InteropServices;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.IO;
 
-[Serializable]
-public struct MPContext
-{
-    public int context;
-}
 
 public unsafe class MPWorld : MonoBehaviour
 {
@@ -52,11 +47,11 @@ public unsafe class MPWorld : MonoBehaviour
     public int m_world_div_y = 1;
     public int m_world_div_z = 256;
     public int m_particle_num = 0;
-    public MPContext m_context;
+    public int m_context;
 
 
 
-    public IntPtr GetContext() { return (IntPtr)m_context.context; }
+    public int GetContext() { return m_context; }
 
 
     public int UpdateDataTexture(RenderTexture rt)
@@ -75,24 +70,30 @@ public unsafe class MPWorld : MonoBehaviour
     }
 
 
+
     void Awake()
     {
-        s_instances.Add(this);
-        m_context.context = (int)MPAPI.mpCreateContext();
+        m_context = (int)MPAPI.mpCreateContext();
     }
-
 
     void OnDestroy()
     {
         MPAPI.mpDestroyContext(GetContext());
+    }
+
+    void OnEnable()
+    {
+        s_instances.Add(this);
+    }
+
+    void OnDisable()
+    {
         s_instances.Remove(this);
     }
 
+
     void Update()
     {
-        //if(Time.frameCount%10==0)
-        //    Debug.Log("MPWorld: "+GetContext());
-
         if (s_update_count++ == 0)
         {
             if (Time.deltaTime != 0.0f)
@@ -107,6 +108,7 @@ public unsafe class MPWorld : MonoBehaviour
     {
         --s_update_count;
     }
+
 
 
     static void ActualUpdate()

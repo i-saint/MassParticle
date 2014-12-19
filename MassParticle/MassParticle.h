@@ -33,43 +33,43 @@ enum mpForceDirection
 	mpFD_VectorField, //
 };
 
-extern "C" EXPORT_API void			mpGeneratePointMesh(mpWorld *context, int mi, mpMeshData *mds);
-extern "C" EXPORT_API void			mpGenerateCubeMesh(mpWorld *context, int mi, mpMeshData *mds);
-extern "C" EXPORT_API int			mpUpdateDataTexture(mpWorld *context, void *tex);
+extern "C" EXPORT_API void			mpGeneratePointMesh(int context, int mi, mpMeshData *mds);
+extern "C" EXPORT_API void			mpGenerateCubeMesh(int context, int mi, mpMeshData *mds);
+extern "C" EXPORT_API int			mpUpdateDataTexture(int context, void *tex);
 #ifdef mpWithCppScript
-extern "C" EXPORT_API int			mpUpdateDataBuffer(mpWorld *context, UnityEngine::ComputeBuffer buf);
+extern "C" EXPORT_API int			mpUpdateDataBuffer(int context, UnityEngine::ComputeBuffer buf);
 #endif // mpWithCppScript
 
-extern "C" EXPORT_API mpWorld*		mpCreateContext();
-extern "C" EXPORT_API void			mpDestroyContext(mpWorld *context);
-extern "C" EXPORT_API void			mpBeginUpdate(mpWorld *context, float dt);
-extern "C" EXPORT_API void			mpEndUpdate(mpWorld *context);
-extern "C" EXPORT_API void			mpUpdate(mpWorld *context, float dt);
-extern "C" EXPORT_API void			mpCallHandlers(mpWorld *context);
+extern "C" EXPORT_API int			mpCreateContext();
+extern "C" EXPORT_API void			mpDestroyContext(int context);
+extern "C" EXPORT_API void			mpBeginUpdate(int context, float dt);
+extern "C" EXPORT_API void			mpEndUpdate(int context);
+extern "C" EXPORT_API void			mpUpdate(int context, float dt);
+extern "C" EXPORT_API void			mpCallHandlers(int context);
 
-extern "C" EXPORT_API void			mpClearParticles(mpWorld *context);
-extern "C" EXPORT_API void			mpClearCollidersAndForces(mpWorld *context);
+extern "C" EXPORT_API void			mpClearParticles(int context);
+extern "C" EXPORT_API void			mpClearCollidersAndForces(int context);
 
-extern "C" EXPORT_API ispc::KernelParams mpGetKernelParams(mpWorld *context);
-extern "C" EXPORT_API void			mpSetKernelParams(mpWorld *context, ispc::KernelParams *params);
+extern "C" EXPORT_API ispc::KernelParams mpGetKernelParams(int context);
+extern "C" EXPORT_API void			mpSetKernelParams(int context, ispc::KernelParams *params);
 
-extern "C" EXPORT_API int			mpGetNumParticles(mpWorld *context);
-extern "C" EXPORT_API mpParticle*	mpGetParticles(mpWorld *context);
-extern "C" EXPORT_API void			mpCopyParticles(mpWorld *context, mpParticle *dst);
-extern "C" EXPORT_API void			mpWriteParticles(mpWorld *context, const mpParticle *from);
-extern "C" EXPORT_API void			mpPutParticles(mpWorld *context, mpParticle *particles, int32_t num_particles);
-extern "C" EXPORT_API void			mpScatterParticlesSphere(mpWorld *context, vec3 *center, float radius, int32_t num, vec3 *vel, float vel_diffuse);
-extern "C" EXPORT_API void			mpScatterParticlesBox(mpWorld *context, vec3 *center, vec3 *size, int32_t num, vec3 *vel, float vel_diffuse);
-extern "C" EXPORT_API void			mpScatterParticlesSphereTransform(mpWorld *context, mat4 *transform, int32_t num, vec3 *vel, float vel_diffuse);
-extern "C" EXPORT_API void			mpScatterParticlesBoxTransform(mpWorld *context, mat4 *transform, int32_t num, vec3 *vel, float vel_diffuse);
+extern "C" EXPORT_API int			mpGetNumParticles(int context);
+extern "C" EXPORT_API mpParticle*	mpGetParticles(int context);
+extern "C" EXPORT_API void			mpCopyParticles(int context, mpParticle *dst);
+extern "C" EXPORT_API void			mpWriteParticles(int context, const mpParticle *from);
+extern "C" EXPORT_API void			mpPutParticles(int context, mpParticle *particles, int32_t num_particles);
+extern "C" EXPORT_API void			mpScatterParticlesSphere(int context, vec3 *center, float radius, int32_t num, vec3 *vel, float vel_diffuse);
+extern "C" EXPORT_API void			mpScatterParticlesBox(int context, vec3 *center, vec3 *size, int32_t num, vec3 *vel, float vel_diffuse);
+extern "C" EXPORT_API void			mpScatterParticlesSphereTransform(int context, mat4 *transform, int32_t num, vec3 *vel, float vel_diffuse);
+extern "C" EXPORT_API void			mpScatterParticlesBoxTransform(int context, mat4 *transform, int32_t num, vec3 *vel, float vel_diffuse);
 
-extern "C" EXPORT_API void			mpAddSphereCollider(mpWorld *context, mpColliderProperties *props, vec3 *center, float radius);
-extern "C" EXPORT_API void			mpAddCapsuleCollider(mpWorld *context, mpColliderProperties *props, vec3 *pos1, vec3 *pos2, float radius);
-extern "C" EXPORT_API void			mpAddBoxCollider(mpWorld *context, mpColliderProperties *props, mat4 *transform, vec3 *size);
-extern "C" EXPORT_API void			mpAddForce(mpWorld *context, mpForceProperties *p, mat4 *trans);
+extern "C" EXPORT_API void			mpAddSphereCollider(int context, mpColliderProperties *props, vec3 *center, float radius);
+extern "C" EXPORT_API void			mpAddCapsuleCollider(int context, mpColliderProperties *props, vec3 *pos1, vec3 *pos2, float radius);
+extern "C" EXPORT_API void			mpAddBoxCollider(int context, mpColliderProperties *props, mat4 *transform, vec3 *size);
+extern "C" EXPORT_API void			mpAddForce(int context, mpForceProperties *p, mat4 *trans);
 
-extern "C" EXPORT_API int			mpScanSphere(mpWorld *context, mpHitHandler handler, vec3 *center, float radius);
-extern "C" EXPORT_API int			mpScanAABB(mpWorld *context, mpHitHandler handler, vec3 *center, vec3 *extent);
+extern "C" EXPORT_API int			mpScanSphere(int context, mpHitHandler handler, vec3 *center, float radius);
+extern "C" EXPORT_API int			mpScanAABB(int context, mpHitHandler handler, vec3 *center, vec3 *extent);
 
 
 

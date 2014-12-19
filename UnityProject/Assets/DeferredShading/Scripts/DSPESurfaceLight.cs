@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using System;
 using System.Collections;
 
 public class DSPESurfaceLight : DSEffectBase
@@ -10,12 +11,17 @@ public class DSPESurfaceLight : DSEffectBase
     public Material matCombine;
     public Material matFill;
     public RenderTexture[] rtTemp;
+    Action m_render;
 
-    public override void Awake()
+    void OnEnable()
     {
-        base.Awake();
-        GetDSRenderer().AddCallbackPostLighting(() => { Render(); }, 100);
-        rtTemp = new RenderTexture[2];
+        ResetDSRenderer();
+        if (m_render == null)
+        {
+            m_render = Render;
+            GetDSRenderer().AddCallbackPostLighting(m_render, 100);
+            rtTemp = new RenderTexture[2];
+        }
     }
 
     void UpdateRenderTargets()

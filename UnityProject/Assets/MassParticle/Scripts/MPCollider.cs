@@ -69,6 +69,7 @@ public class MPCollider : MonoBehaviour
         s_instances.Remove(this);
     }
 
+
     public virtual void MPUpdate()
     {
         cprops.stiffness = m_stiffness;
@@ -108,7 +109,7 @@ public class MPCollider : MonoBehaviour
 
     public void DefaultForceHandler(ref MPForceData force)
     {
-        //Debug.Log("DefaultForceHandler(): " + GetHashCode());
+        Debug.Log("DefaultForceHandler(): " + GetHashCode());
 
         Vector3 pos = force.position;
         Vector3 vel = force.velocity;

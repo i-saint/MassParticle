@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using System;
 using System.Collections;
 
 
@@ -9,13 +10,17 @@ public class DSPEGlowNormal : DSEffectBase
     public float threshold = 0.5f;
     public float edge = 0.2f;
     public Material matGlowNormal;
+    Action m_render;
 
-    public override void Awake()
+    void OnEnable()
     {
-        base.Awake();
-        GetDSRenderer().AddCallbackPostEffect(() => { Render(); });
+        ResetDSRenderer();
+        if (m_render == null)
+        {
+            m_render = Render;
+            GetDSRenderer().AddCallbackPostEffect(m_render);
+        }
     }
-
 
     void Render()
     {

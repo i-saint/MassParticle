@@ -38,8 +38,9 @@ public class DSEffectShockwave : DSEffectBase
 
     public Material m_material;
     public Mesh m_mesh;
-    int m_i_shockwave_params;
     public List<DSShockwave> m_entries = new List<DSShockwave>();
+    int m_i_shockwave_params;
+    Action m_render;
 
 
     public static DSShockwave AddEntry(Vector3 pos, float gap = -0.5f, float fade_speed = 2.0f, float opacity = 1.5f, float scale = 1.0f)
@@ -58,22 +59,25 @@ public class DSEffectShockwave : DSEffectBase
     }
 
 
-    public override void Awake()
+    void OnEnable()
     {
-        base.Awake();
+        ResetDSRenderer();
         s_instance = this;
-        GetDSRenderer().AddCallbackPostEffect(() => { Render(); }, 5000);
-        m_i_shockwave_params = Shader.PropertyToID("shockwave_params");
+        if (m_render == null)
+        {
+            m_render = Render;
+            GetDSRenderer().AddCallbackPostEffect(m_render, 5000);
+            m_i_shockwave_params = Shader.PropertyToID("shockwave_params");
+        }
     }
 
-    void OnDestroy()
+    void OnDisable()
     {
         if (s_instance == this) s_instance = null;
     }
 
-    public override void Update()
+    void Update()
     {
-        base.Update();
         m_entries.ForEach((a) => { a.Update(); });
         m_entries.RemoveAll((a) => { return a.IsDead(); });
     }

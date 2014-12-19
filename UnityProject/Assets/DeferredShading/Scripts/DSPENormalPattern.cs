@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using System;
 using System.Collections;
 
 public class DSPENormalPattern : DSEffectBase
@@ -6,11 +7,16 @@ public class DSPENormalPattern : DSEffectBase
     public Material matNormalPattern;
     public Material matCopyGBuffer;
     public RenderTexture rtNormalCopy;
+    Action m_render;
 
-    public override void Awake()
+    void OnEnable()
     {
-        base.Awake();
-        GetDSRenderer().AddCallbackPostGBuffer(() => { Render(); }, 100);
+        ResetDSRenderer();
+        if (m_render == null)
+        {
+            m_render = Render;
+            GetDSRenderer().AddCallbackPostGBuffer(m_render, 100);
+        }
     }
 
     void UpdateRenderTargets()

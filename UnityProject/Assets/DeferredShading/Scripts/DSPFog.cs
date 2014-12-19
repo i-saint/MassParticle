@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using System;
 using System.Collections;
 
 
@@ -8,11 +9,16 @@ public class DSPFog : DSEffectBase
     public Vector4 color = new Vector4(0.0f, 0.0f, 0.0f, 0.0f);
     public float near = 5.0f;
     public float far = 10.0f;
+    Action m_render;
 
-    public override void Awake()
+    void OnEnable()
     {
-        base.Awake();
-        GetDSRenderer().AddCallbackPostEffect(() => { Render(); }, 1100);
+        ResetDSRenderer();
+        if (m_render == null)
+        {
+            m_render = Render;
+            GetDSRenderer().AddCallbackPostEffect(m_render, 1100);
+        }
     }
 
     void Render()

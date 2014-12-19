@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using System;
 using System.Collections;
 
 
@@ -10,13 +11,18 @@ public class DSPECrawlingLight : DSEffectBase
     public Material matCombine;
     public Material matFill;
     public RenderTexture[] rtTemp;
+    Action m_render;
 
 
-    public override void Awake()
+    void OnEnable()
     {
-        base.Awake();
-        GetDSRenderer().AddCallbackPostGBuffer(() => { Render(); }, 1100);
-        rtTemp = new RenderTexture[2];
+        ResetDSRenderer();
+        if (m_render == null)
+        {
+            m_render = Render;
+            GetDSRenderer().AddCallbackPostGBuffer(m_render, 1100);
+            rtTemp = new RenderTexture[2];
+        }
     }
 
     void UpdateRenderTargets()

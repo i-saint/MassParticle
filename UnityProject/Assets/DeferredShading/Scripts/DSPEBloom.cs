@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using System;
 using System.Collections;
 
 public class DSPEBloom : DSEffectBase
@@ -9,13 +10,18 @@ public class DSPEBloom : DSEffectBase
     public Material matBloom;
     public RenderTexture[] rtBloomH;
     public RenderTexture[] rtBloomQ;
+    Action m_render;
 
-    public override void Awake()
+    void OnEnable()
     {
-        base.Awake();
-        GetDSRenderer().AddCallbackPostEffect(() => { Render(); }, 2000);
-        rtBloomH = new RenderTexture[2];
-        rtBloomQ = new RenderTexture[2];
+        ResetDSRenderer();
+        if (m_render == null)
+        {
+            m_render = Render;
+            GetDSRenderer().AddCallbackPostEffect(m_render, 2000);
+            rtBloomH = new RenderTexture[2];
+            rtBloomQ = new RenderTexture[2];
+        }
     }
 
     void UpdateRenderTargets()
