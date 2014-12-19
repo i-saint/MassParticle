@@ -10,17 +10,19 @@ mpKernelParams::mpKernelParams()
     (vec3&)world_extent = vec3(10.24f, 10.24f, 10.24f);
     (vec3&)coord_scaler = vec3(1.0f, 1.0f, 1.0f);
 
-    enable_interactions = 1;
+    enable_interaction = 1;
     enable_colliders = 1;
     enable_forces = 1;
 
     solver_type = mpSolver_Impulse;
     lifetime = 30.0f;
     timestep = 0.01f;
-    decelerate = 0.995f;
+    decelerate = 0.99f;
+    advection = 0.5f;
+
     pressure_stiffness = 500.0f;
     wall_stiffness = 1500.0f;
-    max_particles = 200000;
+    max_particles = 100000;
     particle_size = 0.08f;
 
     SPHRestDensity = 1000.0f;
@@ -160,8 +162,9 @@ static const int g_cells_par_task = 256;
 
 mpWorld::mpWorld()
     : m_num_particles(0)
+    , m_has_hithandler(false)
+    , m_has_forcehandler(false)
     , m_trail_enabled(false)
-    , m_hitdata_needs_update(false)
     , m_num_particles_gpu(0)
     , m_num_particles_gpu_prev(0)
 #ifdef mpWithCppScript
@@ -200,30 +203,36 @@ void mpWorld::addParticles(mpParticle *p, int num)
 void mpWorld::addPlaneColliders(mpPlaneCollider *col, int num)
 {
     m_plane_colliders.insert(m_plane_colliders.end(), col, col + num);
-    m_hitdata.resize(m_hitdata.size() + num);
 }
 
 void mpWorld::addSphereColliders(mpSphereCollider *col, int num)
 {
     m_sphere_colliders.insert(m_sphere_colliders.end(), col, col+num);
-    m_hitdata.resize(m_hitdata.size() + num);
 }
 
 void mpWorld::addCapsuleColliders(mpCapsuleCollider *col, int num)
 {
     m_capsule_colliders.insert(m_capsule_colliders.end(), col, col+num);
-    m_hitdata.resize(m_hitdata.size() + num);
 }
 
 void mpWorld::addBoxColliders(mpBoxCollider *col, int num)
 {
     m_box_colliders.insert(m_box_colliders.end(), col, col+num);
-    m_hitdata.resize(m_hitdata.size() + num);
 }
 
 void mpWorld::addForces(mpForce *force, int num)
 {
     m_forces.insert(m_forces.end(), force, force+num);
+}
+
+int mpWorld::scanSphere(mpHitHandler handler, const vec3 &pos, float radius)
+{
+    return 0;
+}
+
+int mpWorld::scanAABB(mpHitHandler handler, const vec3 &center, const vec3 &extent)
+{
+    return 0;
 }
 
 void mpWorld::clearParticles()
@@ -243,7 +252,11 @@ void mpWorld::clearCollidersAndForces()
     m_capsule_colliders.clear();
     m_box_colliders.clear();
     m_forces.clear();
+
+    m_has_hithandler = false;
+    m_has_forcehandler = false;
 }
+
 
 
 void mpWorld::beginUpdate(float dt)
@@ -260,7 +273,6 @@ void mpWorld::update(float32 dt)
 {
     if (m_num_particles == 0) { return; }
 
-    m_hitdata_needs_update = true;
     mpKernelParams &kp = m_kparams;
     mpTempParams &tp = m_tparams;
     int cell_num = kp.world_div.x*kp.world_div.y*kp.world_div.z;
@@ -300,9 +312,8 @@ void mpWorld::update(float32 dt)
     mpSphereCollider	*spheres = m_sphere_colliders.empty() ? nullptr : &m_sphere_colliders[0];
     mpCapsuleCollider	*capsules = m_capsule_colliders.empty() ? nullptr : &m_capsule_colliders[0];
     mpBoxCollider		*boxes = m_box_colliders.empty() ? nullptr : &m_box_colliders[0];
-    int num_colliders =  m_plane_colliders.size() + m_sphere_colliders.size() + m_capsule_colliders.size() + m_box_colliders.size();
-    m_hitdata.resize(num_colliders);
 
+    int num_colliders =  m_plane_colliders.size() + m_sphere_colliders.size() + m_capsule_colliders.size() + m_box_colliders.size();
 
     {
         const float PI = 3.14159265359f;
@@ -337,11 +348,11 @@ void mpWorld::update(float32 dt)
             }
         });
 
-    // パーティクルを hash で sort
+    // sort by hash
     tbb::parallel_sort(&m_particles[0], &m_particles[0]+m_num_particles, 
         [&](const mpParticle &a, const mpParticle &b) { return a.hash < b.hash; } );
 
-    // パーティクルがどの grid に入っているかを算出
+    // count num particles
     tbb::parallel_for(tbb::blocked_range<int>(0, (int32)m_num_particles, g_particles_par_task),
         [&](const tbb::blocked_range<int> &r) {
             for(int i=r.begin(); i!=r.end(); ++i) {
@@ -352,7 +363,7 @@ void mpWorld::update(float32 dt)
                 uint32 cell = m_particles[G_ID].hash;
                 uint32 cell_prev = (G_ID_PREV==-1) ? -1 : m_particles[G_ID_PREV].hash;
                 uint32 cell_next = (G_ID_NEXT == kp.max_particles) ? -2 : m_particles[G_ID_NEXT].hash;
-                if((cell & 0x80000000) != 0) { // 最上位 bit が立っていたら死んでいる扱い
+                if((cell & 0x80000000) != 0) { // highest bit is live flag
                     if((cell_prev & 0x80000000) == 0) { // 
                         m_num_particles = G_ID;
                     }
@@ -405,7 +416,7 @@ void mpWorld::update(float32 dt)
                 if (n == 0) { continue; }
                 int xi, yi, zi;
                 mpGenIndex(*this, i, xi, yi, zi);
-                if (kp.enable_interactions) {
+                if (kp.enable_interaction) {
                     ispc::impUpdatePressure(
                         m_kparams,
                         (ispc::Particle*)&m_particles_soa[0],
@@ -449,7 +460,7 @@ void mpWorld::update(float32 dt)
         });
     }
     else if (m_kparams.solver_type == mpSolver_SPH || m_kparams.solver_type == mpSolver_SPHEst) {
-        if (kp.enable_interactions && m_kparams.solver_type == mpSolver_SPH) {
+        if (kp.enable_interaction && m_kparams.solver_type == mpSolver_SPH) {
             tbb::parallel_for(tbb::blocked_range<int>(0, cell_num, g_cells_par_task),
                 [&](const tbb::blocked_range<int> &r) {
                 for (int i = r.begin(); i != r.end(); ++i) {
@@ -479,7 +490,7 @@ void mpWorld::update(float32 dt)
                 }
             });
         }
-        else if (kp.enable_interactions && m_kparams.solver_type == mpSolver_SPHEst) {
+        else if (kp.enable_interaction && m_kparams.solver_type == mpSolver_SPHEst) {
             tbb::parallel_for(tbb::blocked_range<int>(0, cell_num, g_cells_par_task),
                 [&](const tbb::blocked_range<int> &r) {
                 for (int i = r.begin(); i != r.end(); ++i) {
@@ -583,50 +594,85 @@ void mpWorld::update(float32 dt)
     }
 }
 
-int mpWorld::getNumHitData() const
+void mpWorld::callHandlers()
 {
-    return (int)m_hitdata.size();
-}
+    int num_colliders = 0;
+    if (!m_plane_colliders.empty()) { num_colliders = std::max(num_colliders, m_plane_colliders.back().props.owner_id + 1); }
+    if (!m_sphere_colliders.empty()) { num_colliders = std::max(num_colliders, m_sphere_colliders.back().props.owner_id + 1); }
+    if (!m_capsule_colliders.empty()) { num_colliders = std::max(num_colliders, m_capsule_colliders.back().props.owner_id + 1); }
+    if (!m_box_colliders.empty()) { num_colliders = std::max(num_colliders, m_box_colliders.back().props.owner_id + 1); }
+    m_collider_properties.resize(num_colliders);
 
-mpHitData* mpWorld::getHitData()
-{
-    if (m_hitdata_needs_update) {
-        m_hitdata_needs_update = false;
+    for (auto &c : m_plane_colliders) { m_collider_properties[c.props.owner_id] = &c.props; }
+    for (auto &c : m_sphere_colliders) { m_collider_properties[c.props.owner_id] = &c.props; }
+    for (auto &c : m_capsule_colliders) { m_collider_properties[c.props.owner_id] = &c.props; }
+    for (auto &c : m_box_colliders) { m_collider_properties[c.props.owner_id] = &c.props; }
 
-        // reduce hit data
-
-        int num_colliders = getNumHitData();
-        if (num_colliders > 0) {
-            memset((void*)&m_hitdata[0], 0, sizeof(mpHitData)*m_hitdata.size());
-            tbb::parallel_for(tbb::blocked_range<int>(0, m_num_particles, g_particles_par_task),
-                [&](const tbb::blocked_range<int> &r) {
-                mpHitDataCont &hits = m_hitdata_work.local();
-                hits.resize(num_colliders);
-                for (int i = r.begin(); i != r.end(); ++i) {
-                    mpParticle &p = m_particles[i];
-                    if (p.hit != -1) {
-                        (simdvec4&)hits[p.hit].position += (simdvec4&)p.position;
-                        (simdvec4&)hits[p.hit].velocity += (simdvec4&)p.velocity;
-                        ++hits[p.hit].num_hits;
-                    }
+    tbb::parallel_invoke(
+        [&](){
+            for (auto p : m_collider_properties) {
+                if (p->hit_handler != nullptr) {
+                    m_has_hithandler = true;
+                    break;
                 }
-            });
-            m_hitdata_work.combine_each([&](const mpHitDataCont &hits){
-                for (int i = 0; i < (int)hits.size(); ++i) {
-                    const mpHitData &h = hits[i];
-                    (simdvec4&)m_hitdata[i].position += h.position;
-                    (simdvec4&)m_hitdata[i].velocity += h.velocity;
-                    m_hitdata[i].num_hits += h.num_hits;
+            }
+        },
+        [&](){
+            for (auto p : m_collider_properties) {
+                if (p->force_handler != nullptr) {
+                    m_has_forcehandler = true;
+                    break;
                 }
-                memset((void*)&hits[0], 0, sizeof(mpHitData)*hits.size());
-            });
-            for (int i = 0; i < num_colliders; ++i) {
-                mpHitData &h = m_hitdata[i];
-                (simdvec4&)h.position /= simdvec4((float)h.num_hits);
+            }
+        }
+    );
+
+    if (m_has_hithandler) {
+        for (int i = 0; i < m_num_particles; ++i) {
+            mpParticle &p = m_particles[i];
+            if (p.hit != -1) {
+                mpHitHandler handler = (mpHitHandler)(m_collider_properties[p.hit]->hit_handler);
+                if (handler) { handler(&p); }
             }
         }
     }
-    return m_hitdata.empty() ? nullptr : &m_hitdata[0];
+    if (m_has_forcehandler) {
+        m_hitdata.resize(num_colliders);
+        memset((void*)&m_hitdata[0], 0, sizeof(mpHitData)*m_hitdata.size());
+        tbb::parallel_for(tbb::blocked_range<int>(0, m_num_particles, g_particles_par_task),
+            [&](const tbb::blocked_range<int> &r) {
+            mpHitDataCont &hits = m_hitdata_work.local();
+            hits.resize(num_colliders);
+            for (int i = r.begin(); i != r.end(); ++i) {
+                mpParticle &p = m_particles[i];
+                if (p.hit != -1) {
+                    (simdvec4&)hits[p.hit].position += (simdvec4&)p.position;
+                    (simdvec4&)hits[p.hit].velocity += (simdvec4&)p.velocity;
+                    ++hits[p.hit].num_hits;
+                }
+            }
+        });
+        m_hitdata_work.combine_each([&](const mpHitDataCont &hits){
+            for (int i = 0; i < (int)hits.size(); ++i) {
+                const mpHitData &h = hits[i];
+                (simdvec4&)m_hitdata[i].position += h.position;
+                (simdvec4&)m_hitdata[i].velocity += h.velocity;
+                m_hitdata[i].num_hits += h.num_hits;
+            }
+            memset((void*)&hits[0], 0, sizeof(mpHitData)*hits.size());
+        });
+
+        for (int i = 0; i < num_colliders; ++i) {
+            if (m_hitdata[i].num_hits == 0) continue;
+
+            (vec3&)m_hitdata[i].position /= m_hitdata[i].num_hits;
+
+            mpForceHandler handler = (mpForceHandler)m_collider_properties[i]->force_handler;
+            if (handler) {
+                handler(&m_hitdata[i]);
+            }
+        }
+    }
 }
 
 

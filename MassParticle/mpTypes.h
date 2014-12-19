@@ -160,7 +160,6 @@ struct mpHitData
     }
 };
 
-
 inline void* mpAlignedAlloc(size_t size, size_t align)
 {
 #ifdef _MSC_VER
@@ -215,6 +214,7 @@ typedef std::vector<mpParticle, mpAlignedAllocator<mpParticle> >				mpParticleCo
 typedef std::vector<mpParticleSOA8, mpAlignedAllocator<mpParticleSOA8> >		mpParticleSOACont;
 typedef std::vector<mpParticleIMDSOA8, mpAlignedAllocator<mpParticleIMDSOA8> >	mpParticleIMDSOACont;
 typedef std::vector<mpCell, mpAlignedAllocator<mpCell> >						mpCellCont;
+typedef std::vector<mpColliderProperties*, mpAlignedAllocator<mpPlaneCollider> > mpColliderPropertiesCont;
 typedef std::vector<mpPlaneCollider, mpAlignedAllocator<mpPlaneCollider> >		mpPlaneColliderCont;
 typedef std::vector<mpSphereCollider, mpAlignedAllocator<mpSphereCollider> >	mpSphereColliderCont;
 typedef std::vector<mpCapsuleCollider, mpAlignedAllocator<mpCapsuleCollider> >	mpCapsuleColliderCont;
@@ -223,6 +223,8 @@ typedef std::vector<mpForce, mpAlignedAllocator<mpForce> >						mpForceCont;
 typedef std::vector<mpHitData, mpAlignedAllocator<mpHitData> >					mpHitDataCont;
 typedef tbb::combinable<mpHitDataCont>											mpHitDataConbinable;
 typedef std::vector<vec4, mpAlignedAllocator<vec4> >							mpTrailCont;
+typedef void(__stdcall *mpHitHandler)(mpParticle *p);
+typedef void(__stdcall *mpForceHandler)(mpHitData *p);
 
 class mpWorld;
 
@@ -250,7 +252,7 @@ public:
     void beginUpdate(float dt);
     void endUpdate();
     void update(float dt);
-    void render();
+    void callHandlers();
 
     void addParticles(mpParticle *p, int num);
     void addPlaneColliders(mpPlaneCollider *col, int num);
@@ -258,17 +260,15 @@ public:
     void addCapsuleColliders(mpCapsuleCollider *col, int num);
     void addBoxColliders(mpBoxCollider *col, int num);
     void addForces(mpForce *force, int num);
+    int scanSphere(mpHitHandler handler, const vec3 &pos, float radius);
+    int scanAABB(mpHitHandler handler, const vec3 &center, const vec3 &extent);
     void clearParticles();
     void clearCollidersAndForces();
 
     const mpKernelParams& getKernelParams() const { return m_kparams;  }
     mpTempParams& getTempParams() { return m_tparams; }
     void setKernelParams(const mpKernelParams &v) { m_kparams = v; }
-    void getViewProjection(mat4 &out_mat, vec3 &out_camerapos);
-    void setViewProjection(const mat4 &mat, const vec3 &camerapos);
 
-    int			getNumHitData() const;
-    mpHitData*	getHitData();
     int			getNumParticles() const	{ return m_num_particles; }
     mpParticle*	getParticles()			{ return m_particles.empty() ? nullptr : &m_particles[0]; }
     int			getNumParticlesGPU() const	{ return m_num_particles_gpu; }
@@ -290,18 +290,20 @@ private:
     mpCellCont              m_cells;
     int                     m_num_particles;
 
+    mpColliderPropertiesCont m_collider_properties;
     mpPlaneColliderCont     m_plane_colliders;
     mpSphereColliderCont    m_sphere_colliders;
     mpCapsuleColliderCont   m_capsule_colliders;
     mpBoxColliderCont       m_box_colliders;
     mpForceCont             m_forces;
+    bool                    m_has_hithandler;
+    bool                    m_has_forcehandler;
 
     tbb::task_group         m_taskgroup;
     std::mutex              m_mutex;
     mpKernelParams          m_kparams;
     mpTempParams            m_tparams;
 
-    bool                    m_hitdata_needs_update;
     mpHitDataCont           m_hitdata;
     mpHitDataConbinable     m_hitdata_work;
 

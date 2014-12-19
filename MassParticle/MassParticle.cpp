@@ -71,6 +71,11 @@ extern "C" EXPORT_API void mpUpdate(mpWorld *context, float dt)
 {
     context->update(dt);
 }
+extern "C" EXPORT_API void mpCallHandlers(mpWorld *context)
+{
+    context->callHandlers();
+}
+
 
 extern "C" EXPORT_API void mpClearParticles(mpWorld *context)
 {
@@ -92,16 +97,6 @@ extern "C" EXPORT_API void mpSetKernelParams(mpWorld *context, ispc::KernelParam
     context->setKernelParams(*(mpKernelParams*)params);
 }
 
-
-extern "C" EXPORT_API int mpGetNumHitData(mpWorld *context)
-{
-    return context->getNumHitData();
-}
-
-extern "C" EXPORT_API mpHitData* mpGetHitData(mpWorld *context)
-{
-    return context->getHitData();
-}
 
 extern "C" EXPORT_API int mpGetNumParticles(mpWorld *context)
 {
@@ -360,3 +355,12 @@ extern "C" EXPORT_API void mpAddForce(mpWorld *context, mpForceProperties *props
     context->addForces(&force, 1);
 }
 
+extern "C" EXPORT_API int mpScanSphere(mpWorld *context, mpHitHandler handler, vec3 *center, float radius)
+{
+    return context->scanSphere(handler, *center, radius);
+}
+
+extern "C" EXPORT_API int mpScanAABB(mpWorld *context, mpHitHandler handler, vec3 *center, vec3 *extent)
+{
+    return context->scanAABB(handler, *center, *extent);
+}

@@ -9,25 +9,26 @@ using System.Runtime.CompilerServices;
 [StructLayout(LayoutKind.Explicit)]
 public struct MPParticle
 {
-    [FieldOffset(0)]  public Vector4 position;	// union
+    [FieldOffset(0)]  public Vector4 position;  // union
     [FieldOffset(0)]  public Vector3 position3; // 
-    [FieldOffset(16)] public Vector4 velocity;	// union
-    [FieldOffset(16)] public Vector3 velocity3;	// 
-    [FieldOffset(28)] public float speed;		// 
+    [FieldOffset(16)] public Vector4 velocity;  // union
+    [FieldOffset(16)] public Vector3 velocity3; // 
+    [FieldOffset(28)] public float speed;       // 
     [FieldOffset(32)] public float density;
-    [FieldOffset(36)] public uint hash;		// union
-    [FieldOffset(36)] public int hit_prev;	// 
+    [FieldOffset(36)] public uint hash;     // union
+    [FieldOffset(36)] public int hit_prev;  // 
     [FieldOffset(40)] public int hit;
     [FieldOffset(44)] public float lifetime;
 };
 
 [StructLayout(LayoutKind.Explicit)]
-public struct MPHitData
+public struct MPForceData
 {
-    [FieldOffset(0)]  public Vector4 position;	// union
-    [FieldOffset(0)]  public Vector3 position3; // 
-    [FieldOffset(16)] public Vector4 velocity;	// union
-    [FieldOffset(16)] public Vector3 velocity3;	// 
+    [FieldOffset(0)]  public Vector4 position4; // union
+    [FieldOffset(0)]  public Vector3 position;  // 
+    [FieldOffset(16)] public Vector4 velocity4; // union
+    [FieldOffset(16)] public Vector3 velocity;  // 
+    [FieldOffset(28)] public float speed;       // 
     [FieldOffset(32)] public int num_hits;
     [FieldOffset(36)] public int pad1;
     [FieldOffset(40)] public int pad2;
@@ -37,23 +38,28 @@ public struct MPHitData
 
 public struct MPKernelParams
 {
-    public Vector3 WorldCenter;
-    public Vector3 WorldSize;
-    public int WorldDiv_x;
-    public int WorldDiv_y;
-    public int WorldDiv_z;
-    public Vector3 Scaler;
-    public int enableInteractions;
-    public int enableColliders;
-    public int enableForces;
-    public int SolverType;
-    public float LifeTime;
-    public float Timestep;
-    public float Decelerate;
-    public float PressureStiffness;
-    public float WallStiffness;
-    public int MaxParticles;
-    public float ParticleSize;
+    public Vector3 world_center;
+    public Vector3 world_size;
+    public int world_div_x;
+    public int world_div_y;
+    public int world_div_z;
+    public Vector3 scaler;
+
+    public int solver_type;
+    public int enable_interaction;
+    public int enable_colliders;
+    public int enable_forces;
+
+    public float lifetime;
+    public float timestep;
+    public float decelerate;
+    public float advection;
+    public float pressure_stiffness;
+    public float wall_stiffness;
+
+    public int max_particles;
+    public float particle_size;
+
     public float SPHRestDensity;
     public float SPHParticleMass;
     public float SPHViscosity;
@@ -76,22 +82,22 @@ public enum MPUpdateMode
     Deferred = 1,
 }
 
+public delegate void MPParticleHandler(ref MPParticle particle);
+public delegate void MPForceHandler(ref MPForceData force);
 
 public struct MPColliderProperties
 {
-    public uint group_mask;
     public int owner_id;
     public float stiffness;
-    public float bounce;
-    public float damage_on_hit;
+    public MPParticleHandler hit_handler;
+    public MPForceHandler force_handler;
 
     public void SetDefaultValues()
     {
-        group_mask = 0xffffffff;
         owner_id = -1;
         stiffness = 1500.0f;
-        bounce = 1.0f;
-        damage_on_hit = 0.0f;
+        hit_handler = null;
+        force_handler = null;
     }
 }
 
@@ -116,7 +122,6 @@ public enum MPForceDirection
 
 public struct MPForceProperties
 {
-    public uint group_mask;
     public MPForceShape shape_type;
     public MPForceDirection dir_type;
     public float strength_near;
@@ -134,7 +139,6 @@ public struct MPForceProperties
 
     public void SetDefaultValues()
     {
-        group_mask = 0xffffffff;
         attenuation_exp = 0.25f;
     }
 }
@@ -162,13 +166,13 @@ public class MPAPI {
     [DllImport ("MassParticle")] public static extern void mpBeginUpdate(IntPtr context, float dt);
     [DllImport ("MassParticle")] public static extern void mpEndUpdate(IntPtr context);
     [DllImport ("MassParticle")] public static extern void mpUpdate (IntPtr context, float dt);
+    [DllImport ("MassParticle")] public static extern void mpCallHandlers(IntPtr context);
+
     [DllImport ("MassParticle")] public static extern void mpClearParticles(IntPtr context);
     [DllImport ("MassParticle")] public static extern void mpClearCollidersAndForces(IntPtr context);
     [DllImport ("MassParticle")] public static extern MPKernelParams mpGetKernelParams(IntPtr context);
     [DllImport ("MassParticle")] public static extern void mpSetKernelParams(IntPtr context, ref MPKernelParams p);
 
-    [DllImport ("MassParticle")] public static extern int mpGetNumHitData(IntPtr context);
-    [DllImport ("MassParticle")] unsafe public static extern MPHitData* mpGetHitData(IntPtr context);
     [DllImport ("MassParticle")] public static extern int mpGetNumParticles(IntPtr context);
     [DllImport ("MassParticle")] unsafe public static extern MPParticle* mpGetParticles(IntPtr context);
     [DllImport ("MassParticle")] unsafe public static extern void mpCopyParticles (IntPtr context, MPParticle *dst);
@@ -201,21 +205,5 @@ public class MPUtils
         p.range_inner = 0.0f;
         p.range_outer = radius;
         MPAPI.mpAddForce(context, ref p, ref mat);
-    }
-
-    public static void CallParticleHitHandler(MPWorld world, MPCollider obj, ref MPParticle particle)
-    {
-        if (obj.particleHitHandler!=null)
-        {
-            obj.particleHitHandler(world, obj, ref particle);
-        }
-    }
-
-    public static void CallGathereditHandler(MPWorld world, MPCollider obj, ref MPHitData hit)
-    {
-        if (obj.gatheredHitHandler!=null)
-        {
-            obj.gatheredHitHandler(world, obj, ref hit);
-        }
     }
 }

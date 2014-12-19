@@ -61,7 +61,7 @@ public class SceneTestDeferredShading : MonoBehaviour
 
         if (!showGUI) { return; }
 
-        GUI.Label(new Rect(x, y, labelWidth, lineheight), "particles: " + world.particleNum);
+        GUI.Label(new Rect(x, y, labelWidth, lineheight), "particles: " + world.m_particle_num);
         y += lineheight + margin;
 
         GUI.Label(new Rect(x, y, labelWidth, lineheight), "timescale:");
@@ -75,8 +75,8 @@ public class SceneTestDeferredShading : MonoBehaviour
         y += lineheight + margin;
 
         GUI.Label(new Rect(x, y, labelWidth, lineheight), "particles deceleration:");
-        GUI.TextField(new Rect(x + labelWidth, y, 50, lineheight), world.deceleration.ToString());
-        world.deceleration = GUI.HorizontalSlider(new Rect(x + labelWidth + 55, y, 100, lineheight), world.deceleration, 0.9f, 1.0f);
+        GUI.TextField(new Rect(x + labelWidth, y, 50, lineheight), world.m_deceleration.ToString());
+        world.m_deceleration = GUI.HorizontalSlider(new Rect(x + labelWidth + 55, y, 100, lineheight), world.m_deceleration, 0.9f, 1.0f);
         y += lineheight + margin;
 
         y += 10.0f;

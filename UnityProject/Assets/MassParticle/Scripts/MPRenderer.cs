@@ -21,7 +21,7 @@ public unsafe class MPRenderer : MonoBehaviour
     MaterialPropertyBlock mpb;
     MPMeshData mesh_data;
     List<GameObject> children;
-    RenderTexture data_texture;
+    public RenderTexture data_texture;
     GameObject meshes;
     Bounds bounds;
 
@@ -38,7 +38,7 @@ public unsafe class MPRenderer : MonoBehaviour
     {
         if (data_texture == null || !data_texture.IsCreated())
         {
-            data_texture = new RenderTexture(MPWorld.dataTextureWidth, MPWorld.dataTextureHeight, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Default);
+            data_texture = new RenderTexture(MPWorld.DataTextureWidth, MPWorld.DataTextureHeight, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Default);
             data_texture.filterMode = FilterMode.Point;
             data_texture.Create();
         }
@@ -71,7 +71,7 @@ public unsafe class MPRenderer : MonoBehaviour
 
     void UpdateCubeMeshes()
     {
-        int batch_size = MPWorld.cubeBatchSize;
+        int batch_size = MPWorld.CubeBatchSize;
         int num_particles = MPAPI.mpGetNumParticles(world.GetContext());
         int num_active_children = num_particles / batch_size + (num_particles % batch_size == 0 ? 0 : 1);
         while (children.Count < num_active_children)
@@ -103,7 +103,7 @@ public unsafe class MPRenderer : MonoBehaviour
 
     void UpdatePointMeshes()
     {
-        int batch_size = MPWorld.pointBatchSize;
+        int batch_size = MPWorld.PointBatchSize;
         int num_particles = MPAPI.mpGetNumParticles(world.GetContext());
         int num_active_children = num_particles / batch_size + (num_particles % batch_size == 0 ? 0 : 1);
         while (children.Count < num_active_children)
@@ -132,7 +132,7 @@ public unsafe class MPRenderer : MonoBehaviour
     void UpdateChildMeshes(int num_active_children)
     {
         mpb.AddTexture("_DataTex", data_texture);
-        mpb.AddFloat("_DataTexPitch", 1.0f / MPWorld.dataTextureWidth);
+        mpb.AddFloat("_DataTexPitch", 1.0f / MPWorld.DataTextureWidth);
         mpb.AddFloat("_ParticleSize", size);
 
         for (int i = 0; i < num_active_children; ++i)

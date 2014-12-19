@@ -5,32 +5,31 @@ using System.Collections.Generic;
 public class MPCollider : MonoBehaviour
 {
     public delegate void ParticleHitHandler(MPWorld world, MPCollider obj, ref MPParticle particle);
-    public delegate void GatheredHitHandler(MPWorld world, MPCollider obj, ref MPHitData hit);
+    public delegate void GatheredHitHandler(MPWorld world, MPCollider obj, ref MPForceData hit);
 
-    public static List<MPCollider> instances = new List<MPCollider>();
-    public static List<MPCollider> instances_prev = new List<MPCollider>();
+    public static List<MPCollider> s_instances = new List<MPCollider>();
+    public static List<MPCollider> s_instances_prev = new List<MPCollider>();
 
-    public MPWorld[] targets;
+    public MPWorld[] m_targets;
 
-    public bool sendCollision = true;
-    public bool receiveCollision = false;
-    public float stiffness = 1500.0f;
-    public float bounce = 1.0f;
+    public bool m_receive_hit = false;
+    public bool m_receive_force = false;
+    public float m_stiffness = 1500.0f;
 
-    public ParticleHitHandler particleHitHandler = DefaultParticleHitHandler;
-    public GatheredHitHandler gatheredHitHandler = DefaultGatheredHitHandler;
+    public MPParticleHandler m_hit_handler;
+    public MPForceHandler m_force_handler;
     public MPColliderProperties cprops;
 
-    protected Transform trans;
-    protected Rigidbody rigid3d;
-    protected Rigidbody2D rigid2d;
+    protected Transform m_trans;
+    protected Rigidbody m_rigid3d;
+    protected Rigidbody2D m_rigid2d;
 
     protected delegate void TargetEnumerator(MPWorld world);
     protected void EachTargets(TargetEnumerator e)
     {
-        if (targets.Length != 0)
+        if (m_targets.Length != 0)
         {
-            foreach (var w in targets)
+            foreach (var w in m_targets)
             {
                 e(w);
             }
@@ -48,73 +47,79 @@ public class MPCollider : MonoBehaviour
     public static MPCollider GetHitOwner(int id)
     {
         if (id == -1) { return null; }
-        return instances_prev[id];
+        return s_instances_prev[id];
     }
 
     void Awake()
     {
-        trans = GetComponent<Transform>();
-        rigid3d = GetComponent<Rigidbody>();
-        rigid2d = GetComponent<Rigidbody2D>();
+        m_trans = GetComponent<Transform>();
+        m_rigid3d = GetComponent<Rigidbody>();
+        m_rigid2d = GetComponent<Rigidbody2D>();
+        if (m_hit_handler == null) m_hit_handler = DefaultHitHandler;
+        if (m_force_handler == null) m_force_handler = DefaultForceHandler;
     }
 
     void OnEnable()
     {
-        instances.Add(this);
+        s_instances.Add(this);
     }
 
     void OnDisable()
     {
-        instances.Remove(this);
+        s_instances.Remove(this);
     }
 
     public virtual void MPUpdate()
     {
-        cprops.group_mask = 0;
-        cprops.stiffness = stiffness;
-        cprops.bounce = bounce;
-        cprops.damage_on_hit = 0.0f;
+        cprops.stiffness = m_stiffness;
+        cprops.hit_handler = m_receive_hit ? m_hit_handler : null;
+        cprops.force_handler = m_receive_force ? m_force_handler : null;
     }
 
     public static void MPUpdateAll()
     {
         int i = 0;
-        foreach(var o in instances) {
+        foreach(var o in s_instances) {
             o.cprops.owner_id = i++;
             o.MPUpdate();
         }
-        instances_prev = instances;
+        s_instances_prev = s_instances;
     }
 
 
 
-    public static void DefaultParticleHitHandler(MPWorld world, MPCollider obj, ref MPParticle particle)
+    public void DefaultHitHandler(ref MPParticle particle)
     {
-        float force = world.force;
+        //Debug.Log("DefaultHitHandler(): " + GetHashCode());
+
+        float mass = 0.5f;
         Vector3 vel = particle.velocity3;
+        particle.lifetime = 0.0f;
 
-        if (obj.rigid3d)
+        if (m_rigid3d)
         {
-            obj.rigid3d.AddForceAtPosition(vel * force, particle.position3);
+            m_rigid3d.AddForceAtPosition(vel * mass, particle.position3);
         }
-        if (obj.rigid2d)
+        if (m_rigid2d)
         {
-            obj.rigid2d.AddForceAtPosition(vel * force, particle.position3);
+            m_rigid2d.AddForceAtPosition(vel * mass, particle.position3);
         }
     }
 
-    public static void DefaultGatheredHitHandler(MPWorld world, MPCollider obj, ref MPHitData hit)
+    public void DefaultForceHandler(ref MPForceData force)
     {
-        float force = world.force;
-        Vector3 vel = hit.velocity3;
+        //Debug.Log("DefaultForceHandler(): " + GetHashCode());
 
-        if (obj.rigid3d)
+        Vector3 pos = force.position;
+        Vector3 vel = force.velocity;
+
+        if (m_rigid3d)
         {
-            obj.rigid3d.AddForceAtPosition(vel * force, hit.position3);
+            m_rigid3d.AddForceAtPosition(vel, pos);
         }
-        if (obj.rigid2d)
+        if (m_rigid2d)
         {
-            obj.rigid2d.AddForceAtPosition(vel * force, hit.position3);
+            m_rigid2d.AddForceAtPosition(vel, pos);
         }
     }
 }

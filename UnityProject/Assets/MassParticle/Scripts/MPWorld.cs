@@ -3,11 +3,19 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using System.Runtime.Serialization.Formatters.Binary;
+using System.IO;
 
+[Serializable]
+public struct MPContext
+{
+    public int context;
+}
 
 public unsafe class MPWorld : MonoBehaviour
 {
     public static List<MPWorld> s_instances = new List<MPWorld>();
+    public static MPWorld s_current;
     static int s_update_count = 0;
 
     void EachWorld(Action<MPWorld> f)
@@ -16,45 +24,47 @@ public unsafe class MPWorld : MonoBehaviour
     }
 
 
+
     public delegate void ParticleProcessor(MPWorld world, int numParticles, MPParticle* particles);
-    public delegate void GatheredHitProcessor(MPWorld world, int numColliders, MPHitData* hits);
+    public delegate void GatheredHitProcessor(MPWorld world, int numColliders, MPForceData* hits);
 
-    public MPUpdateMode updateMode = MPUpdateMode.Immediate;
-    public bool enableInteractions = true;
-    public bool enableColliders = true;
-    public bool enableForces = true;
-    public MPSolverType solverType = MPSolverType.Impulse;
-    public float force = 1.0f;
-    public float particleLifeTime;
-    public float timeScale = 0.6f;
-    public float deceleration;
-    public float pressureStiffness;
-    public float wallStiffness;
-    public Vector3 coordScale;
-    public int divX = 256;
-    public int divY = 1;
-    public int divZ = 256;
-    public float particleSize = 0.08f;
-    public int maxParticleNum = 65536;
-    public int particleNum = 0;
+    public const int CubeBatchSize = 2700;
+    public const int PointBatchSize = 65000;
+    public const int DataTextureWidth = 3072;
+    public const int DataTextureHeight = 256;
 
-    public ParticleProcessor particleProcessor;
-    public GatheredHitProcessor gatheredHitProcessor;
-    IntPtr context;
+    public MPUpdateMode m_update_mode = MPUpdateMode.Deferred;
+    public MPSolverType m_solver = MPSolverType.Impulse;
+    public bool m_enable_interaction = true;
+    public bool m_enable_colliders = true;
+    public bool m_enable_orces = true;
+    public float m_particle_mass = 0.1f;
+    public float m_particle_lifetime = 30.0f;
+    public float m_timescale = 0.6f;
+    public float m_deceleration = 0.99f;
+    public float m_advection = 0.1f;
+    public float m_pressure_stiffness = 500.0f;
+    public float m_wall_stiffness = 1500.0f;
+    public float m_particle_size = 0.08f;
+    public int m_max_particle_num = 100000;
+    public Vector3 m_coord_scale = Vector3.one;
+    public int m_world_div_x = 256;
+    public int m_world_div_y = 1;
+    public int m_world_div_z = 256;
+    public int m_particle_num = 0;
+    public MPContext m_context;
 
-    public const int cubeBatchSize = 2700;
-    public const int pointBatchSize = 65000;
-    public const int dataTextureWidth = 3072;
-    public const int dataTextureHeight = 256;
 
-    public IntPtr GetContext() { return context; }
+
+    public IntPtr GetContext() { return (IntPtr)m_context.context; }
 
 
     public int UpdateDataTexture(RenderTexture rt)
     {
-        particleNum = MPAPI.mpUpdateDataTexture(context, rt.GetNativeTexturePtr());
-        return particleNum;
+        m_particle_num = MPAPI.mpUpdateDataTexture(GetContext(), rt.GetNativeTexturePtr());
+        return m_particle_num;
     }
+
 
 
     MPWorld()
@@ -62,24 +72,27 @@ public unsafe class MPWorld : MonoBehaviour
 #if UNITY_EDITOR_WIN || UNITY_STANDALONE_WIN
         MPAPI.mphInitialize();
 #endif
-        particleProcessor = DefaultParticleProcessor;
-        gatheredHitProcessor = DefaultGatheredHitProcessor;
     }
+
 
     void Awake()
     {
         s_instances.Add(this);
-        context = MPAPI.mpCreateContext();
+        m_context.context = (int)MPAPI.mpCreateContext();
     }
+
 
     void OnDestroy()
     {
-        MPAPI.mpDestroyContext(context);
+        MPAPI.mpDestroyContext(GetContext());
         s_instances.Remove(this);
     }
 
     void Update()
     {
+        //if(Time.frameCount%10==0)
+        //    Debug.Log("MPWorld: "+GetContext());
+
         if (s_update_count++ == 0)
         {
             if (Time.deltaTime != 0.0f)
@@ -88,6 +101,7 @@ public unsafe class MPWorld : MonoBehaviour
             }
         }
     }
+
 
     void LateUpdate()
     {
@@ -98,11 +112,11 @@ public unsafe class MPWorld : MonoBehaviour
     static void ActualUpdate()
     {
         if (s_instances.Count == 0) { return; }
-        if (s_instances[0].updateMode == MPUpdateMode.Immediate)
+        if (s_instances[0].m_update_mode == MPUpdateMode.Immediate)
         {
             ImmediateUpdate();
         }
-        else if (s_instances[0].updateMode == MPUpdateMode.Deferred)
+        else if (s_instances[0].m_update_mode == MPUpdateMode.Deferred)
         {
             DeferredUpdate();
         }
@@ -117,8 +131,9 @@ public unsafe class MPWorld : MonoBehaviour
         UpdateMPObjects();
         foreach (MPWorld w in s_instances)
         {
+            s_current = w;
             MPAPI.mpUpdate(w.GetContext(), Time.deltaTime);
-            w.ExecuteProcessors();
+            MPAPI.mpCallHandlers(w.GetContext());
             MPAPI.mpClearCollidersAndForces(w.GetContext());
         }
     }
@@ -131,8 +146,8 @@ public unsafe class MPWorld : MonoBehaviour
         }
         foreach (MPWorld w in s_instances)
         {
-            w.ExecuteProcessors();
-
+            s_current = w;
+            MPAPI.mpCallHandlers(w.GetContext());
             MPAPI.mpClearCollidersAndForces(w.GetContext());
             w.UpdateKernelParams();
         }
@@ -153,25 +168,26 @@ public unsafe class MPWorld : MonoBehaviour
 
     void UpdateKernelParams()
     {
-        MPKernelParams p = MPAPI.mpGetKernelParams(context);
-        p.WorldCenter = transform.position;
-        p.WorldSize = transform.localScale;
-        p.WorldDiv_x = divX;
-        p.WorldDiv_y = divY;
-        p.WorldDiv_z = divZ;
-        p.enableInteractions = enableInteractions ? 1 : 0;
-        p.enableColliders = enableColliders ? 1 : 0;
-        p.enableForces = enableForces ? 1 : 0;
-        p.SolverType = (int)solverType;
-        p.LifeTime = particleLifeTime;
-        p.Timestep = Time.deltaTime * timeScale;
-        p.Decelerate = deceleration;
-        p.PressureStiffness = pressureStiffness;
-        p.WallStiffness = wallStiffness;
-        p.Scaler = coordScale;
-        p.ParticleSize = particleSize;
-        p.MaxParticles = maxParticleNum;
-        MPAPI.mpSetKernelParams(context, ref p);
+        MPKernelParams p = MPAPI.mpGetKernelParams(GetContext());
+        p.world_center = transform.position;
+        p.world_size = transform.localScale;
+        p.world_div_x = m_world_div_x;
+        p.world_div_y = m_world_div_y;
+        p.world_div_z = m_world_div_z;
+        p.solver_type = (int)m_solver;
+        p.enable_interaction = m_enable_interaction ? 1 : 0;
+        p.enable_colliders = m_enable_colliders ? 1 : 0;
+        p.enable_forces = m_enable_orces ? 1 : 0;
+        p.lifetime = m_particle_lifetime;
+        p.timestep = Time.deltaTime * m_timescale;
+        p.decelerate = m_deceleration;
+        p.advection = m_advection;
+        p.pressure_stiffness = m_pressure_stiffness;
+        p.wall_stiffness = m_wall_stiffness;
+        p.scaler = m_coord_scale;
+        p.particle_size = m_particle_size;
+        p.max_particles = m_max_particle_num;
+        MPAPI.mpSetKernelParams(GetContext(), ref p);
     }
 
     static void UpdateMPObjects()
@@ -179,49 +195,5 @@ public unsafe class MPWorld : MonoBehaviour
         MPCollider.MPUpdateAll();
         MPForce.MPUpdateAll();
         MPEmitter.MPUpdateAll();
-    }
-
-
-    void ExecuteProcessors()
-    {
-        if (particleProcessor != null)
-        {
-            particleProcessor(this, MPAPI.mpGetNumParticles(context), MPAPI.mpGetParticles(context));
-        }
-        if (gatheredHitProcessor != null)
-        {
-            gatheredHitProcessor(this, MPAPI.mpGetNumHitData(context), MPAPI.mpGetHitData(context));
-        }
-    }
-
-
-    public static unsafe void DefaultParticleProcessor(MPWorld world, int numParticles, MPParticle* particles)
-    {
-        for (int i = 0; i < numParticles; ++i)
-        {
-            if (particles[i].hit != -1 && particles[i].hit != particles[i].hit_prev)
-            {
-                MPCollider col = MPCollider.GetHitOwner(particles[i].hit);
-                if (col && col.particleHitHandler!=null)
-                {
-                    col.particleHitHandler(world, col, ref particles[i]);
-                }
-            }
-        }
-    }
-
-    public static unsafe void DefaultGatheredHitProcessor(MPWorld world, int numColliders, MPHitData* hits)
-    {
-        for (int i = 0; i < numColliders; ++i)
-        {
-            if (hits[i].num_hits>0)
-            {
-                MPCollider col = MPCollider.GetHitOwner(i);
-                if (col && col.gatheredHitHandler != null)
-                {
-                    col.gatheredHitHandler(world, col, ref hits[i]);
-                }
-            }
-        }
     }
 }

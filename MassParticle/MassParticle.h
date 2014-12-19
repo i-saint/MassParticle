@@ -45,14 +45,14 @@ extern "C" EXPORT_API void			mpDestroyContext(mpWorld *context);
 extern "C" EXPORT_API void			mpBeginUpdate(mpWorld *context, float dt);
 extern "C" EXPORT_API void			mpEndUpdate(mpWorld *context);
 extern "C" EXPORT_API void			mpUpdate(mpWorld *context, float dt);
+extern "C" EXPORT_API void			mpCallHandlers(mpWorld *context);
+
 extern "C" EXPORT_API void			mpClearParticles(mpWorld *context);
 extern "C" EXPORT_API void			mpClearCollidersAndForces(mpWorld *context);
 
 extern "C" EXPORT_API ispc::KernelParams mpGetKernelParams(mpWorld *context);
 extern "C" EXPORT_API void			mpSetKernelParams(mpWorld *context, ispc::KernelParams *params);
 
-extern "C" EXPORT_API int			mpGetNumHitData(mpWorld *context);
-extern "C" EXPORT_API mpHitData*	mpGetHitData(mpWorld *context);
 extern "C" EXPORT_API int			mpGetNumParticles(mpWorld *context);
 extern "C" EXPORT_API mpParticle*	mpGetParticles(mpWorld *context);
 extern "C" EXPORT_API void			mpCopyParticles(mpWorld *context, mpParticle *dst);
@@ -68,6 +68,8 @@ extern "C" EXPORT_API void			mpAddCapsuleCollider(mpWorld *context, mpColliderPr
 extern "C" EXPORT_API void			mpAddBoxCollider(mpWorld *context, mpColliderProperties *props, mat4 *transform, vec3 *size);
 extern "C" EXPORT_API void			mpAddForce(mpWorld *context, mpForceProperties *p, mat4 *trans);
 
+extern "C" EXPORT_API int			mpScanSphere(mpWorld *context, mpHitHandler handler, vec3 *center, float radius);
+extern "C" EXPORT_API int			mpScanAABB(mpWorld *context, mpHitHandler handler, vec3 *center, vec3 *extent);
 
 
 

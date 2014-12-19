@@ -47,11 +47,10 @@ struct Box
 
 struct ColliderProperties
 {
-    uint group_mask;
     int owner_id;
     float stiffness;
-    float rebound;
-    float lifetime_on_hit;
+    void *hit_handler;
+    void *force_handler;
 };
 
 struct PlaneCollider
@@ -103,43 +102,42 @@ enum ForceDirection
 
 struct ForceProperties
 {
-    uint	group_mask;
-    int		shape_type; // ForceShape
-    int		dir_type; // ForceDirection
-    float	strength_near;
-    float	strength_far;
-    float	range_inner;
-    float	range_outer;
-    float	attenuation_exp;
+    int     shape_type; // ForceShape
+    int     dir_type; // ForceDirection
+    float   strength_near;
+    float   strength_far;
+    float   range_inner;
+    float   range_outer;
+    float   attenuation_exp;
 
-    vec3f	directional_pos;
-    vec3f	directional_dir;
-    vec3f	radial_center;
-    vec3f	vortex_pos;
-    vec3f	vortex_axis;
-    float	vortex_pull;
+    vec3f   directional_pos;
+    vec3f   directional_dir;
+    vec3f   radial_center;
+    vec3f   vortex_pos;
+    vec3f   vortex_axis;
+    float   vortex_pull;
 
-    float	directional_plane_distance;
-    float	rcp_range;
+    float   directional_plane_distance;
+    float   rcp_range;
 };
 
 struct Force
 {
-    ForceProperties	props;
-    BoundingBox		bounds;
-    Sphere			sphere;
-    Capsule			capsule;
-    Box				box;
+    ForceProperties props;
+    BoundingBox     bounds;
+    Sphere          sphere;
+    Capsule         capsule;
+    Box             box;
 };
 
 
 struct Particle
 {
-    float	x, y, z;
-    float	vx, vy, vz;
-    float	speed;
-    float	density;
-    int		hit;
+    float   x, y, z;
+    float   vx, vy, vz;
+    float   speed;
+    float   density;
+    int     hit;
 };
 
 struct ParticleIMData
@@ -161,14 +159,16 @@ struct KernelParams
     vec3f world_extent;
     vec3i world_div;
     vec3f coord_scaler;
-    int enable_interactions;
+
+    int solver_type;
+    int enable_interaction;
     int enable_colliders;
     int enable_forces;
 
-    int solver_type;
     float lifetime;
     float timestep;
     float decelerate;
+    float advection;
     float pressure_stiffness;
     float wall_stiffness;
 

@@ -17,13 +17,24 @@ public unsafe class MPProcedualRenderer : MonoBehaviour
     public float size = 0.2f;
     ComputeBuffer cube_vertices;
     RenderTexture data_texture;
+    [System.NonSerialized] bool m_needs_reflesh = true;
 
 
     void Awake ()
     {
-        cube_vertices = new ComputeBuffer(36, 24);
+        m_needs_reflesh = false;
+        DSRenderer dsr = GetComponent<DSRenderer>();
+        if (dsr != null)
         {
-            const float s = 0.5f/100.0f;
+            dsr.AddCallbackPreGBuffer(() => { UpdateBuffer(); }, 0);
+            dsr.AddCallbackPreGBuffer(() => { DepthPrePass(); });
+            dsr.AddCallbackPostGBuffer(() => { GBufferPass(); }, 10);
+        }
+
+
+        if (cube_vertices==null) cube_vertices = new ComputeBuffer(36, 24);
+        {
+            const float s = 0.5f / 100.0f;
             const float p = 1.0f;
             const float n = -1.0f;
             const float z = 0.0f;
@@ -60,12 +71,11 @@ public unsafe class MPProcedualRenderer : MonoBehaviour
             cube_vertices.SetData(vertices);
         }
 
-        DSRenderer dsr = GetComponent<DSRenderer>();
-        if (dsr != null)
+        if (data_texture == null || !data_texture.IsCreated())
         {
-            dsr.AddCallbackPreGBuffer(() => { UpdateBuffer(); }, 0);
-            dsr.AddCallbackPreGBuffer(() => { DepthPrePass(); });
-            dsr.AddCallbackPostGBuffer(() => { GBufferPass(); }, 10);
+            data_texture = new RenderTexture(MPWorld.DataTextureWidth, MPWorld.DataTextureHeight, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Default);
+            data_texture.filterMode = FilterMode.Point;
+            data_texture.Create();
         }
     }
 
@@ -74,39 +84,38 @@ public unsafe class MPProcedualRenderer : MonoBehaviour
         cube_vertices.Release();
     }
 
+
     void Update()
     {
-        if (data_texture == null || !data_texture.IsCreated())
-        {
-            data_texture = new RenderTexture(MPWorld.dataTextureWidth, MPWorld.dataTextureHeight, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Default);
-            data_texture.filterMode = FilterMode.Point;
-            data_texture.Create();
-        }
+        if (m_needs_reflesh) Awake();
     }
 
 
     public void UpdateBuffer()
     {
+        if (!enabled) return;
         target.UpdateDataTexture(data_texture);
     }
 
     public void DepthPrePass()
     {
+        if (!enabled) return;
         material.SetBuffer("vertices", cube_vertices);
         material.SetTexture("particle_data", data_texture);
-        material.SetFloat("particle_data_pitch", 1.0f / MPWorld.dataTextureWidth);
+        material.SetFloat("particle_data_pitch", 1.0f / MPWorld.DataTextureWidth);
         material.SetFloat("particle_size", size);
         material.SetPass(0);
-        Graphics.DrawProcedural(MeshTopology.Triangles, 36, target.particleNum);
+        Graphics.DrawProcedural(MeshTopology.Triangles, 36, target.m_particle_num);
     }
 
     public void GBufferPass()
     {
+        if (!enabled) return;
         material.SetBuffer("vertices", cube_vertices);
         material.SetTexture("particle_data", data_texture);
-        material.SetFloat("particle_data_pitch", 1.0f / MPWorld.dataTextureWidth);
+        material.SetFloat("particle_data_pitch", 1.0f / MPWorld.DataTextureWidth);
         material.SetFloat("particle_size", size);
         material.SetPass(1);
-        Graphics.DrawProcedural(MeshTopology.Triangles, 36, target.particleNum);
+        Graphics.DrawProcedural(MeshTopology.Triangles, 36, target.m_particle_num);
     }
 }

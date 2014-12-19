@@ -10,10 +10,10 @@ public class MPSphereCollider : MPCollider
     public override void MPUpdate()
     {
         base.MPUpdate();
-        Vector3 pos = trans.position;
+        Vector3 pos = m_trans.position;
         EachTargets((w) =>
         {
-            MPAPI.mpAddSphereCollider(w.GetContext(), ref cprops, ref pos, trans.localScale.magnitude * 0.25f);
+            MPAPI.mpAddSphereCollider(w.GetContext(), ref cprops, ref pos, m_trans.localScale.magnitude * 0.25f);
         });
     }
 

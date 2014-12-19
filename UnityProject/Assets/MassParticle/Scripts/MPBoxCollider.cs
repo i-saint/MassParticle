@@ -8,7 +8,7 @@ public class MPBoxCollider : MPCollider
     {
         base.MPUpdate();
 
-        Matrix4x4 mat = trans.localToWorldMatrix;
+        Matrix4x4 mat = m_trans.localToWorldMatrix;
         Vector3 one = Vector3.one;
         EachTargets((w) =>
         {

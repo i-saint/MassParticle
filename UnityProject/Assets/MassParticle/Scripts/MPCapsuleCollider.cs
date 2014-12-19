@@ -33,31 +33,31 @@ public class MPCapsuleCollider : MPCollider
         switch (direction)
         {
             case Direction.X:
-                radius = (trans.localScale.y + trans.localScale.z) * 0.5f * 0.5f;
-                h = Mathf.Max(0.0f, trans.localScale.x - radius * 2.0f);
+                radius = (m_trans.localScale.y + m_trans.localScale.z) * 0.5f * 0.5f;
+                h = Mathf.Max(0.0f, m_trans.localScale.x - radius * 2.0f);
                 pos1.Set(h * 0.5f, 0.0f, 0.0f, 1.0f);
                 pos2.Set(-h * 0.5f, 0.0f, 0.0f, 1.0f);
                 break;
             case Direction.Y:
-                radius = (trans.localScale.x + trans.localScale.z) * 0.5f * 0.5f;
-                h = Mathf.Max(0.0f, trans.localScale.y - radius * 2.0f);
+                radius = (m_trans.localScale.x + m_trans.localScale.z) * 0.5f * 0.5f;
+                h = Mathf.Max(0.0f, m_trans.localScale.y - radius * 2.0f);
                 pos1.Set(0.0f, h * 0.5f, 0.0f, 1.0f);
                 pos2.Set(0.0f, -h * 0.5f, 0.0f, 1.0f);
                 break;
             case Direction.Z:
-                radius = (trans.localScale.x + trans.localScale.y) * 0.5f * 0.5f;
-                h = Mathf.Max(0.0f, trans.localScale.z - radius * 2.0f);
+                radius = (m_trans.localScale.x + m_trans.localScale.y) * 0.5f * 0.5f;
+                h = Mathf.Max(0.0f, m_trans.localScale.z - radius * 2.0f);
                 pos1.Set(0.0f, 0.0f, h * 0.5f, 1.0f);
                 pos2.Set(0.0f, 0.0f, -h * 0.5f, 1.0f);
                 break;
         }
-        pos1 = trans.localToWorldMatrix * pos1;
-        pos2 = trans.localToWorldMatrix * pos2;
+        pos1 = m_trans.localToWorldMatrix * pos1;
+        pos2 = m_trans.localToWorldMatrix * pos2;
     }
 
     void OnDrawGizmos()
     {
-        trans = GetComponent<Transform>();
+        m_trans = GetComponent<Transform>();
         UpdateCapsule(); // エディタから実行される都合上必要
         Gizmos.color = Color.yellow;
         Gizmos.DrawWireSphere(pos1, radius);
