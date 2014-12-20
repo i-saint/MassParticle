@@ -238,8 +238,24 @@ inline ivec3 Position2Index(mpWorld &w, const vec3 &pos)
     return ivec3(xb, yb, zb);
 }
 
+inline bool testSphere_AABB(const vec3 &sphere_pos, float sphere_radius, vec3 aabb_bl, vec3 &aabb_ur)
+{
+    aabb_bl -= sphere_radius;
+    aabb_ur += sphere_radius;
+    return
+        sphere_pos.x > aabb_bl.x && sphere_pos.x < aabb_ur.x &&
+        sphere_pos.y > aabb_bl.y && sphere_pos.y < aabb_ur.y &&
+        sphere_pos.z > aabb_bl.z && sphere_pos.z < aabb_ur.z;
+}
+
+inline bool testSphere_Sphere(const vec3 &sphere1_pos, float sphere1_radius, const vec3 &sphere2_pos, float sphere2_radius)
+{
+    float r = sphere1_radius + sphere2_radius;
+    return glm::length_sq(sphere2_pos - sphere1_pos) < r*r;
+}
+
 // 0: not overlapped, 1: overlapped, 2: completely inside
-int overlapAABB_AABB(const vec3 &aabb1_bl, const vec3 &aabb1_ur, const vec3 &aabb2_bl, const vec3 &aabb2_ur)
+inline int overlapAABB_AABB(const vec3 &aabb1_bl, const vec3 &aabb1_ur, const vec3 &aabb2_bl, const vec3 &aabb2_ur)
 {
     if (aabb1_ur.x < aabb2_bl.x || aabb1_bl.x > aabb2_ur.x ||
         aabb1_ur.y < aabb2_bl.y || aabb1_bl.y > aabb2_ur.y ||
@@ -266,25 +282,16 @@ int overlapAABB_AABB(const vec3 &aabb1_bl, const vec3 &aabb1_ur, const vec3 &aab
 
 
 // 0: not overlapped, 1: overlapped, 2: completely inside
-int overlapSphere_AABB(const vec3 &sphere_pos, float sphere_radius, const vec3 &aabb_bl, const vec3 &aabb_ur)
+inline int overlapSphere_AABB(const vec3 &sphere_pos, float sphere_radius, const vec3 &aabb_bl, const vec3 &aabb_ur)
 {
-    return overlapAABB_AABB(sphere_pos - sphere_radius, sphere_pos + sphere_radius, aabb_bl, aabb_ur);
-}
-
-bool testSphere_AABB(const vec3 &sphere_pos, float sphere_radius, vec3 aabb_bl, vec3 &aabb_ur)
-{
-    aabb_bl -= sphere_radius;
-    aabb_ur += sphere_radius;
-    return
-        sphere_pos.x > aabb_bl.x && sphere_pos.x < aabb_ur.x &&
-        sphere_pos.y > aabb_bl.y && sphere_pos.y < aabb_ur.y &&
-        sphere_pos.z > aabb_bl.z && sphere_pos.z < aabb_ur.z;
-}
-
-bool testSphere_Sphere(const vec3 &sphere1_pos, float sphere1_radius, const vec3 &sphere2_pos, float sphere2_radius)
-{
-    float r = sphere1_radius + sphere2_radius;
-    return glm::length_sq(sphere2_pos-sphere1_pos) < r*r;
+    int r = overlapAABB_AABB(sphere_pos - sphere_radius, sphere_pos + sphere_radius, aabb_bl, aabb_ur);
+    if (r == 2) {
+        float r2 = sphere_radius*sphere_radius;
+        if (glm::length_sq(aabb_bl - sphere_pos) > r2 || glm::length_sq(aabb_ur - sphere_pos) > r2) {
+            r = 1;
+        }
+    }
+    return r;
 }
 
 
@@ -299,8 +306,7 @@ inline void ScanCells(mpWorld &w, const ivec3 &imin, const ivec3 &imax, const F 
         for (int iz = imin.z; iz < imax.z; ++iz) {
             for (int ix = imin.x; ix < imax.x; ++ix) {
                 uint32 ci = ix | (iz << bits.x) | (iy << (bits.x + bits.z));
-                const mpCell &cell = cells[ci];
-                f(cell, ivec3(ix, iy, iz));
+                f(cells[ci], ivec3(ix, iy, iz));
             }
         }
     }
@@ -320,8 +326,7 @@ inline void ScanCellsParallel(mpWorld &w, const ivec3 &imin, const ivec3 &imax, 
             for (int iz = imin.z; iz < imax.z; ++iz) {
                 for (int ix = imin.x; ix < imax.x; ++ix) {
                     uint32 ci = ix | (iz << bits.x) | (iy << (bits.x + bits.z));
-                    const mpCell &cell = cells[ci];
-                    f(cell, ivec3(ix, iy, iz));
+                    f(cells[ci], ivec3(ix, iy, iz));
                 }
             }
         });
@@ -331,8 +336,7 @@ inline void ScanCellsParallel(mpWorld &w, const ivec3 &imin, const ivec3 &imax, 
             tbb::parallel_for(imin.z, imax.z, [&](int iz){
                 for (int ix = imin.x; ix < imax.x; ++ix) {
                     uint32 ci = ix | (iz << bits.x) | (iy << (bits.x + bits.z));
-                    const mpCell &cell = cells[ci];
-                    f(cell, ivec3(ix, iy, iz));
+                    f(cells[ci], ivec3(ix, iy, iz));
                 }
             });
         }

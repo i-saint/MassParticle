@@ -91,7 +91,6 @@ public unsafe class MPWorld : MonoBehaviour
 
     void OnDisable()
     {
-        MPAPI.mpEndUpdate(GetContext());
         s_instances.Remove(this);
     }
 
