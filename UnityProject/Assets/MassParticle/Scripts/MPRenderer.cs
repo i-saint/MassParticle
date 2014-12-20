@@ -136,13 +136,6 @@ public unsafe class MPRenderer : MonoBehaviour
 
     void UpdateChildMeshes(int num_active_children)
     {
-        if (mpb == null) Debug.Log("!!");
-        if (data_texture == null) Debug.Log("!!!");
-
-        mpb.AddTexture("_DataTex", data_texture);
-        mpb.AddFloat("_DataTexPitch", 1.0f / MPWorld.DataTextureWidth);
-        mpb.AddFloat("_ParticleSize", size);
-
         for (int i = 0; i < num_active_children; ++i)
         {
             GameObject child = children[i];
@@ -164,6 +157,9 @@ public unsafe class MPRenderer : MonoBehaviour
     void OnPreRender()
     {
         world.UpdateDataTexture(data_texture);
+        mpb.SetTexture("_DataTex", data_texture);
+        mpb.SetFloat("_DataTexPitch", 1.0f / MPWorld.DataTextureWidth);
+        mpb.SetFloat("_ParticleSize", size);
     }
 
 }

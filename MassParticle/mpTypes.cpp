@@ -513,7 +513,7 @@ void mpWorld::update(float32 dt)
         ur = wpos + wsize;
 
         int reserve_size = mpParticlesEachLine * (ceildiv(kp.max_particles, mpParticlesEachLine));
-        int SOADataNum = std::max<int>(cell_num, kp.max_particles / 8);
+        int SOADataNum = cell_num + std::max<int>((kp.max_particles - cell_num) / 8, 0);
         m_cells.resize(cell_num);
         m_particles.resize(kp.max_particles);
         m_particles_soa.resize(SOADataNum);
@@ -522,12 +522,12 @@ void mpWorld::update(float32 dt)
         m_particles_gpu.resize(kp.max_particles);
     }
 
-    mpCell				*ce = &m_cells[0];
-    mpForce				*forces = m_forces.empty() ? nullptr : &m_forces[0];
-    mpPlaneCollider		*planes = m_plane_colliders.empty() ? nullptr : &m_plane_colliders[0];
-    mpSphereCollider	*spheres = m_sphere_colliders.empty() ? nullptr : &m_sphere_colliders[0];
-    mpCapsuleCollider	*capsules = m_capsule_colliders.empty() ? nullptr : &m_capsule_colliders[0];
-    mpBoxCollider		*boxes = m_box_colliders.empty() ? nullptr : &m_box_colliders[0];
+    mpCell              *ce = &m_cells[0];
+    mpForce             *forces = m_forces.empty() ? nullptr : &m_forces[0];
+    mpPlaneCollider     *planes = m_plane_colliders.empty() ? nullptr : &m_plane_colliders[0];
+    mpSphereCollider    *spheres = m_sphere_colliders.empty() ? nullptr : &m_sphere_colliders[0];
+    mpCapsuleCollider   *capsules = m_capsule_colliders.empty() ? nullptr : &m_capsule_colliders[0];
+    mpBoxCollider       *boxes = m_box_colliders.empty() ? nullptr : &m_box_colliders[0];
 
     int num_colliders =  m_plane_colliders.size() + m_sphere_colliders.size() + m_capsule_colliders.size() + m_box_colliders.size();
 
