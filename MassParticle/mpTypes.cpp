@@ -861,7 +861,7 @@ void mpWorld::callHandlers()
             hits.resize(num_colliders);
             for (int i = r.begin(); i != r.end(); ++i) {
                 mpParticle &p = m_particles[i];
-                if (p.hit != -1) {
+                if (p.hit != -1 && p.hit_prev == -1) {
                     (simdvec4&)hits[p.hit].position += (simdvec4&)p.position;
                     (simdvec4&)hits[p.hit].velocity += (simdvec4&)p.velocity;
                     ++hits[p.hit].num_hits;
