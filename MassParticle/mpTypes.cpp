@@ -230,6 +230,44 @@ void mpWorld::addBoxColliders(mpBoxCollider *col, int num)
     m_box_colliders.insert(m_box_colliders.end(), col, col+num);
 }
 
+
+void mpWorld::removeCollider(mpColliderProperties &props)
+{
+    {
+        auto i = std::lower_bound(m_box_colliders.begin(), m_box_colliders.end(), props.owner_id,
+            [&](const mpBoxCollider &c, int i){ return c.props.owner_id < i; });
+        if (i != m_box_colliders.end()) {
+            i->props.hit_handler = nullptr;
+            return;
+        }
+    }
+    {
+        auto i = std::lower_bound(m_sphere_colliders.begin(), m_sphere_colliders.end(), props.owner_id,
+            [&](const mpSphereCollider &c, int i){ return c.props.owner_id < i; });
+        if (i != m_sphere_colliders.end()) {
+            i->props.hit_handler = nullptr;
+            return;
+        }
+    }
+    {
+        auto i = std::lower_bound(m_capsule_colliders.begin(), m_capsule_colliders.end(), props.owner_id,
+            [&](const mpCapsuleCollider &c, int i){ return c.props.owner_id < i; });
+        if (i != m_capsule_colliders.end()) {
+            i->props.hit_handler = nullptr;
+            return;
+        }
+    }
+    {
+        auto i = std::lower_bound(m_plane_colliders.begin(), m_plane_colliders.end(), props.owner_id,
+            [&](const mpPlaneCollider &c, int i){ return c.props.owner_id < i; });
+        if (i != m_plane_colliders.end()) {
+            i->props.hit_handler = nullptr;
+            return;
+        }
+    }
+}
+
+
 void mpWorld::addForces(mpForce *force, int num)
 {
     m_forces.insert(m_forces.end(), force, force+num);

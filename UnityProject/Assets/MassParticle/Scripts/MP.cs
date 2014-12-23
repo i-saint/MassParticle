@@ -187,6 +187,8 @@ public class MPAPI {
     [DllImport ("MassParticle")] public static extern void mpAddSphereCollider(int context, ref MPColliderProperties props, ref Vector3 center, float radius);
     [DllImport ("MassParticle")] public static extern void mpAddCapsuleCollider(int context, ref MPColliderProperties props, ref Vector3 pos1, ref Vector3 pos2, float radius);
     [DllImport ("MassParticle")] public static extern void mpAddBoxCollider(int context, ref MPColliderProperties props, ref Matrix4x4 transform, ref Vector3 size);
+    [DllImport ("MassParticle")] public static extern void mpRemoveCollider(int context, ref MPColliderProperties props);
+
     [DllImport ("MassParticle")] public static extern void mpAddForce (int context, ref MPForceProperties regionType, ref Matrix4x4 regionMat);
 
     [DllImport ("MassParticle")] public static extern void mpScanSphere (int context, MPHitHandler h, ref Vector3 center, float radius);
@@ -202,7 +204,7 @@ public class MPAPI {
 
 public static class MPUtils
 {
-    public static void AddRadialSphereForce(int context, Vector3 pos, float radius, float strength)
+    public static void AddRadialSphereForce(MPWorld world, Vector3 pos, float radius, float strength)
     {
         Matrix4x4 mat = Matrix4x4.TRS(pos, Quaternion.identity, Vector3.one * radius);
         MPForceProperties p = new MPForceProperties();
@@ -214,7 +216,9 @@ public static class MPUtils
         p.attenuation_exp = 0.5f;
         p.range_inner = 0.0f;
         p.range_outer = radius;
-        MPAPI.mpAddForce(context, ref p, ref mat);
+        world.AddOneTimeAction(() => {
+            MPAPI.mpAddForce(world.GetContext(), ref p, ref mat);
+        });
     }
 
     [StructLayout(LayoutKind.Explicit)]

@@ -154,7 +154,7 @@ inline void mpApplySpawnParams(mpParticleCont &particles, const mpSpawnParams *p
     vec3 vel = params->velocity_base;
     float vel_diffuse = params->velocity_random_diffuse;
     float lifetime = params->lifetime;
-    float lifetime_diffuse = params->lifetime;
+    float lifetime_diffuse = params->lifetime_random_diffuse;
     int userdata = params->userdata;
     mpHitHandler handler = params->handler;
 
@@ -324,6 +324,11 @@ extern "C" EXPORT_API void mpAddBoxCollider(int context, mpColliderProperties *p
     col.props = *props;
     mpBuildBoxCollider(context, col, *transform, *size);
     g_worlds[context]->addBoxColliders(&col, 1);
+}
+
+extern "C" EXPORT_API void mpRemoveCollider(int context, mpColliderProperties *props)
+{
+    g_worlds[context]->removeCollider(*props);
 }
 
 extern "C" EXPORT_API void mpAddSphereCollider(int context, mpColliderProperties *props, vec3 *center, float radius)

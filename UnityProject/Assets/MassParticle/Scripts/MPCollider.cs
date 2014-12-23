@@ -67,9 +67,10 @@ public class MPCollider : MonoBehaviour
     void OnDisable()
     {
         s_instances.Remove(this);
-        m_rigid2d = null;
-        m_rigid3d = null;
-        m_trans = null;
+        EachTargets((w) =>
+        {
+            MPAPI.mpRemoveCollider(w.GetContext(), ref cprops);
+        });
     }
 
 
@@ -84,12 +85,12 @@ public class MPCollider : MonoBehaviour
     {
         int i = 0;
         foreach(var o in s_instances) {
-            ++i;
             if (o != null)
             {
                 o.cprops.owner_id = i;
                 o.MPUpdate();
             }
+            ++i;
         }
         s_instances_prev = s_instances;
     }

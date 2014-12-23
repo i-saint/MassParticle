@@ -280,6 +280,7 @@ public:
     void addSphereColliders(mpSphereCollider *col, int num);
     void addCapsuleColliders(mpCapsuleCollider *col, int num);
     void addBoxColliders(mpBoxCollider *col, int num);
+    void removeCollider(mpColliderProperties &props);
     void addForces(mpForce *force, int num);
     void scanSphere(mpHitHandler handler, const vec3 &pos, float radius);
     void scanAABB(mpHitHandler handler, const vec3 &center, const vec3 &extent);
