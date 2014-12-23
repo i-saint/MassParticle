@@ -49,7 +49,7 @@
 			float4 position = tex2Dlod(_DataTex, v.texcoord);
 			float4 velocity = tex2Dlod(_DataTex, v.texcoord+pitch);
 			float4 params = tex2Dlod(_DataTex, v.texcoord+pitch*2.0);
-			float lifetime = params.w;
+			float lifetime = params.y;
 
 			output.pos =  position;
 			output.normal = v.normal;

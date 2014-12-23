@@ -95,8 +95,6 @@ enum ForceDirection
     FD_Directional,
     FD_Radial,
     FD_RadialCapsule,
-    FD_Vortex,      // todo:
-    FD_Spline,      // 
     FD_VectorField, //
 };
 
@@ -113,9 +111,6 @@ struct ForceProperties
     vec3f   directional_pos;
     vec3f   directional_dir;
     vec3f   radial_center;
-    vec3f   vortex_pos;
-    vec3f   vortex_axis;
-    float   vortex_pull;
 
     float   directional_plane_distance;
     float   rcp_range;
@@ -165,12 +160,10 @@ struct KernelParams
     int enable_colliders;
     int enable_forces;
 
-    float lifetime;
     float timestep;
     float decelerate;
     float advection;
     float pressure_stiffness;
-    float wall_stiffness;
 
     int max_particles;
     float particle_size;

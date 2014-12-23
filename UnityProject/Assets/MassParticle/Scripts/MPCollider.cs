@@ -46,27 +46,30 @@ public class MPCollider : MonoBehaviour
 
     public static MPCollider GetHitOwner(int id)
     {
-        if (id == -1) { return null; }
         return s_instances_prev[id];
     }
 
     void Awake()
     {
-        m_trans = GetComponent<Transform>();
-        m_rigid3d = GetComponent<Rigidbody>();
-        m_rigid2d = GetComponent<Rigidbody2D>();
         if (m_hit_handler == null) m_hit_handler = DefaultHitHandler;
         if (m_force_handler == null) m_force_handler = DefaultForceHandler;
     }
 
     void OnEnable()
     {
+        m_trans = GetComponent<Transform>();
+        m_rigid3d = GetComponent<Rigidbody>();
+        m_rigid2d = GetComponent<Rigidbody2D>();
+        if (s_instances.Count == 0) s_instances.Add(null);
         s_instances.Add(this);
     }
 
     void OnDisable()
     {
         s_instances.Remove(this);
+        m_rigid2d = null;
+        m_rigid3d = null;
+        m_trans = null;
     }
 
 
@@ -81,8 +84,12 @@ public class MPCollider : MonoBehaviour
     {
         int i = 0;
         foreach(var o in s_instances) {
-            o.cprops.owner_id = i++;
-            o.MPUpdate();
+            ++i;
+            if (o != null)
+            {
+                o.cprops.owner_id = i;
+                o.MPUpdate();
+            }
         }
         s_instances_prev = s_instances;
     }
@@ -91,18 +98,18 @@ public class MPCollider : MonoBehaviour
 
     public void DefaultHitHandler(ref MPParticle particle)
     {
-        //Debug.Log("DefaultHitHandler(): " + GetHashCode());
+        //Debug.Log("DefaultHitHandler(): " + particle.id + " " + particle.hit + " " + particle.hit_prev);
 
-        Vector3 f = particle.velocity3 * MPWorld.s_current.m_particle_mass;
-        particle.lifetime = 0.0f;
-
-        if (m_rigid3d)
-        {
-            m_rigid3d.AddForceAtPosition(f, particle.position3);
-        }
-        if (m_rigid2d)
-        {
-            m_rigid2d.AddForceAtPosition(f, particle.position3);
+        if(particle.hit_prev==0) {
+            Vector3 f = particle.velocity * MPWorld.s_current.m_particle_mass;
+            if (m_rigid3d)
+            {
+                m_rigid3d.AddForceAtPosition(f, particle.position);
+            }
+            if (m_rigid2d)
+            {
+                m_rigid2d.AddForceAtPosition(f, particle.position);
+            }
         }
     }
 

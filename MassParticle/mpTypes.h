@@ -4,6 +4,7 @@
 #define GLM_FORCE_RADIANS
 #define __SSSE3__
 
+#include <cstdint>
 #include <vector>
 #include <mutex>
 #include <glm/glm.hpp>
@@ -27,11 +28,11 @@
 #   define mpCountof(exp) (sizeof(exp)/sizeof(exp[0]))
 #endif
 
-typedef short           int16;
-typedef unsigned short  uint16;
-typedef int             int32;
-typedef unsigned int    uint32;
-typedef float           float32;
+typedef int16_t         i16;
+typedef uint16_t        u16;
+typedef int32_t         i32;
+typedef uint32_t        u32;
+typedef float           f32;
 
 typedef __m128 simd128;
 
@@ -120,15 +121,24 @@ struct mpMeshData
 
 struct mpParticle
 {
-    simd128 position;
-    simd128 velocity;
-    float32 density;
     union {
-        uint32 hash;
-        int32 hit_prev;
+        simd128 position;
+        struct {
+            vec3 position3f;
+            u32 id;
+        };
     };
-    int32 hit;
-    float32 lifetime;
+    simd128 velocity;
+    union {
+        u32 hash;
+        f32 density;
+    };
+    f32 lifetime;
+    struct {
+        u16 hit;
+        u16 hit_prev;
+    };
+    int userdata;
 
     mpParticle& operator=(const mpParticle &v)
     {
@@ -141,16 +151,16 @@ struct mpParticle
     }
 };
 
-struct mpHitData
+struct mpHitForce
 {
     simd128 position;
     simd128 velocity;
     int num_hits;
     int pad[3];
 
-    mpHitData() { clear(); }
+    mpHitForce() { clear(); }
     void clear() { memset(this, 0, sizeof(*this));  }
-    mpHitData& operator=(const mpHitData &v)
+    mpHitForce& operator=(const mpHitForce &v)
     {
         simd128 *dst = (simd128*)this;
         simd128 *src = (simd128*)&v;
@@ -159,6 +169,18 @@ struct mpHitData
         dst[2] = src[2];
         return *this;
     }
+};
+typedef void(__stdcall *mpHitHandler)(mpParticle *p);
+typedef void(__stdcall *mpForceHandler)(mpHitForce *p);
+
+struct mpSpawnParams
+{
+    vec3 velocity_base;
+    float velocity_random_diffuse;
+    float lifetime;
+    float lifetime_random_diffuse;
+    int userdata;
+    mpHitHandler handler;
 };
 
 inline void* mpAlignedAlloc(size_t size, size_t align)
@@ -211,21 +233,19 @@ public:
 template<class T, typename Alloc> inline bool operator==(const mpAlignedAllocator<T>& l, const mpAlignedAllocator<T>& r) { return (l.equals(r)); }
 template<class T, typename Alloc> inline bool operator!=(const mpAlignedAllocator<T>& l, const mpAlignedAllocator<T>& r) { return (!(l == r)); }
 
-typedef std::vector<mpParticle, mpAlignedAllocator<mpParticle> >				mpParticleCont;
-typedef std::vector<mpParticleSOA8, mpAlignedAllocator<mpParticleSOA8> >		mpParticleSOACont;
-typedef std::vector<mpParticleIMDSOA8, mpAlignedAllocator<mpParticleIMDSOA8> >	mpParticleIMDSOACont;
-typedef std::vector<mpCell, mpAlignedAllocator<mpCell> >						mpCellCont;
-typedef std::vector<mpColliderProperties*, mpAlignedAllocator<mpPlaneCollider> > mpColliderPropertiesCont;
-typedef std::vector<mpPlaneCollider, mpAlignedAllocator<mpPlaneCollider> >		mpPlaneColliderCont;
-typedef std::vector<mpSphereCollider, mpAlignedAllocator<mpSphereCollider> >	mpSphereColliderCont;
-typedef std::vector<mpCapsuleCollider, mpAlignedAllocator<mpCapsuleCollider> >	mpCapsuleColliderCont;
-typedef std::vector<mpBoxCollider, mpAlignedAllocator<mpBoxCollider> >			mpBoxColliderCont;
-typedef std::vector<mpForce, mpAlignedAllocator<mpForce> >						mpForceCont;
-typedef std::vector<mpHitData, mpAlignedAllocator<mpHitData> >					mpHitDataCont;
-typedef tbb::combinable<mpHitDataCont>											mpHitDataConbinable;
-typedef std::vector<vec4, mpAlignedAllocator<vec4> >							mpTrailCont;
-typedef void(__stdcall *mpHitHandler)(mpParticle *p);
-typedef void(__stdcall *mpForceHandler)(mpHitData *p);
+typedef std::vector<mpParticle, mpAlignedAllocator<mpParticle> >                mpParticleCont;
+typedef std::vector<mpParticleSOA8, mpAlignedAllocator<mpParticleSOA8> >        mpParticleSOACont;
+typedef std::vector<mpParticleIMDSOA8, mpAlignedAllocator<mpParticleIMDSOA8> >  mpParticleIMDSOACont;
+typedef std::vector<mpCell, mpAlignedAllocator<mpCell> >                            mpCellCont;
+typedef std::vector<mpColliderProperties*, mpAlignedAllocator<mpPlaneCollider> >    mpColliderPropertiesCont;
+typedef std::vector<mpPlaneCollider, mpAlignedAllocator<mpPlaneCollider> >      mpPlaneColliderCont;
+typedef std::vector<mpSphereCollider, mpAlignedAllocator<mpSphereCollider> >    mpSphereColliderCont;
+typedef std::vector<mpCapsuleCollider, mpAlignedAllocator<mpCapsuleCollider> >  mpCapsuleColliderCont;
+typedef std::vector<mpBoxCollider, mpAlignedAllocator<mpBoxCollider> >          mpBoxColliderCont;
+typedef std::vector<mpForce, mpAlignedAllocator<mpForce> >                      mpForceCont;
+typedef std::vector<mpHitForce, mpAlignedAllocator<mpHitForce> >                mpHitDataCont;
+typedef tbb::combinable<mpHitDataCont>                                          mpHitDataConbinable;
+typedef std::vector<vec4, mpAlignedAllocator<vec4> >                            mpTrailCont;
 
 class mpWorld;
 
@@ -265,6 +285,9 @@ public:
     void scanAABB(mpHitHandler handler, const vec3 &center, const vec3 &extent);
     void scanSphereParallel(mpHitHandler handler, const vec3 &pos, float radius);
     void scanAABBParallel(mpHitHandler handler, const vec3 &center, const vec3 &extent);
+    void scanAll(mpHitHandler handler);
+    void scanAllParallel(mpHitHandler handler);
+    void moveAll(const vec3 &move);
     void clearParticles();
     void clearCollidersAndForces();
 
@@ -292,6 +315,7 @@ private:
     mpParticleSOACont       m_particles_soa;
     mpParticleIMDSOACont    m_imd_soa;
     mpCellCont              m_cells;
+    u32                     m_id_seed;
     int                     m_num_particles;
 
     mpColliderPropertiesCont m_collider_properties;

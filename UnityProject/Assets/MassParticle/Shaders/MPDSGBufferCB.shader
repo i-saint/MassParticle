@@ -63,7 +63,7 @@ SubShader {
         float4 position = tex2Dlod(particle_data, coord+px*0.0);
         float4 velocity = tex2Dlod(particle_data, coord+px*1.0);
         float4 params = tex2Dlod(particle_data, coord+px*2.0);
-        float lifetime = params.w;
+        float lifetime = params.y;
 
         float4 v = float4(vertices[io.vertexID].position*(particle_size*100.0)+position.xyz, 1.0);
         float4 n = float4(vertices[io.vertexID].normal, 0.0);

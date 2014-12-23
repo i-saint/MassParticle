@@ -15,13 +15,11 @@ mpKernelParams::mpKernelParams()
     enable_forces = 1;
 
     solver_type = mpSolver_Impulse;
-    lifetime = 30.0f;
     timestep = 0.01f;
     decelerate = 0.99f;
     advection = 0.5f;
 
     pressure_stiffness = 500.0f;
-    wall_stiffness = 1500.0f;
     max_particles = 100000;
     particle_size = 0.08f;
 
@@ -35,7 +33,7 @@ mpKernelParams::mpKernelParams()
 mpRenderer *g_mpRenderer;
 
 
-const int32 SIMD_LANES = 8;
+const i32 SIMD_LANES = 8;
 
 template<class T>
 T clamp(T v, T minv, T maxv)
@@ -43,7 +41,7 @@ T clamp(T v, T minv, T maxv)
     return std::min<T>(std::max<T>(v, minv), maxv);
 }
 
-int32 soa_blocks(int32 i)
+i32 soa_blocks(i32 i)
 {
     return ceildiv(i, SIMD_LANES);
 }
@@ -54,11 +52,11 @@ inline void simd_store(void *address, T v)
     _mm_store_ps((float*)address, (const simd128&)v);
 }
 
-void mpSoAnize( int32 num, const mpParticle *particles, ispc::Particle_SOA8 *out )
+void mpSoAnize( i32 num, const mpParticle *particles, ispc::Particle_SOA8 *out )
 {
-    int32 blocks = soa_blocks(num);
-    for(int32 bi=0; bi<blocks; ++bi) {
-        int32 i = SIMD_LANES*bi;
+    i32 blocks = soa_blocks(num);
+    for(i32 bi=0; bi<blocks; ++bi) {
+        i32 i = SIMD_LANES*bi;
         ist::vec4soa3 soav;
         soav = ist::soa_transpose34(particles[i+0].position, particles[i+1].position, particles[i+2].position, particles[i+3].position);
         simd_store(out[bi].x+0, soav.x());
@@ -78,8 +76,8 @@ void mpSoAnize( int32 num, const mpParticle *particles, ispc::Particle_SOA8 *out
         simd_store(out[bi].vy+4, soav.y());
         simd_store(out[bi].vz+4, soav.z());
 
-        simd_store(out[bi].hit+0, _mm_set1_epi32(-1));
-        simd_store(out[bi].hit+4, _mm_set1_epi32(-1));
+        simd_store(out[bi].hit+0, _mm_set1_epi32(0));
+        simd_store(out[bi].hit+4, _mm_set1_epi32(0));
 
         //// 
         //soas = ist::simdvec4_set(particles[i+0].params.density, particles[i+1].params.density, particles[i+2].params.density, particles[i+3].params.density);
@@ -89,48 +87,48 @@ void mpSoAnize( int32 num, const mpParticle *particles, ispc::Particle_SOA8 *out
     }
 }
 
-void mpAoSnize( int32 num, const ispc::Particle_SOA8 *particles, mpParticle *out )
+void mpAoSnize( i32 num, const ispc::Particle_SOA8 *soa, mpParticle *out )
 {
-    int32 blocks = soa_blocks(num);
-    for(int32 bi=0; bi<blocks; ++bi) {
-        int32 i = 8*bi;
+    i32 blocks = soa_blocks(num);
+    for(i32 bi=0; bi<blocks; ++bi) {
+        i32 i = 8*bi;
         ist::vec4soa4 aos_pos[2] = {
             ist::soa_transpose44(
-                _mm_load_ps(particles[bi].x + 0),
-                _mm_load_ps(particles[bi].y + 0),
-                _mm_load_ps(particles[bi].z + 0),
+                _mm_load_ps(soa[bi].x + 0),
+                _mm_load_ps(soa[bi].y + 0),
+                _mm_load_ps(soa[bi].z + 0),
                 _mm_set1_ps(1.0f) ),
             ist::soa_transpose44(
-                _mm_load_ps(particles[bi].x + 4),
-                _mm_load_ps(particles[bi].y + 4),
-                _mm_load_ps(particles[bi].z + 4),
+                _mm_load_ps(soa[bi].x + 4),
+                _mm_load_ps(soa[bi].y + 4),
+                _mm_load_ps(soa[bi].z + 4),
                 _mm_set1_ps(1.0f) ),
         };
         ist::vec4soa4 aos_vel[2] = {
             ist::soa_transpose44(
-                _mm_load_ps(particles[bi].vx + 0),
-                _mm_load_ps(particles[bi].vy + 0),
-                _mm_load_ps(particles[bi].vz + 0),
-                _mm_load_ps(particles[bi].speed + 0)),
+                _mm_load_ps(soa[bi].vx + 0),
+                _mm_load_ps(soa[bi].vy + 0),
+                _mm_load_ps(soa[bi].vz + 0),
+                _mm_load_ps(soa[bi].speed + 0)),
             ist::soa_transpose44(
-                _mm_load_ps(particles[bi].vx + 4),
-                _mm_load_ps(particles[bi].vy + 4),
-                _mm_load_ps(particles[bi].vz + 4),
-                _mm_load_ps(particles[bi].speed + 4)),
+                _mm_load_ps(soa[bi].vx + 4),
+                _mm_load_ps(soa[bi].vy + 4),
+                _mm_load_ps(soa[bi].vz + 4),
+                _mm_load_ps(soa[bi].speed + 4)),
         };
 
-        int32 e = std::min<int32>(SIMD_LANES, num-i);
-        for(int32 ei=0; ei<e; ++ei) {
-            out[i+ei].position = aos_pos[ei/4][ei%4];
-            out[i+ei].velocity = aos_vel[ei/4][ei%4];
-            out[i+ei].density = particles[bi].density[ei];
-            out[i+ei].hit_prev = out[i + ei].hit;
-            out[i+ei].hit = particles[bi].hit[ei];
+        i32 e = std::min<i32>(SIMD_LANES, num-i);
+        for(i32 ei=0; ei<e; ++ei) {
+            out[i + ei].position = aos_pos[ei/4][ei%4];
+            out[i + ei].velocity = aos_vel[ei/4][ei%4];
+            out[i + ei].density = soa[bi].density[ei];
+            out[i + ei].hit_prev = out[i + ei].hit;
+            out[i + ei].hit = (u16)soa[bi].hit[ei];
         }
     }
 }
 
-inline uint32 mpGenHash(mpWorld &world, const mpParticle &particle)
+inline u32 mpGenHash(mpWorld &world, const mpParticle &particle)
 {
     const mpKernelParams &p = world.getKernelParams();
     mpTempParams &t = world.getTempParams();
@@ -138,15 +136,15 @@ inline uint32 mpGenHash(mpWorld &world, const mpParticle &particle)
     vec3 &rcpCell = (vec3&)t.rcp_cell_size;
     vec3 &ppos = (vec3&)particle.position;
 
-    uint32 xb = clamp<int32>(int32((ppos.x-bl.x)*rcpCell.x), 0, p.world_div.x-1);
-    uint32 zb =	clamp<int32>(int32((ppos.z-bl.z)*rcpCell.z), 0, p.world_div.z-1) << (t.world_div_bits.x);
-    uint32 yb = clamp<int32>(int32((ppos.y-bl.y)*rcpCell.y), 0, p.world_div.y-1) << (t.world_div_bits.x+t.world_div_bits.z);
-    uint32 r = xb | zb | yb;
+    u32 xb = clamp<i32>(i32((ppos.x-bl.x)*rcpCell.x), 0, p.world_div.x-1);
+    u32 zb = clamp<i32>(i32((ppos.z-bl.z)*rcpCell.z), 0, p.world_div.z-1) << (t.world_div_bits.x);
+    u32 yb = clamp<i32>(i32((ppos.y-bl.y)*rcpCell.y), 0, p.world_div.y-1) << (t.world_div_bits.x+t.world_div_bits.z);
+    u32 r = xb | zb | yb;
     if(particle.lifetime<=0.0f) { r |= 0x80000000; }
     return r;
 }
 
-inline void mpGenIndex(mpWorld &world, uint32 hash, int32 &xi, int32 &yi, int32 &zi)
+inline void mpGenIndex(mpWorld &world, u32 hash, i32 &xi, i32 &yi, i32 &zi)
 {
     const mpKernelParams &p = world.getKernelParams();
     mpTempParams &t = world.getTempParams();
@@ -161,7 +159,8 @@ static const int g_particles_par_task = 2048;
 static const int g_cells_par_task = 256;
 
 mpWorld::mpWorld()
-    : m_num_particles(0)
+    : m_id_seed(0)
+    , m_num_particles(0)
     , m_has_hithandler(false)
     , m_has_forcehandler(false)
     , m_trail_enabled(false)
@@ -194,8 +193,8 @@ void mpWorld::addParticles(mpParticle *p, int num)
 {
     num = std::min<uint32_t>(num, m_kparams.max_particles - m_num_particles);
     for (int i = 0; i<num; ++i) {
-        m_particles[m_num_particles+i] = p[i];
-        m_particles[m_num_particles+i].lifetime = m_kparams.lifetime;
+        m_particles[m_num_particles + i] = p[i];
+        m_particles[m_num_particles + i].id = ++m_id_seed;
     }
     m_num_particles += num;
 }
@@ -232,9 +231,9 @@ inline ivec3 Position2Index(mpWorld &w, const vec3 &pos)
     mpTempParams &t = w.getTempParams();
     vec3 &bl = (vec3&)t.world_bounds_bl;
     vec3 &rcpCell = (vec3&)t.rcp_cell_size;
-    int xb = clamp<int32>(int32((pos.x - bl.x)*rcpCell.x), 0, p.world_div.x - 1);
-    int zb = clamp<int32>(int32((pos.z - bl.z)*rcpCell.z), 0, p.world_div.z - 1);
-    int yb = clamp<int32>(int32((pos.y - bl.y)*rcpCell.y), 0, p.world_div.y - 1);
+    int xb = clamp<i32>(i32((pos.x - bl.x)*rcpCell.x), 0, p.world_div.x - 1);
+    int zb = clamp<i32>(i32((pos.z - bl.z)*rcpCell.z), 0, p.world_div.z - 1);
+    int yb = clamp<i32>(i32((pos.y - bl.y)*rcpCell.y), 0, p.world_div.y - 1);
     return ivec3(xb, yb, zb);
 }
 
@@ -305,7 +304,7 @@ inline void ScanCells(mpWorld &w, const ivec3 &imin, const ivec3 &imax, const F 
     for (int iy = imin.y; iy < imax.y; ++iy) {
         for (int iz = imin.z; iz < imax.z; ++iz) {
             for (int ix = imin.x; ix < imax.x; ++ix) {
-                uint32 ci = ix | (iz << bits.x) | (iy << (bits.x + bits.z));
+                u32 ci = ix | (iz << bits.x) | (iy << (bits.x + bits.z));
                 f(cells[ci], ivec3(ix, iy, iz));
             }
         }
@@ -325,7 +324,7 @@ inline void ScanCellsParallel(mpWorld &w, const ivec3 &imin, const ivec3 &imax, 
         tbb::parallel_for(imin.y, imax.y, [&](int iy){
             for (int iz = imin.z; iz < imax.z; ++iz) {
                 for (int ix = imin.x; ix < imax.x; ++ix) {
-                    uint32 ci = ix | (iz << bits.x) | (iy << (bits.x + bits.z));
+                    u32 ci = ix | (iz << bits.x) | (iy << (bits.x + bits.z));
                     f(cells[ci], ivec3(ix, iy, iz));
                 }
             }
@@ -335,7 +334,7 @@ inline void ScanCellsParallel(mpWorld &w, const ivec3 &imin, const ivec3 &imax, 
         for (int iy = imin.y; iy < imax.y; ++iy) {
             tbb::parallel_for(imin.z, imax.z, [&](int iz){
                 for (int ix = imin.x; ix < imax.x; ++ix) {
-                    uint32 ci = ix | (iz << bits.x) | (iy << (bits.x + bits.z));
+                    u32 ci = ix | (iz << bits.x) | (iy << (bits.x + bits.z));
                     f(cells[ci], ivec3(ix, iy, iz));
                 }
             });
@@ -448,11 +447,38 @@ void mpWorld::scanAABBParallel(mpHitHandler handler, const vec3 &center, const v
     });
 }
 
+void mpWorld::scanAll(mpHitHandler handler)
+{
+    for (int i = 0; i < m_num_particles; ++i) {
+        handler(&m_particles[i]);
+    }
+}
+
+void mpWorld::scanAllParallel(mpHitHandler handler)
+{
+    tbb::parallel_for(tbb::blocked_range<int>(0, (i32)m_num_particles, g_particles_par_task),
+        [&](const tbb::blocked_range<int> &r) {
+        for (int i = r.begin(); i != r.end(); ++i) {
+            handler(&m_particles[i]);
+        }
+    });
+}
+
+void mpWorld::moveAll(const vec3 &move)
+{
+    tbb::parallel_for(tbb::blocked_range<int>(0, (i32)m_num_particles, g_particles_par_task),
+        [&](const tbb::blocked_range<int> &r) {
+        for (int i = r.begin(); i != r.end(); ++i) {
+            (vec3&)m_particles[i].position += move;
+        }
+    });
+}
+
 
 void mpWorld::clearParticles()
 {
     m_num_particles = 0;
-    for (uint32 i = 0; i < m_particles.size(); ++i) {
+    for (u32 i = 0; i < m_particles.size(); ++i) {
         m_particles[i].lifetime = 0.0f;
         m_particles[i].hash = 0x80000000;
     }
@@ -483,7 +509,7 @@ void mpWorld::endUpdate()
     m_taskgroup.wait();
 }
 
-void mpWorld::update(float32 dt)
+void mpWorld::update(float dt)
 {
     if (m_num_particles == 0) { return; }
 
@@ -548,7 +574,7 @@ void mpWorld::update(float32 dt)
         });
 
     // gen hash
-    tbb::parallel_for(tbb::blocked_range<int>(0, (int32)m_num_particles, g_particles_par_task),
+    tbb::parallel_for(tbb::blocked_range<int>(0, (i32)m_num_particles, g_particles_par_task),
         [&](const tbb::blocked_range<int> &r) {
             for(int i=r.begin(); i!=r.end(); ++i) {
                 vec3 &ppos = (vec3&)m_particles[i].position;
@@ -559,7 +585,7 @@ void mpWorld::update(float32 dt)
                 {
                     m_particles[i].lifetime = std::min<float>(m_particles[i].lifetime, 0.333f);
                 }
-                m_particles[i].lifetime = std::max<float32>(m_particles[i].lifetime - dt, 0.0f);
+                m_particles[i].lifetime = std::max<f32>(m_particles[i].lifetime - dt, 0.0f);
                 m_particles[i].hash = mpGenHash(*this, m_particles[i]);
             }
         });
@@ -569,16 +595,16 @@ void mpWorld::update(float32 dt)
         [&](const mpParticle &a, const mpParticle &b) { return a.hash < b.hash; } );
 
     // count num particles
-    tbb::parallel_for(tbb::blocked_range<int>(0, (int32)m_num_particles, g_particles_par_task),
+    tbb::parallel_for(tbb::blocked_range<int>(0, (i32)m_num_particles, g_particles_par_task),
         [&](const tbb::blocked_range<int> &r) {
             for(int i=r.begin(); i!=r.end(); ++i) {
-                const uint32 G_ID = i;
-                uint32 G_ID_PREV = G_ID-1;
-                uint32 G_ID_NEXT = G_ID+1;
+                const u32 G_ID = i;
+                u32 G_ID_PREV = G_ID-1;
+                u32 G_ID_NEXT = G_ID+1;
 
-                uint32 cell = m_particles[G_ID].hash;
-                uint32 cell_prev = (G_ID_PREV==-1) ? -1 : m_particles[G_ID_PREV].hash;
-                uint32 cell_next = (G_ID_NEXT == kp.max_particles) ? -2 : m_particles[G_ID_NEXT].hash;
+                u32 cell = m_particles[G_ID].hash;
+                u32 cell_prev = (G_ID_PREV==-1) ? -1 : m_particles[G_ID_PREV].hash;
+                u32 cell_next = (G_ID_NEXT == kp.max_particles) ? -2 : m_particles[G_ID_NEXT].hash;
                 if((cell & 0x80000000) != 0) { // highest bit is live flag
                     if((cell_prev & 0x80000000) == 0) { // 
                         m_num_particles = G_ID;
@@ -604,7 +630,7 @@ void mpWorld::update(float32 dt)
     }
 
     {
-        int32 soai = 0;
+        i32 soai = 0;
         for(int i=0; i!=cell_num; ++i) {
             ce[i].soai = soai;
             soai += soa_blocks(ce[i].end-ce[i].begin);
@@ -615,7 +641,7 @@ void mpWorld::update(float32 dt)
     tbb::parallel_for(tbb::blocked_range<int>(0, cell_num, g_cells_par_task),
         [&](const tbb::blocked_range<int> &r) {
             for(int i=r.begin(); i!=r.end(); ++i) {
-                int32 n = ce[i].end - ce[i].begin;
+                i32 n = ce[i].end - ce[i].begin;
                 if(n == 0) { continue; }
                 mpParticle *p = &m_particles[ce[i].begin];
                 ispc::Particle_SOA8 *t = &m_particles_soa[ce[i].soai];
@@ -628,7 +654,7 @@ void mpWorld::update(float32 dt)
         tbb::parallel_for(tbb::blocked_range<int>(0, cell_num, g_cells_par_task),
             [&](const tbb::blocked_range<int> &r) {
             for (int i = r.begin(); i != r.end(); ++i) {
-                int32 n = ce[i].end - ce[i].begin;
+                i32 n = ce[i].end - ce[i].begin;
                 if (n == 0) { continue; }
                 int xi, yi, zi;
                 mpGenIndex(*this, i, xi, yi, zi);
@@ -645,7 +671,7 @@ void mpWorld::update(float32 dt)
                         (ispc::Particle*)&m_particles_soa[0],
                         (ispc::ParticleIMData*)&m_imd_soa[0],
                         ce, xi, yi, zi,
-                        forces, (int32)m_forces.size());
+                        forces, (i32)m_forces.size());
                 }
                 if (kp.enable_colliders) {
                     ispc::ProcessColliders(
@@ -653,17 +679,17 @@ void mpWorld::update(float32 dt)
                         (ispc::Particle*)&m_particles_soa[0],
                         (ispc::ParticleIMData*)&m_imd_soa[0],
                         ce, xi, yi, zi,
-                        planes, (int32)m_plane_colliders.size(),
-                        spheres, (int32)m_sphere_colliders.size(),
-                        capsules, (int32)m_capsule_colliders.size(),
-                        boxes, (int32)m_box_colliders.size());
+                        planes, (i32)m_plane_colliders.size(),
+                        spheres, (i32)m_sphere_colliders.size(),
+                        capsules, (i32)m_capsule_colliders.size(),
+                        boxes, (i32)m_box_colliders.size());
                 }
             }
         });
         tbb::parallel_for(tbb::blocked_range<int>(0, cell_num, g_cells_par_task),
             [&](const tbb::blocked_range<int> &r) {
             for (int i = r.begin(); i != r.end(); ++i) {
-                int32 n = ce[i].end - ce[i].begin;
+                i32 n = ce[i].end - ce[i].begin;
                 if (n == 0) { continue; }
                 int xi, yi, zi;
                 mpGenIndex(*this, i, xi, yi, zi);
@@ -680,7 +706,7 @@ void mpWorld::update(float32 dt)
             tbb::parallel_for(tbb::blocked_range<int>(0, cell_num, g_cells_par_task),
                 [&](const tbb::blocked_range<int> &r) {
                 for (int i = r.begin(); i != r.end(); ++i) {
-                    int32 n = ce[i].end - ce[i].begin;
+                    i32 n = ce[i].end - ce[i].begin;
                     if (n == 0) { continue; }
                     int xi, yi, zi;
                     mpGenIndex(*this, i, xi, yi, zi);
@@ -694,7 +720,7 @@ void mpWorld::update(float32 dt)
             tbb::parallel_for(tbb::blocked_range<int>(0, cell_num, g_cells_par_task),
                 [&](const tbb::blocked_range<int> &r) {
                 for (int i = r.begin(); i != r.end(); ++i) {
-                    int32 n = ce[i].end - ce[i].begin;
+                    i32 n = ce[i].end - ce[i].begin;
                     if (n == 0) { continue; }
                     int xi, yi, zi;
                     mpGenIndex(*this, i, xi, yi, zi);
@@ -710,7 +736,7 @@ void mpWorld::update(float32 dt)
             tbb::parallel_for(tbb::blocked_range<int>(0, cell_num, g_cells_par_task),
                 [&](const tbb::blocked_range<int> &r) {
                 for (int i = r.begin(); i != r.end(); ++i) {
-                    int32 n = ce[i].end - ce[i].begin;
+                    i32 n = ce[i].end - ce[i].begin;
                     if (n == 0) { continue; }
                     int xi, yi, zi;
                     mpGenIndex(*this, i, xi, yi, zi);
@@ -724,7 +750,7 @@ void mpWorld::update(float32 dt)
             tbb::parallel_for(tbb::blocked_range<int>(0, cell_num, g_cells_par_task),
                 [&](const tbb::blocked_range<int> &r) {
                 for (int i = r.begin(); i != r.end(); ++i) {
-                    int32 n = ce[i].end - ce[i].begin;
+                    i32 n = ce[i].end - ce[i].begin;
                     if (n == 0) { continue; }
                     int xi, yi, zi;
                     mpGenIndex(*this, i, xi, yi, zi);
@@ -738,7 +764,7 @@ void mpWorld::update(float32 dt)
             tbb::parallel_for(tbb::blocked_range<int>(0, cell_num, g_cells_par_task),
                 [&](const tbb::blocked_range<int> &r) {
                 for (int i = r.begin(); i != r.end(); ++i) {
-                    int32 n = ce[i].end - ce[i].begin;
+                    i32 n = ce[i].end - ce[i].begin;
                     if (n == 0) { continue; }
                     int xi, yi, zi;
                     mpGenIndex(*this, i, xi, yi, zi);
@@ -754,7 +780,7 @@ void mpWorld::update(float32 dt)
         tbb::parallel_for(tbb::blocked_range<int>(0, cell_num, g_cells_par_task),
             [&](const tbb::blocked_range<int> &r) {
             for (int i = r.begin(); i != r.end(); ++i) {
-                int32 n = ce[i].end - ce[i].begin;
+                i32 n = ce[i].end - ce[i].begin;
                 if (n == 0) { continue; }
                 int xi, yi, zi;
                 mpGenIndex(*this, i, xi, yi, zi);
@@ -764,7 +790,7 @@ void mpWorld::update(float32 dt)
                         (ispc::Particle*)&m_particles_soa[0],
                         (ispc::ParticleIMData*)&m_imd_soa[0],
                         ce, xi, yi, zi,
-                        forces, (int32)m_forces.size());
+                        forces, (i32)m_forces.size());
                 }
                 if (kp.enable_colliders) {
                     ispc::ProcessColliders(
@@ -772,10 +798,10 @@ void mpWorld::update(float32 dt)
                         (ispc::Particle*)&m_particles_soa[0],
                         (ispc::ParticleIMData*)&m_imd_soa[0],
                         ce, xi, yi, zi,
-                        planes, (int32)m_plane_colliders.size(),
-                        spheres, (int32)m_sphere_colliders.size(),
-                        capsules, (int32)m_capsule_colliders.size(),
-                        boxes, (int32)m_box_colliders.size());
+                        planes, (i32)m_plane_colliders.size(),
+                        spheres, (i32)m_sphere_colliders.size(),
+                        capsules, (i32)m_capsule_colliders.size(),
+                        boxes, (i32)m_box_colliders.size());
                 }
                 ispc::Integrate(
                     m_kparams,
@@ -790,7 +816,7 @@ void mpWorld::update(float32 dt)
     tbb::parallel_for(tbb::blocked_range<int>(0, cell_num, g_cells_par_task),
         [&](const tbb::blocked_range<int> &r) {
             for(int i=r.begin(); i!=r.end(); ++i) {
-                int32 n = ce[i].end - ce[i].begin;
+                i32 n = ce[i].end - ce[i].begin;
                 if(n > 0) {
                     mpParticle *p = &m_particles[ce[i].begin];
                     mpParticleSOA8 *t = &m_particles_soa[ce[i].soai];
@@ -827,7 +853,7 @@ void mpWorld::callHandlers()
     tbb::parallel_invoke(
         [&](){
             for (auto p : m_collider_properties) {
-                if (p->hit_handler != nullptr) {
+                if (p && p->hit_handler != nullptr) {
                     m_has_hithandler = true;
                     break;
                 }
@@ -835,7 +861,7 @@ void mpWorld::callHandlers()
         },
         [&](){
             for (auto p : m_collider_properties) {
-                if (p->force_handler != nullptr) {
+                if (p && p->force_handler != nullptr) {
                     m_has_forcehandler = true;
                     break;
                 }
@@ -846,7 +872,7 @@ void mpWorld::callHandlers()
     if (m_has_hithandler) {
         for (int i = 0; i < m_num_particles; ++i) {
             mpParticle &p = m_particles[i];
-            if (p.hit != -1) {
+            if (p.hit != 0) {
                 mpHitHandler handler = (mpHitHandler)(m_collider_properties[p.hit]->hit_handler);
                 if (handler) { handler(&p); }
             }
@@ -854,14 +880,14 @@ void mpWorld::callHandlers()
     }
     if (m_has_forcehandler) {
         m_hitdata.resize(num_colliders);
-        memset((void*)&m_hitdata[0], 0, sizeof(mpHitData)*m_hitdata.size());
+        memset((void*)&m_hitdata[0], 0, sizeof(mpHitForce)*m_hitdata.size());
         tbb::parallel_for(tbb::blocked_range<int>(0, m_num_particles, g_particles_par_task),
             [&](const tbb::blocked_range<int> &r) {
             mpHitDataCont &hits = m_hitdata_work.local();
             hits.resize(num_colliders);
             for (int i = r.begin(); i != r.end(); ++i) {
                 mpParticle &p = m_particles[i];
-                if (p.hit != -1 && p.hit_prev == -1) {
+                if (p.hit != 0 && p.hit_prev == 0) {
                     (simdvec4&)hits[p.hit].position += (simdvec4&)p.position;
                     (simdvec4&)hits[p.hit].velocity += (simdvec4&)p.velocity;
                     ++hits[p.hit].num_hits;
@@ -870,12 +896,12 @@ void mpWorld::callHandlers()
         });
         m_hitdata_work.combine_each([&](const mpHitDataCont &hits){
             for (int i = 0; i < (int)hits.size(); ++i) {
-                const mpHitData &h = hits[i];
+                const mpHitForce &h = hits[i];
                 (simdvec4&)m_hitdata[i].position += h.position;
                 (simdvec4&)m_hitdata[i].velocity += h.velocity;
                 m_hitdata[i].num_hits += h.num_hits;
             }
-            memset((void*)&hits[0], 0, sizeof(mpHitData)*hits.size());
+            memset((void*)&hits[0], 0, sizeof(mpHitForce)*hits.size());
         });
 
         for (int i = 0; i < num_colliders; ++i) {

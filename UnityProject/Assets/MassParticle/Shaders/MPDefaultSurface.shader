@@ -35,11 +35,11 @@ SubShader {
 		float4 position = tex2Dlod(_DataTex, v.texcoord);
 		float4 velocity = tex2Dlod(_DataTex, v.texcoord+pitch);
 		float4 params = tex2Dlod(_DataTex, v.texcoord+pitch*2.0);
-		float lifetime = params.w;
+		float lifetime = params.y;
 
 		v.vertex.xyz *= _ParticleSize * 100.0;
 		v.vertex.xyz *= min(1.0, lifetime/_FadeTime);
-		v.vertex.xyz += tex2Dlod(_DataTex,v.texcoord).xyz;
+		v.vertex.xyz += position.xyz;
 
 		float ei = max(velocity.w-2.5, 0.0) * 1.0;
 		data.emission = float4(ei,ei,ei,ei) * float4(0.25, 0.05, 0.025, 0.0);
@@ -89,10 +89,10 @@ SubShader {
 			float4 pitch = float4(_DataTexPitch, 0.0, 0.0, 0.0);
 			float4 position = tex2Dlod(_DataTex, v.texcoord);
 			float4 params = tex2Dlod(_DataTex, v.texcoord+pitch*2.0);
-			float lifetime = params.w;
+			float lifetime = params.y;
 			v.vertex.xyz *= (_ParticleSize*100.0);
 			v.vertex.xyz *= min(1.0, lifetime/_FadeTime);
-			v.vertex.xyz += tex2Dlod(_DataTex,v.texcoord).xyz;
+			v.vertex.xyz += position.xyz;
 
 			v2f o;
 			TRANSFER_SHADOW_CASTER(o)
@@ -137,10 +137,10 @@ SubShader {
 			float4 pitch = float4(_DataTexPitch, 0.0, 0.0, 0.0);
 			float4 position = tex2Dlod(_DataTex, v.texcoord);
 			float4 params = tex2Dlod(_DataTex, v.texcoord+pitch*2.0);
-			float lifetime = params.w;
+			float lifetime = params.y;
 			v.vertex.xyz *= (_ParticleSize*100.0);
 			v.vertex.xyz *= min(1.0, lifetime/_FadeTime);
-			v.vertex.xyz += tex2Dlod(_DataTex,v.texcoord).xyz;
+			v.vertex.xyz += position.xyz;
 			
 			v2f o;
 			TRANSFER_SHADOW_COLLECTOR(o)

@@ -9,26 +9,23 @@ using System.Runtime.CompilerServices;
 [StructLayout(LayoutKind.Explicit)]
 public struct MPParticle
 {
-    [FieldOffset(0)]  public Vector4 position;  // union
-    [FieldOffset(0)]  public Vector3 position3; // 
-    [FieldOffset(16)] public Vector4 velocity;  // union
-    [FieldOffset(16)] public Vector3 velocity3; // 
-    [FieldOffset(28)] public float speed;       // 
+    [FieldOffset(0)]  public Vector3 position;
+    [FieldOffset(12)] public uint id;
+    [FieldOffset(16)] public Vector3 velocity;
+    [FieldOffset(28)] public float speed;
     [FieldOffset(32)] public float density;
-    [FieldOffset(36)] public uint hash;     // union
-    [FieldOffset(36)] public int hit_prev;  // 
-    [FieldOffset(40)] public int hit;
-    [FieldOffset(44)] public float lifetime;
+    [FieldOffset(36)] public float lifetime;
+    [FieldOffset(40)] public UInt16 hit;
+    [FieldOffset(42)] public UInt16 hit_prev;
+    [FieldOffset(44)] public int userdata;
 };
 
 [StructLayout(LayoutKind.Explicit)]
 public struct MPForceData
 {
-    [FieldOffset(0)]  public Vector4 position4; // union
-    [FieldOffset(0)]  public Vector3 position;  // 
-    [FieldOffset(16)] public Vector4 velocity4; // union
-    [FieldOffset(16)] public Vector3 velocity;  // 
-    [FieldOffset(28)] public float speed;       // 
+    [FieldOffset(0)]  public Vector3 position;
+    [FieldOffset(16)] public Vector3 velocity;
+    [FieldOffset(28)] public float speed;
     [FieldOffset(32)] public int num_hits;
     [FieldOffset(36)] public int pad1;
     [FieldOffset(40)] public int pad2;
@@ -50,12 +47,10 @@ public struct MPKernelParams
     public int enable_colliders;
     public int enable_forces;
 
-    public float lifetime;
     public float timestep;
     public float decelerate;
     public float advection;
     public float pressure_stiffness;
-    public float wall_stiffness;
 
     public int max_particles;
     public float particle_size;
@@ -115,8 +110,6 @@ public enum MPForceDirection
     Directional,
     Radial,
     RadialCapsule,
-    Vortex,
-    Spline,
     VectorField,
 }
 
@@ -133,9 +126,6 @@ public struct MPForceProperties
     public Vector3 directional_pos;
     public Vector3 directional_dir;
     public Vector3 radial_center;
-    public Vector3 vortex_pos;
-    public Vector3 vortex_axis;
-    public float vortex_pull;
 
     public void SetDefaultValues()
     {
@@ -150,6 +140,17 @@ public unsafe struct MPMeshData
     public Vector3* normals;
     public Vector2* uv;
 };
+
+
+public struct MPSpawnParams
+{
+    public Vector3 velocity;
+    public float velocity_random_diffuse;
+    public float lifetime;
+    public float lifetime_random_diffuse;
+    public int userdata;
+    public MPHitHandler handler;
+}
 
 public class MPAPI {
     
@@ -177,10 +178,10 @@ public class MPAPI {
     [DllImport ("MassParticle")] unsafe public static extern MPParticle* mpGetParticles(int context);
     [DllImport ("MassParticle")] unsafe public static extern void mpCopyParticles (int context, MPParticle *dst);
     [DllImport ("MassParticle")] unsafe public static extern void mpWriteParticles(int context, MPParticle *from);
-    [DllImport ("MassParticle")] public static extern void mpScatterParticlesSphere(int context, ref Vector3 center, float radius, int num, ref Vector3 velBase, float velDiffuse);
-    [DllImport ("MassParticle")] public static extern void mpScatterParticlesBox(int context, ref Vector3 center, ref Vector3 size, int num, ref Vector3 velBase, float velDiffuse);
-    [DllImport ("MassParticle")] public static extern void mpScatterParticlesSphereTransform(int context, ref Matrix4x4 trans, int num, ref Vector3 velBase, float velDiffuse);
-    [DllImport ("MassParticle")] public static extern void mpScatterParticlesBoxTransform(int context, ref Matrix4x4 trans, int num, ref Vector3 velBase, float velDiffuse);
+    [DllImport ("MassParticle")] public static extern void mpScatterParticlesSphere(int context, ref Vector3 center, float radius, int num, ref MPSpawnParams sp);
+    [DllImport ("MassParticle")] public static extern void mpScatterParticlesBox(int context, ref Vector3 center, ref Vector3 size, int num, ref MPSpawnParams sp);
+    [DllImport ("MassParticle")] public static extern void mpScatterParticlesSphereTransform(int context, ref Matrix4x4 trans, int num, ref MPSpawnParams sp);
+    [DllImport ("MassParticle")] public static extern void mpScatterParticlesBoxTransform(int context, ref Matrix4x4 trans, int num, ref MPSpawnParams sp);
 
     [DllImport ("MassParticle")] public static extern void mpAddSphereCollider(int context, ref MPColliderProperties props, ref Vector3 center, float radius);
     [DllImport ("MassParticle")] public static extern void mpAddCapsuleCollider(int context, ref MPColliderProperties props, ref Vector3 pos1, ref Vector3 pos2, float radius);
@@ -191,11 +192,14 @@ public class MPAPI {
     [DllImport ("MassParticle")] public static extern void mpScanSphereParallel (int context, MPHitHandler h, ref Vector3 center, float radius);
     [DllImport ("MassParticle")] public static extern void mpScanAABB (int context, MPHitHandler h, ref Vector3 center, ref Vector3 extent);
     [DllImport ("MassParticle")] public static extern void mpScanAABBParallel (int context, MPHitHandler h, ref Vector3 center, ref Vector3 extent);
+    [DllImport ("MassParticle")] public static extern void mpScanAll (int context, MPHitHandler h);
+    [DllImport ("MassParticle")] public static extern void mpScanAllParallel (int context, MPHitHandler h);
 
+    [DllImport ("MassParticle")] public static extern void mpMoveAll(int context, ref Vector3 move_amount);
 }
 
 
-public class MPUtils
+public static class MPUtils
 {
     public static void AddRadialSphereForce(int context, Vector3 pos, float radius, float strength)
     {
@@ -210,5 +214,28 @@ public class MPUtils
         p.range_inner = 0.0f;
         p.range_outer = radius;
         MPAPI.mpAddForce(context, ref p, ref mat);
+    }
+
+    [StructLayout(LayoutKind.Explicit)]
+    public struct IntFloatUnion
+    {
+    [FieldOffset(0)]  public int i32;
+    [FieldOffset(0)]  public float f32;
+    }
+
+    public static int FloatToBinary(float f)
+    {
+        IntFloatUnion ifu;
+        ifu.i32 = 0; // shut up compiler
+        ifu.f32 = f;
+        return ifu.i32;
+    }
+
+    public static float BinaryToFloat(int b)
+    {
+        IntFloatUnion ifu;
+        ifu.f32 = 0.0f; // shut up compiler
+        ifu.i32 = b;
+        return ifu.f32;
     }
 }

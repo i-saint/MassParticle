@@ -51,10 +51,10 @@
             float4 position = tex2Dlod(_DataTex, v.texcoord);
             float4 velocity = tex2Dlod(_DataTex, v.texcoord+pitch);
             float4 params = tex2Dlod(_DataTex, v.texcoord+pitch*2.0);
-            float lifetime = params.w;
+            float lifetime = params.y;
             v.vertex.xyz *= _ParticleSize * 100.0;
             v.vertex.xyz *= min(1.0, lifetime/_FadeTime);
-            v.vertex.xyz += tex2Dlod(_DataTex,v.texcoord).xyz;
+            v.vertex.xyz += position.xyz;
 
             ps_in o;
             float4 vmvp = mul(UNITY_MATRIX_MVP, v.vertex);

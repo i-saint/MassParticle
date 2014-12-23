@@ -33,6 +33,9 @@ public class Scanner : MonoBehaviour
         //MPAPI.mpScanAABBParallel(m_target.GetContext(), m_handler, ref pos, ref scale);
         MPAPI.mpScanSphereParallel(m_target.GetContext(), m_handler, ref pos, m_radius);
         //MPAPI.mpScanSphere(m_target.GetContext(), m_handler, ref pos, m_radius);
+
+        //Vector3 mv = new Vector3(0.0f, 0.0f, 0.01f);
+        //MPAPI.mpMoveAll(m_target.GetContext(), ref mv);
     }
 
     void Handler(ref MPParticle particle)

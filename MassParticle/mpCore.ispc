@@ -65,9 +65,6 @@ export void ProcessColliders(
 
     uniform float particle_radius = params.particle_size;
 
-    // 適切に関数に分けたかったが、struct の参照渡しができないとか謎のコンパイラクラッシュとかで断念。
-    // 全部 inline で書きます。
-
     // Plane
     for(uniform int s=0; s<num_planes; ++s) {
         uniform const PlaneCollider &col = planes[s];
@@ -258,12 +255,6 @@ export void ProcessExternalForce(
             }
         }
         else if(props.dir_type==FD_RadialCapsule) {
-            // todo
-        }
-        else if(props.dir_type==FD_Vortex) {
-            // todo
-        }
-        else if(props.dir_type==FD_Spline) {
             // todo
         }
         else if(props.dir_type==FD_VectorField) {

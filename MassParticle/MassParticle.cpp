@@ -5,11 +5,27 @@
 #include <math.h>
 #include <stdio.h>
 #include <tbb/tbb.h>
+#include <random>
 #include "MassParticle.h"
 #include "mpTypes.h"
 
 extern mpRenderer *g_mpRenderer;
 std::vector<mpWorld*> g_worlds;
+
+
+std::mt19937 s_rand;
+
+float mpGenRand()
+{
+    static std::uniform_real_distribution<float> s_dist(-1.0f, 1.0f);
+    return s_dist(s_rand);
+}
+
+float mpGenRand1()
+{
+    static std::uniform_real_distribution<float> s_dist(0.0f, 1.0f);
+    return s_dist(s_rand);
+}
 
 
 extern "C" EXPORT_API void mpGeneratePointMesh(int context, int mi, mpMeshData *mds)
@@ -131,84 +147,90 @@ extern "C" EXPORT_API void mpWriteParticles(int context, const mpParticle *from)
 }
 
 
-extern "C" EXPORT_API void mpScatterParticlesSphere(int context, vec3 *center, float radius, int32_t num, vec3 *vel_base, float vel_diffuse)
+inline void mpApplySpawnParams(mpParticleCont &particles, const mpSpawnParams *params)
+{
+    if (params == nullptr) return;
+
+    vec3 vel = params->velocity_base;
+    float vel_diffuse = params->velocity_random_diffuse;
+    float lifetime = params->lifetime;
+    float lifetime_diffuse = params->lifetime;
+    int userdata = params->userdata;
+    mpHitHandler handler = params->handler;
+
+    for (auto &p : particles) {
+        (vec3&)p.velocity = vec3(
+            vel.x + mpGenRand()*vel_diffuse,
+            vel.y + mpGenRand()*vel_diffuse,
+            vel.z + mpGenRand()*vel_diffuse);
+        p.lifetime = lifetime + mpGenRand()*lifetime_diffuse;
+        p.userdata = userdata;
+    }
+    if (handler) {
+        for (auto &p : particles) {
+            handler(&p);
+        }
+    }
+}
+
+extern "C" EXPORT_API void mpScatterParticlesSphere(int context, vec3 *center, float radius, int32_t num, const mpSpawnParams *params)
 {
     if (num <= 0) { return; }
 
     mpParticleCont particles(num);
-    for (size_t i = 0; i < particles.size(); ++i) {
+    for (auto &p : particles) {
         float l = mpGenRand()*radius;
         vec3 dir = glm::normalize(vec3(mpGenRand(), mpGenRand(), mpGenRand()));
         vec3 pos = *center + dir*l;
-        vec3 vel = vec3(
-            vel_base->x + mpGenRand()*vel_diffuse,
-            vel_base->y + mpGenRand()*vel_diffuse,
-            vel_base->z + mpGenRand()*vel_diffuse );
-
-        (vec3&)particles[i].velocity = vel;
-        (vec3&)particles[i].position = pos;
+        (vec3&)p.position = pos;
     }
+    mpApplySpawnParams(particles, params);
     g_worlds[context]->addParticles(&particles[0], particles.size());
 }
 
-extern "C" EXPORT_API void mpScatterParticlesBox(int context, vec3 *center, vec3 *size, int32_t num, vec3 *vel_base, float vel_diffuse)
+extern "C" EXPORT_API void mpScatterParticlesBox(int context, vec3 *center, vec3 *size, int32_t num, const mpSpawnParams *params)
 {
     if (num <= 0) { return; }
 
     mpParticleCont particles(num);
-    for (size_t i = 0; i < particles.size(); ++i) {
+    for (auto &p : particles) {
         vec3 pos = *center + vec3(mpGenRand()*size->x, mpGenRand()*size->y, mpGenRand()*size->z);
-        vec3 vel = vec3(
-            vel_base->x + mpGenRand()*vel_diffuse,
-            vel_base->y + mpGenRand()*vel_diffuse,
-            vel_base->z + mpGenRand()*vel_diffuse);
-
-        (vec3&)particles[i].position = pos;
-        (vec3&)particles[i].velocity = vel;
+        (vec3&)p.position = pos;
     }
+    mpApplySpawnParams(particles, params);
     g_worlds[context]->addParticles(&particles[0], particles.size());
 }
 
 
-extern "C" EXPORT_API void mpScatterParticlesSphereTransform(int context, mat4 *transform, int32_t num, vec3 *vel_base, float vel_diffuse)
+extern "C" EXPORT_API void mpScatterParticlesSphereTransform(int context, mat4 *transform, int32_t num, const mpSpawnParams *params)
 {
     if (num <= 0) { return; }
 
     mpParticleCont particles(num);
     simdmat4 mat(*transform);
-    for (size_t i = 0; i < particles.size(); ++i) {
+    for (auto &p : particles) {
         vec3 dir = glm::normalize(vec3(mpGenRand(), mpGenRand(), mpGenRand()));
         float l = mpGenRand()*0.5f;
         simdvec4 pos = simdvec4(dir*l, 1.0f);
         pos = mat * pos;
-        vec3 vel = vec3(
-            vel_base->x + mpGenRand()*vel_diffuse,
-            vel_base->y + mpGenRand()*vel_diffuse,
-            vel_base->z + mpGenRand()*vel_diffuse);
-
-        (vec3&)particles[i].position = (vec3&)pos;
-        (vec3&)particles[i].velocity = vel;
+        (vec3&)p.position = (vec3&)pos;
     }
+    mpApplySpawnParams(particles, params);
     g_worlds[context]->addParticles(&particles[0], particles.size());
 }
 
-extern "C" EXPORT_API void mpScatterParticlesBoxTransform(int context, mat4 *transform, int32_t num, vec3 *vel_base, float vel_diffuse)
+extern "C" EXPORT_API void mpScatterParticlesBoxTransform(int context, mat4 *transform, int32_t num, const mpSpawnParams *params)
 {
     if (num <= 0) { return; }
 
     mpParticleCont particles(num);
     simdmat4 mat(*transform);
-    for (size_t i = 0; i < particles.size(); ++i) {
+    for (auto &p : particles) {
         simdvec4 pos(mpGenRand()*0.5f, mpGenRand()*0.5f, mpGenRand()*0.5f, 1.0f);
         pos = mat * pos;
-        vec3 vel = vec3(
-            vel_base->x + mpGenRand()*vel_diffuse,
-            vel_base->y + mpGenRand()*vel_diffuse,
-            vel_base->z + mpGenRand()*vel_diffuse);
-
-        (vec3&)particles[i].position = (vec3&)pos;
-        (vec3&)particles[i].velocity = vel;
+        (vec3&)p.position = (vec3&)pos;
     }
+    mpApplySpawnParams(particles, params);
     g_worlds[context]->addParticles(&particles[0], particles.size());
 }
 
@@ -383,4 +405,19 @@ extern "C" EXPORT_API void mpScanSphereParallel(int context, mpHitHandler handle
 extern "C" EXPORT_API void mpScanAABBParallel(int context, mpHitHandler handler, vec3 *center, vec3 *extent)
 {
     return g_worlds[context]->scanAABBParallel(handler, *center, *extent);
+}
+
+extern "C" EXPORT_API void mpScanAll(int context, mpHitHandler handler)
+{
+    return g_worlds[context]->scanAll(handler);
+}
+
+extern "C" EXPORT_API void mpScanAllParallel(int context, mpHitHandler handler)
+{
+    return g_worlds[context]->scanAllParallel(handler);
+}
+
+extern "C" EXPORT_API void mpMoveAll(int context, vec3 *move_amount)
+{
+    g_worlds[context]->moveAll(*move_amount);
 }

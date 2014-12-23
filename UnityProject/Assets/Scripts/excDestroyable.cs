@@ -26,7 +26,15 @@ public class excDestroyable : MonoBehaviour {
     void Update () {
         if(IsDead()) {
             if(scatterFractions) {
-                ScatterFractions();
+                float volume = trans.localScale.x * trans.localScale.y * trans.localScale.z;
+                int num = (int)(volume * 1000.0f);
+                Matrix4x4 mat = trans.localToWorldMatrix;
+                MPWorld.s_instances[0].AddOneTimeAction(() => {
+                    MPSpawnParams sp = new MPSpawnParams();
+                    sp.velocity_random_diffuse = 3.0f;
+                    sp.lifetime = 30.0f;
+                    MPAPI.mpScatterParticlesBoxTransform(MPWorld.s_instances[0].GetContext(), ref mat, num, ref sp);
+                });
             }
             Destroy (gameObject);
         }
@@ -51,15 +59,6 @@ public class excDestroyable : MonoBehaviour {
             
             rigid.angularVelocity *= 0.98f;
         }
-    }
-
-    void ScatterFractions()
-    {
-        float volume = trans.localScale.x*trans.localScale.y*trans.localScale.z;
-        int numFraction = (int)(volume * 1000.0f);
-        Matrix4x4 mat = trans.localToWorldMatrix;
-        Vector3 zero = Vector3.zero;
-        MPAPI.mpScatterParticlesBoxTransform(MPWorld.s_instances[0].GetContext(), ref mat, numFraction, ref zero, 3.0f);
     }
 
     public void Damage(float v)

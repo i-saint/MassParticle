@@ -17,6 +17,7 @@ public unsafe class MPWorld : MonoBehaviour
     {
         s_instances.ForEach(f);
     }
+    public static MPWorld GetCurrent() { return s_current; }
 
 
 
@@ -34,12 +35,10 @@ public unsafe class MPWorld : MonoBehaviour
     public bool m_enable_colliders = true;
     public bool m_enable_orces = true;
     public float m_particle_mass = 0.1f;
-    public float m_particle_lifetime = 30.0f;
     public float m_timescale = 0.6f;
     public float m_deceleration = 0.99f;
     public float m_advection = 0.1f;
     public float m_pressure_stiffness = 500.0f;
-    public float m_wall_stiffness = 1500.0f;
     public float m_particle_size = 0.08f;
     public int m_max_particle_num = 100000;
     public Vector3 m_coord_scale = Vector3.one;
@@ -48,13 +47,15 @@ public unsafe class MPWorld : MonoBehaviour
     public int m_world_div_z = 256;
     public int m_particle_num = 0;
     public int m_context = 0;
-    List<Action> m_updater = new List<Action>();
+    List<Action> m_actions = new List<Action>();
+    List<Action> m_onetime_actions = new List<Action>();
 
 
 
     public int GetContext() { return m_context; }
-    public void AddUpdateRoutine(Action a) { m_updater.Add(a); }
-    public void RemoveUpdateRoutine(Action a) { m_updater.Remove(a); }
+    public void AddUpdateRoutine(Action a) { m_actions.Add(a); }
+    public void RemoveUpdateRoutine(Action a) { m_actions.Remove(a); }
+    public void AddOneTimeAction(Action a) { m_onetime_actions.Add(a); }
 
 
     public int UpdateDataTexture(RenderTexture rt)
@@ -140,9 +141,9 @@ public unsafe class MPWorld : MonoBehaviour
             MPAPI.mpUpdate(w.GetContext(), Time.deltaTime);
             s_current = w;
             MPAPI.mpCallHandlers(w.GetContext());
+            MPAPI.mpClearCollidersAndForces(w.GetContext());
             w.CallUpdateRoutines();
             s_current = null;
-            MPAPI.mpClearCollidersAndForces(w.GetContext());
         }
     }
 
@@ -156,10 +157,10 @@ public unsafe class MPWorld : MonoBehaviour
         {
             s_current = w;
             MPAPI.mpCallHandlers(w.GetContext());
-            w.CallUpdateRoutines();
-            s_current = null;
             MPAPI.mpClearCollidersAndForces(w.GetContext());
+            w.CallUpdateRoutines();
             w.UpdateKernelParams();
+            s_current = null;
         }
         UpdateMPObjects();
         foreach (MPWorld w in s_instances)
@@ -170,7 +171,9 @@ public unsafe class MPWorld : MonoBehaviour
 
     void CallUpdateRoutines()
     {
-        m_updater.ForEach((a) => { a.Invoke(); });
+        m_actions.ForEach((a) => { a.Invoke(); });
+        m_onetime_actions.ForEach((a) => { a.Invoke(); });
+        m_onetime_actions.Clear();
     }
 
 
@@ -193,12 +196,10 @@ public unsafe class MPWorld : MonoBehaviour
         p.enable_interaction = m_enable_interaction ? 1 : 0;
         p.enable_colliders = m_enable_colliders ? 1 : 0;
         p.enable_forces = m_enable_orces ? 1 : 0;
-        p.lifetime = m_particle_lifetime;
         p.timestep = Time.deltaTime * m_timescale;
         p.decelerate = m_deceleration;
         p.advection = m_advection;
         p.pressure_stiffness = m_pressure_stiffness;
-        p.wall_stiffness = m_wall_stiffness;
         p.scaler = m_coord_scale;
         p.particle_size = m_particle_size;
         p.max_particles = m_max_particle_num;
@@ -211,4 +212,5 @@ public unsafe class MPWorld : MonoBehaviour
         MPForce.MPUpdateAll();
         MPEmitter.MPUpdateAll();
     }
+
 }
