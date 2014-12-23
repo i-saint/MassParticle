@@ -159,6 +159,7 @@ struct KernelParams
     int enable_interaction;
     int enable_colliders;
     int enable_forces;
+    int id_as_float;
 
     float timestep;
     float decelerate;

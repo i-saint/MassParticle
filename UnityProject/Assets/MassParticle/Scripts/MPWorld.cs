@@ -34,6 +34,7 @@ public unsafe class MPWorld : MonoBehaviour
     public bool m_enable_interaction = true;
     public bool m_enable_colliders = true;
     public bool m_enable_orces = true;
+    public bool m_id_as_float = true;
     public float m_particle_mass = 0.1f;
     public float m_timescale = 0.6f;
     public float m_deceleration = 0.99f;
@@ -196,6 +197,7 @@ public unsafe class MPWorld : MonoBehaviour
         p.enable_interaction = m_enable_interaction ? 1 : 0;
         p.enable_colliders = m_enable_colliders ? 1 : 0;
         p.enable_forces = m_enable_orces ? 1 : 0;
+        p.id_as_float = m_id_as_float ? 1 : 0;
         p.timestep = Time.deltaTime * m_timescale;
         p.decelerate = m_deceleration;
         p.advection = m_advection;

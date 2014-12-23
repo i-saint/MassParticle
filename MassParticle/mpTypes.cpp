@@ -119,11 +119,13 @@ void mpAoSnize( i32 num, const ispc::Particle_SOA8 *soa, mpParticle *out )
 
         i32 e = std::min<i32>(SIMD_LANES, num-i);
         for(i32 ei=0; ei<e; ++ei) {
+            u32 id = out[i + ei].id;
             out[i + ei].position = aos_pos[ei/4][ei%4];
             out[i + ei].velocity = aos_vel[ei/4][ei%4];
             out[i + ei].density = soa[bi].density[ei];
             out[i + ei].hit_prev = out[i + ei].hit;
             out[i + ei].hit = (u16)soa[bi].hit[ei];
+            out[i + ei].id = id;
         }
     }
 }
@@ -194,7 +196,16 @@ void mpWorld::addParticles(mpParticle *p, int num)
     num = std::min<uint32_t>(num, m_kparams.max_particles - m_num_particles);
     for (int i = 0; i<num; ++i) {
         m_particles[m_num_particles + i] = p[i];
-        m_particles[m_num_particles + i].id = ++m_id_seed;
+    }
+    if (m_kparams.id_as_float) {
+        for (int i = 0; i < num; ++i) {
+            (float&)m_particles[m_num_particles + i].id = float(++m_id_seed);
+        }
+    }
+    else {
+        for (int i = 0; i < num; ++i) {
+            m_particles[m_num_particles + i].id = ++m_id_seed;
+        }
     }
     m_num_particles += num;
 }

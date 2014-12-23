@@ -8,6 +8,7 @@ Properties {
     _HeatIntensity ("HeatIntensity", Float) = 1.0
     _Scale ("Scale", Float) = 1.0
     _FadeTime ("FadeTime", Float) = 0.1
+    _Spin ("Spin", Float) = 2.0
 }
 SubShader {
     Tags { "RenderType"="Opaque" }
@@ -22,6 +23,7 @@ SubShader {
     float _HeatIntensity;
     float _Scale;
     float _FadeTime;
+    float _Spin;
 
     sampler2D particle_data;
     float particle_data_pitch;
@@ -33,6 +35,27 @@ SubShader {
         float3 normal;
     };
     StructuredBuffer<Vertex> vertices;
+
+
+    float3 iq_rand( float3 p )
+    {
+        p = float3( dot(p,float3(127.1,311.7,311.7)), dot(p,float3(269.5,183.3,183.3)), dot(p,float3(269.5,183.3,183.3)) );
+        return frac(sin(p)*43758.5453)*2.0-1.0;
+    }
+
+    float4x4 rotation_matrix(float3 axis, float angle)
+    {
+        axis = normalize(axis);
+        float s = sin(angle);
+        float c = cos(angle);
+        float oc = 1.0 - c;
+    
+        return float4x4(
+            oc * axis.x * axis.x + c,           oc * axis.x * axis.y - axis.z * s,  oc * axis.z * axis.x + axis.y * s,  0.0,
+            oc * axis.x * axis.y + axis.z * s,  oc * axis.y * axis.y + c,           oc * axis.y * axis.z - axis.x * s,  0.0,
+            oc * axis.z * axis.x - axis.y * s,  oc * axis.y * axis.z + axis.x * s,  oc * axis.z * axis.z + c,           0.0,
+            0.0,                                0.0,                                0.0,                                1.0);
+    }
 
     struct ia_out {
         uint vertexID : SV_VertexID;
@@ -65,8 +88,18 @@ SubShader {
         float4 params = tex2Dlod(particle_data, coord+px*2.0);
         float lifetime = params.y;
 
-        float4 v = float4(vertices[io.vertexID].position*(particle_size*100.0)+position.xyz, 1.0);
+        float4 v = float4(vertices[io.vertexID].position, 1.0);
         float4 n = float4(vertices[io.vertexID].normal, 0.0);
+        if(_Spin != 0.0) {
+            float ang = dot(position.xyz, 1.0) * _Spin * min(1.0, velocity.w*0.02);
+            float4x4 rot = rotation_matrix(normalize(iq_rand(position.www)), ang);
+            v = mul(rot, v);
+            n = mul(rot, n);
+        }
+        v.xyz *= particle_size * 100.0;
+        v.xyz *= min(1.0, lifetime/_FadeTime);
+        v.xyz += position.xyz;
+
         float4 vp = mul(UNITY_MATRIX_VP, v);
 
         vs_out o;

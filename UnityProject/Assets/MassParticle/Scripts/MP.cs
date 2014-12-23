@@ -46,6 +46,7 @@ public struct MPKernelParams
     public int enable_interaction;
     public int enable_colliders;
     public int enable_forces;
+    public int id_as_float;
 
     public float timestep;
     public float decelerate;
@@ -89,7 +90,7 @@ public struct MPColliderProperties
 
     public void SetDefaultValues()
     {
-        owner_id = -1;
+        owner_id = 0;
         stiffness = 1500.0f;
         hit_handler = null;
         force_handler = null;
