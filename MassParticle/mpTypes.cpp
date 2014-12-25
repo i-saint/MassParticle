@@ -348,6 +348,7 @@ template<class F>
 inline void ScanCells(mpWorld &w, const ivec3 &imin, const ivec3 &imax, const F &f)
 {
     const mpCellCont &cells = w.getCells();
+    if (cells.empty()) return;
     ivec3 bits = w.getTempParams().world_div_bits;
     mpParticle *particles = w.getParticles();
     for (int iy = imin.y; iy < imax.y; ++iy) {
@@ -365,6 +366,7 @@ template<class F>
 inline void ScanCellsParallel(mpWorld &w, const ivec3 &imin, const ivec3 &imax, const F &f)
 {
     const mpCellCont &cells = w.getCells();
+    if (cells.empty()) return;
     ivec3 bits = w.getTempParams().world_div_bits;
     mpParticle *particles = w.getParticles();
     int lz = imax.z - imin.z;
