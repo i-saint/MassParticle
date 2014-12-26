@@ -75,7 +75,7 @@ public class MPForce : MonoBehaviour {
     public static void MPUpdateAll()
     {
         foreach(var o in  instances) {
-            o.MPUpdate();
+            if (o != null && o.enabled) o.MPUpdate();
         }
     }
 

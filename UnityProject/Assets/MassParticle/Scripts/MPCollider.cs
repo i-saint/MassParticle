@@ -88,7 +88,7 @@ public class MPCollider : MonoBehaviour
             if (o != null)
             {
                 o.cprops.owner_id = i;
-                o.MPUpdate();
+                if (o.enabled) o.MPUpdate();
             }
             ++i;
         }
@@ -96,12 +96,10 @@ public class MPCollider : MonoBehaviour
     }
 
 
-
-    public void DefaultHitHandler(ref MPParticle particle)
+    public void PropagateForce(ref MPParticle particle)
     {
-        //Debug.Log("DefaultHitHandler(): " + particle.id + " " + particle.hit + " " + particle.hit_prev);
-
-        if(particle.hit_prev==0) {
+        if (particle.hit_prev == 0)
+        {
             Vector3 f = particle.velocity * MPWorld.s_current.m_particle_mass;
             if (m_rigid3d)
             {
@@ -114,10 +112,8 @@ public class MPCollider : MonoBehaviour
         }
     }
 
-    public void DefaultForceHandler(ref MPForceData force)
+    public void PropagateForce(ref MPForceData force)
     {
-        //Debug.Log("DefaultForceHandler(): " + GetHashCode());
-
         Vector3 pos = force.position;
         Vector3 f = force.velocity * MPWorld.s_current.m_particle_mass;
 
@@ -129,5 +125,15 @@ public class MPCollider : MonoBehaviour
         {
             m_rigid2d.AddForceAtPosition(f, pos);
         }
+    }
+
+    public void DefaultHitHandler(ref MPParticle particle)
+    {
+        PropagateForce(ref particle);
+    }
+
+    public void DefaultForceHandler(ref MPForceData force)
+    {
+        PropagateForce(ref force);
     }
 }

@@ -18,6 +18,7 @@ public unsafe class MPWorld : MonoBehaviour
         s_instances.ForEach(f);
     }
     public static MPWorld GetCurrent() { return s_current; }
+    public static int GetCurrentContext() { return s_current.GetContext(); }
 
 
 

@@ -87,7 +87,7 @@ public class MPEmitter : MonoBehaviour {
     {
         foreach (var o in instances)
         {
-            o.MPUpdate();
+            if (o!=null && o.enabled) o.MPUpdate();
         }
     }
 
