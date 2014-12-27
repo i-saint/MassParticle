@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 public class MPSphereCollider : MPCollider
 {
-    public float radius;
+    public float radius = 0.5f;
 
 
     public override void MPUpdate()

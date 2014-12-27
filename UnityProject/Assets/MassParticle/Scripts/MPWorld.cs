@@ -47,6 +47,8 @@ public unsafe class MPWorld : MonoBehaviour
     public int m_world_div_x = 256;
     public int m_world_div_y = 1;
     public int m_world_div_z = 256;
+    public Vector3 m_active_region_center = Vector3.zero;
+    public Vector3 m_active_region_extent = Vector3.zero;
     public int m_particle_num = 0;
     public int m_context = 0;
     List<Action> m_actions = new List<Action>();
@@ -182,7 +184,9 @@ public unsafe class MPWorld : MonoBehaviour
     void OnDrawGizmos()
     {
         Gizmos.color = Color.yellow;
-        Gizmos.DrawWireCube(transform.position, transform.localScale*2.0f);
+        Gizmos.DrawWireCube(transform.position, transform.localScale * 2.0f);
+        Gizmos.color = Color.cyan;
+        Gizmos.DrawWireCube(transform.position + m_active_region_center, m_active_region_extent * 2.0f);
     }
 
 
@@ -194,6 +198,8 @@ public unsafe class MPWorld : MonoBehaviour
         p.world_div_x = m_world_div_x;
         p.world_div_y = m_world_div_y;
         p.world_div_z = m_world_div_z;
+        p.active_region_center = transform.position + m_active_region_center;
+        p.active_region_extent = m_active_region_extent;
         p.solver_type = (int)m_solver;
         p.enable_interaction = m_enable_interaction ? 1 : 0;
         p.enable_colliders = m_enable_colliders ? 1 : 0;

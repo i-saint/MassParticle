@@ -589,6 +589,13 @@ void mpWorld::update(float dt)
         bl = wpos - wsize;
         ur = wpos + wsize;
 
+        vec3 &apos = (vec3&)kp.active_region_center;
+        vec3 &asize = (vec3&)kp.active_region_extent;
+        if (glm::dot(asize, vec3(1.0f)) == 0.0f) {
+            apos = wpos;
+            asize = wsize;
+        }
+
         int reserve_size = mpParticlesEachLine * (ceildiv(kp.max_particles, mpParticlesEachLine));
         int SOADataNum = cell_num + std::max<int>((kp.max_particles - cell_num) / 8, 0);
         m_cells.resize(cell_num);
@@ -610,10 +617,10 @@ void mpWorld::update(float dt)
 
     {
         const float PI = 3.14159265359f;
-        m_kparams.RcpParticleSize2 = 1.0f / (m_kparams.particle_size*2.0f);
-        m_kparams.SPHDensityCoef = m_kparams.SPHParticleMass * 315.0f / (64.0f * PI * pow(m_kparams.particle_size, 9));
-        m_kparams.SPHGradPressureCoef = m_kparams.SPHParticleMass * -45.0f / (PI * pow(m_kparams.particle_size, 6));
-        m_kparams.SPHLapViscosityCoef = m_kparams.SPHParticleMass * m_kparams.SPHViscosity * 45.0f / (PI * pow(m_kparams.particle_size, 6));
+        kp.RcpParticleSize2 = 1.0f / (m_kparams.particle_size*2.0f);
+        kp.SPHDensityCoef = m_kparams.SPHParticleMass * 315.0f / (64.0f * PI * pow(m_kparams.particle_size, 9));
+        kp.SPHGradPressureCoef = m_kparams.SPHParticleMass * -45.0f / (PI * pow(m_kparams.particle_size, 6));
+        kp.SPHLapViscosityCoef = m_kparams.SPHParticleMass * m_kparams.SPHViscosity * 45.0f / (PI * pow(m_kparams.particle_size, 6));
     }
 
     // clear grid
@@ -628,13 +635,12 @@ void mpWorld::update(float dt)
     tbb::parallel_for(tbb::blocked_range<int>(0, (i32)m_num_particles, g_particles_par_task),
         [&](const tbb::blocked_range<int> &r) {
             for(int i=r.begin(); i!=r.end(); ++i) {
-                vec3 &ppos = (vec3&)m_particles[i].position;
-                vec3 &bl = m_tparams.world_bounds_bl;
-                vec3 &ur = m_tparams.world_bounds_ur;
-                if (ppos.x<bl.x || ppos.y<bl.y || ppos.z<bl.z ||
-                    ppos.x>ur.x || ppos.y>ur.y || ppos.z>ur.z)
+                vec3 rel = glm::abs((vec3&)m_particles[i].position - (vec3&)kp.active_region_center);
+                if (rel.x > kp.active_region_extent.x ||
+                    rel.y > kp.active_region_extent.y ||
+                    rel.z > kp.active_region_extent.z)
                 {
-                    m_particles[i].lifetime = std::min<float>(m_particles[i].lifetime, 0.333f);
+                    m_particles[i].lifetime = 0.0f;
                 }
                 m_particles[i].lifetime = std::max<f32>(m_particles[i].lifetime - dt, 0.0f);
                 m_particles[i].hash = mpGenHash(*this, m_particles[i]);

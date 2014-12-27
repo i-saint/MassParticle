@@ -40,6 +40,8 @@ public struct MPKernelParams
     public int world_div_x;
     public int world_div_y;
     public int world_div_z;
+    public Vector3 active_region_center;
+    public Vector3 active_region_extent;
     public Vector3 scaler;
 
     public int solver_type;

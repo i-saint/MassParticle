@@ -153,6 +153,8 @@ struct KernelParams
     vec3f world_center;
     vec3f world_extent;
     vec3i world_div;
+    vec3f active_region_center;
+    vec3f active_region_extent;
     vec3f coord_scaler;
 
     int solver_type;
