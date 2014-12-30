@@ -28,19 +28,9 @@ public class MPCollider : MonoBehaviour
     protected void EachTargets(TargetEnumerator e)
     {
         if (m_targets.Length != 0)
-        {
-            foreach (var w in m_targets)
-            {
-                e(w);
-            }
-        }
+            foreach (var w in m_targets) e(w);
         else
-        {
-            foreach (var w in MPWorld.s_instances)
-            {
-                e(w);
-            }
-        }
+            foreach (var w in MPWorld.s_instances) e(w);
     }
 
 

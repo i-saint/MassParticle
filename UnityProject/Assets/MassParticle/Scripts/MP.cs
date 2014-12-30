@@ -191,7 +191,7 @@ public class MPAPI {
     [DllImport ("MassParticle")] public static extern void mpAddBoxCollider(int context, ref MPColliderProperties props, ref Matrix4x4 transform, ref Vector3 size);
     [DllImport ("MassParticle")] public static extern void mpRemoveCollider(int context, ref MPColliderProperties props);
 
-    [DllImport ("MassParticle")] public static extern void mpAddForce (int context, ref MPForceProperties regionType, ref Matrix4x4 regionMat);
+    [DllImport ("MassParticle")] public static extern void mpAddForce (int context, ref MPForceProperties props, ref Matrix4x4 mat);
 
     [DllImport ("MassParticle")] public static extern void mpScanSphere (int context, MPHitHandler h, ref Vector3 center, float radius);
     [DllImport ("MassParticle")] public static extern void mpScanSphereParallel (int context, MPHitHandler h, ref Vector3 center, float radius);

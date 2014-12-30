@@ -13,9 +13,9 @@ public class MPEmitter : MonoBehaviour {
         Box,
     }
 
-    public MPWorld[] targets;
-    public Shape shape = Shape.Sphere;
-    public int emitCount = 8;
+    public MPWorld[] m_targets;
+    public Shape m_shape = Shape.Sphere;
+    public int m_emit_count = 8;
     public Vector3 m_velosity_base = Vector3.zero;
     public float m_velosity_random_diffuse = 0.5f;
     public float m_lifetime = 30.0f;
@@ -28,20 +28,10 @@ public class MPEmitter : MonoBehaviour {
     delegate void TargetEnumerator(MPWorld world);
     void EachTargets(TargetEnumerator e)
     {
-        if (targets.Length != 0)
-        {
-            foreach (var w in targets)
-            {
-                e(w);
-            }
-        }
+        if (m_targets.Length != 0)
+            foreach (var w in m_targets) e(w);
         else
-        {
-            foreach (var w in MPWorld.s_instances)
-            {
-                e(w);
-            }
-        }
+            foreach (var w in MPWorld.s_instances) e(w);
     }
 
 
@@ -66,18 +56,18 @@ public class MPEmitter : MonoBehaviour {
         m_params.userdata = m_userdata;
         m_params.handler = m_spawn_handler;
         Matrix4x4 mat = transform.localToWorldMatrix;
-        switch (shape) {
+        switch (m_shape) {
         case Shape.Sphere:
             EachTargets((w) =>
             {
-                MPAPI.mpScatterParticlesSphereTransform(w.GetContext(), ref mat, emitCount, ref m_params);
+                MPAPI.mpScatterParticlesSphereTransform(w.GetContext(), ref mat, m_emit_count, ref m_params);
             });
             break;
 
         case Shape.Box:
             EachTargets((w) =>
             {
-                MPAPI.mpScatterParticlesBoxTransform(w.GetContext(), ref mat, emitCount, ref m_params);
+                MPAPI.mpScatterParticlesBoxTransform(w.GetContext(), ref mat, m_emit_count, ref m_params);
             });
             break;
         }
@@ -95,7 +85,7 @@ public class MPEmitter : MonoBehaviour {
     {
         Gizmos.color = Color.yellow;
         Gizmos.matrix = transform.localToWorldMatrix;
-        switch(shape) {
+        switch(m_shape) {
         case Shape.Sphere:
             Gizmos.DrawWireSphere(Vector3.zero, 0.5f);
             break;

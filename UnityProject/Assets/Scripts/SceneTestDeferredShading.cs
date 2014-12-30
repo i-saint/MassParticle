@@ -70,8 +70,8 @@ public class SceneTestDeferredShading : MonoBehaviour
         y += lineheight + margin;
 
         GUI.Label(new Rect(x, y, labelWidth, lineheight), "particles par frame:");
-        GUI.TextField(new Rect(x + labelWidth, y, 50, lineheight), emitter.emitCount.ToString());
-        emitter.emitCount = (int)GUI.HorizontalSlider(new Rect(x + labelWidth + 55, y, 100, lineheight), emitter.emitCount, 0, 500);
+        GUI.TextField(new Rect(x + labelWidth, y, 50, lineheight), emitter.m_emit_count.ToString());
+        emitter.m_emit_count = (int)GUI.HorizontalSlider(new Rect(x + labelWidth + 55, y, 100, lineheight), emitter.m_emit_count, 0, 500);
         y += lineheight + margin;
 
         GUI.Label(new Rect(x, y, labelWidth, lineheight), "particles deceleration:");

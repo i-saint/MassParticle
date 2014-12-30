@@ -29,7 +29,6 @@ public class Scanner : MonoBehaviour
     void MPUpdate()
     {
         Vector3 pos = m_trans.position;
-        Vector3 scale = m_trans.localScale;
         //MPAPI.mpScanAABBParallel(m_target.GetContext(), m_handler, ref pos, ref scale);
         MPAPI.mpScanSphereParallel(m_target.GetContext(), m_handler, ref pos, m_radius);
         //MPAPI.mpScanSphere(m_target.GetContext(), m_handler, ref pos, m_radius);
