@@ -1,7 +1,7 @@
 #ifndef MassParticle_h
 #define MassParticle_h
 
-#define mpWithCppScript
+//#define mpWithCppScript
 
 #ifdef mpWithCppScript
 #include "cpsBinder.h"
