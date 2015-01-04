@@ -54,6 +54,7 @@ extern "C" EXPORT_API ispc::KernelParams mpGetKernelParams(int context);
 extern "C" EXPORT_API void			mpSetKernelParams(int context, ispc::KernelParams *params);
 
 extern "C" EXPORT_API int			mpGetNumParticles(int context);
+extern "C" EXPORT_API mpParticleIM*	mpGetIntermediateData(int context, int nth=-1);
 extern "C" EXPORT_API mpParticle*	mpGetParticles(int context);
 extern "C" EXPORT_API void			mpCopyParticles(int context, mpParticle *dst);
 extern "C" EXPORT_API void			mpWriteParticles(int context, const mpParticle *from);

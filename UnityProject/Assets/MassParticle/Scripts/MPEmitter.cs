@@ -15,7 +15,7 @@ public class MPEmitter : MonoBehaviour {
 
     public MPWorld[] m_targets;
     public Shape m_shape = Shape.Sphere;
-    public int m_emit_count = 8;
+    public float m_emit_count = 8.0f;
     public Vector3 m_velosity_base = Vector3.zero;
     public float m_velosity_random_diffuse = 0.5f;
     public float m_lifetime = 30.0f;
@@ -60,14 +60,14 @@ public class MPEmitter : MonoBehaviour {
         case Shape.Sphere:
             EachTargets((w) =>
             {
-                MPAPI.mpScatterParticlesSphereTransform(w.GetContext(), ref mat, m_emit_count, ref m_params);
+                MPAPI.mpScatterParticlesSphereTransform(w.GetContext(), ref mat, (int)m_emit_count, ref m_params);
             });
             break;
 
         case Shape.Box:
             EachTargets((w) =>
             {
-                MPAPI.mpScatterParticlesBoxTransform(w.GetContext(), ref mat, m_emit_count, ref m_params);
+                MPAPI.mpScatterParticlesBoxTransform(w.GetContext(), ref mat, (int)m_emit_count, ref m_params);
             });
             break;
         }

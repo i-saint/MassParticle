@@ -131,6 +131,13 @@ extern "C" EXPORT_API int mpGetNumParticles(int context)
 {
     return g_worlds[context]->getNumParticles();
 }
+extern "C" EXPORT_API mpParticleIM*	mpGetIntermediateData(int context, int nth)
+{
+    return nth < 0 ?
+        &g_worlds[context]->getIntermediateData() :
+        &g_worlds[context]->getIntermediateData(nth);
+}
+
 extern "C" EXPORT_API mpParticle* mpGetParticles(int context)
 {
     return g_worlds[context]->getParticles();

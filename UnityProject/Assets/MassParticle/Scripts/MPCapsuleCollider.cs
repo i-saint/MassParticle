@@ -23,7 +23,7 @@ public class MPCapsuleCollider : MPCollider
         UpdateCapsule();
         EachTargets((w) =>
         {
-            MPAPI.mpAddCapsuleCollider(w.GetContext(), ref cprops, ref pos1_3, ref pos2_3, m_radius);
+            MPAPI.mpAddCapsuleCollider(w.GetContext(), ref m_cprops, ref pos1_3, ref pos2_3, m_radius);
         });
     }
 

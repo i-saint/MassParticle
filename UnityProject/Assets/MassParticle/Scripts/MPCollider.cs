@@ -4,9 +4,6 @@ using System.Collections.Generic;
 
 public class MPCollider : MonoBehaviour
 {
-    public delegate void ParticleHitHandler(MPWorld world, MPCollider obj, ref MPParticle particle);
-    public delegate void GatheredHitHandler(MPWorld world, MPCollider obj, ref MPForceData hit);
-
     public static List<MPCollider> s_instances = new List<MPCollider>();
     public static List<MPCollider> s_instances_prev = new List<MPCollider>();
 
@@ -18,7 +15,7 @@ public class MPCollider : MonoBehaviour
 
     public MPHitHandler m_hit_handler;
     public MPForceHandler m_force_handler;
-    public MPColliderProperties cprops;
+    public MPColliderProperties m_cprops;
 
     protected Transform m_trans;
     protected Rigidbody m_rigid3d;
@@ -41,8 +38,8 @@ public class MPCollider : MonoBehaviour
 
     void Awake()
     {
-        if (m_hit_handler == null) m_hit_handler = DefaultHitHandler;
-        if (m_force_handler == null) m_force_handler = DefaultForceHandler;
+        if (m_hit_handler == null) m_hit_handler = PropagateHit;
+        if (m_force_handler == null) m_force_handler = PropagateForce;
     }
 
     void OnEnable()
@@ -59,16 +56,16 @@ public class MPCollider : MonoBehaviour
         s_instances.Remove(this);
         EachTargets((w) =>
         {
-            MPAPI.mpRemoveCollider(w.GetContext(), ref cprops);
+            MPAPI.mpRemoveCollider(w.GetContext(), ref m_cprops);
         });
     }
 
 
     public virtual void MPUpdate()
     {
-        cprops.stiffness = m_stiffness;
-        cprops.hit_handler = m_receive_hit ? m_hit_handler : null;
-        cprops.force_handler = m_receive_force ? m_force_handler : null;
+        m_cprops.stiffness = m_stiffness;
+        m_cprops.hit_handler = m_receive_hit ? m_hit_handler : null;
+        m_cprops.force_handler = m_receive_force ? m_force_handler : null;
     }
 
     public static void MPUpdateAll()
@@ -77,7 +74,7 @@ public class MPCollider : MonoBehaviour
         foreach(var o in s_instances) {
             if (o != null)
             {
-                o.cprops.owner_id = i;
+                o.m_cprops.owner_id = i;
                 if (o.enabled) o.MPUpdate();
             }
             ++i;
@@ -86,26 +83,24 @@ public class MPCollider : MonoBehaviour
     }
 
 
-    public void PropagateForce(ref MPParticle particle)
+    public unsafe void PropagateHit(ref MPParticle particle)
     {
-        if (particle.hit_prev == 0)
+        Vector3 f = MPAPI.mpGetIntermediateData(MPWorld.GetCurrentContext())->accel * MPWorld.GetCurrent().m_particle_mass;
+        if (m_rigid3d)
         {
-            Vector3 f = particle.velocity * MPWorld.s_current.m_particle_mass;
-            if (m_rigid3d)
-            {
-                m_rigid3d.AddForceAtPosition(f, particle.position);
-            }
-            if (m_rigid2d)
-            {
-                m_rigid2d.AddForceAtPosition(f, particle.position);
-            }
+            m_rigid3d.AddForceAtPosition(f, particle.position);
+        }
+        if (m_rigid2d)
+        {
+            m_rigid2d.AddForceAtPosition(f, particle.position);
         }
     }
 
-    public void PropagateForce(ref MPForceData force)
+    public void PropagateForce(ref MPParticleForce force)
     {
-        Vector3 pos = force.position;
-        Vector3 f = force.velocity * MPWorld.s_current.m_particle_mass;
+        //Debug.Log("PropagateForce");
+        Vector3 pos = force.position_average;
+        Vector3 f = force.force * MPWorld.GetCurrent().m_particle_mass;
 
         if (m_rigid3d)
         {
@@ -115,15 +110,5 @@ public class MPCollider : MonoBehaviour
         {
             m_rigid2d.AddForceAtPosition(f, pos);
         }
-    }
-
-    public void DefaultHitHandler(ref MPParticle particle)
-    {
-        PropagateForce(ref particle);
-    }
-
-    public void DefaultForceHandler(ref MPForceData force)
-    {
-        PropagateForce(ref force);
     }
 }

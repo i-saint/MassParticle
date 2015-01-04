@@ -151,16 +151,22 @@ struct mpParticle
     }
 };
 
-struct mpHitForce
+// intermediate data
+struct mpParticleIM
 {
-    simd128 position;
-    simd128 velocity;
+    simd128 accel;
+};
+
+struct mpParticleForce
+{
     int num_hits;
     int pad[3];
+    simd128 position;
+    simd128 force;
 
-    mpHitForce() { clear(); }
-    void clear() { memset(this, 0, sizeof(*this));  }
-    mpHitForce& operator=(const mpHitForce &v)
+    mpParticleForce() { clear(); }
+    void clear() { memset(this, 0, sizeof(*this)); }
+    mpParticleForce& operator=(const mpParticleForce &v)
     {
         simd128 *dst = (simd128*)this;
         simd128 *src = (simd128*)&v;
@@ -171,7 +177,7 @@ struct mpHitForce
     }
 };
 typedef void(__stdcall *mpHitHandler)(mpParticle *p);
-typedef void(__stdcall *mpForceHandler)(mpHitForce *p);
+typedef void(__stdcall *mpForceHandler)(mpParticleForce *p);
 
 struct mpSpawnParams
 {
@@ -234,8 +240,11 @@ template<class T, typename Alloc> inline bool operator==(const mpAlignedAllocato
 template<class T, typename Alloc> inline bool operator!=(const mpAlignedAllocator<T>& l, const mpAlignedAllocator<T>& r) { return (!(l == r)); }
 
 typedef std::vector<mpParticle, mpAlignedAllocator<mpParticle> >                mpParticleCont;
+typedef std::vector<mpParticleIM, mpAlignedAllocator<mpParticleIM> >            mpParticleIMCont;
 typedef std::vector<mpParticleSOA8, mpAlignedAllocator<mpParticleSOA8> >        mpParticleSOACont;
 typedef std::vector<mpParticleIMDSOA8, mpAlignedAllocator<mpParticleIMDSOA8> >  mpParticleIMDSOACont;
+typedef std::vector<mpParticleForce, mpAlignedAllocator<mpParticleForce> >      mpPForceCont;
+typedef tbb::combinable<mpPForceCont>                                           mpPForceConbinable;
 typedef std::vector<mpCell, mpAlignedAllocator<mpCell> >                            mpCellCont;
 typedef std::vector<mpColliderProperties*, mpAlignedAllocator<mpPlaneCollider> >    mpColliderPropertiesCont;
 typedef std::vector<mpPlaneCollider, mpAlignedAllocator<mpPlaneCollider> >      mpPlaneColliderCont;
@@ -243,9 +252,6 @@ typedef std::vector<mpSphereCollider, mpAlignedAllocator<mpSphereCollider> >    
 typedef std::vector<mpCapsuleCollider, mpAlignedAllocator<mpCapsuleCollider> >  mpCapsuleColliderCont;
 typedef std::vector<mpBoxCollider, mpAlignedAllocator<mpBoxCollider> >          mpBoxColliderCont;
 typedef std::vector<mpForce, mpAlignedAllocator<mpForce> >                      mpForceCont;
-typedef std::vector<mpHitForce, mpAlignedAllocator<mpHitForce> >                mpHitDataCont;
-typedef tbb::combinable<mpHitDataCont>                                          mpHitDataConbinable;
-typedef std::vector<vec4, mpAlignedAllocator<vec4> >                            mpTrailCont;
 
 class mpWorld;
 
@@ -302,6 +308,9 @@ public:
     int			getNumParticlesGPU() const	{ return m_num_particles_gpu; }
     mpParticle*	getParticlesGPU()			{ return m_particles_gpu.empty() ? nullptr : &m_particles_gpu[0]; }
 
+    mpParticleIM& getIntermediateData(int i) { return m_imd[i]; }
+    mpParticleIM& getIntermediateData() { return m_imd[m_current]; }
+
     std::mutex& getMutex() { return m_mutex;  }
 
     void generatePointMesh(int mi, mpMeshData *mds);
@@ -313,6 +322,7 @@ public:
 
 private:
     mpParticleCont          m_particles;
+    mpParticleIMCont        m_imd;
     mpParticleSOACont       m_particles_soa;
     mpParticleIMDSOACont    m_imd_soa;
     mpCellCont              m_cells;
@@ -333,15 +343,14 @@ private:
     mpKernelParams          m_kparams;
     mpTempParams            m_tparams;
 
-    mpHitDataCont           m_hitdata;
-    mpHitDataConbinable     m_hitdata_work;
+    mpPForceCont            m_pforce;
+    mpPForceConbinable      m_pcombinable;
 
     int                     m_num_particles_gpu;
     int                     m_num_particles_gpu_prev;
     mpParticleCont          m_particles_gpu;
 
-    bool                    m_trail_enabled;
-    int                     m_trail_length;
+    int                     m_current;
 
 #ifdef mpWithCppScript
     cpsArray                m_mono_array;

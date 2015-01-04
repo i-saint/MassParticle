@@ -21,10 +21,6 @@ public unsafe class MPWorld : MonoBehaviour
     public static int GetCurrentContext() { return s_current.GetContext(); }
 
 
-
-    public delegate void ParticleProcessor(MPWorld world, int numParticles, MPParticle* particles);
-    public delegate void GatheredHitProcessor(MPWorld world, int numColliders, MPForceData* hits);
-
     public const int CubeBatchSize = 2700;
     public const int PointBatchSize = 65000;
     public const int DataTextureWidth = 3072;

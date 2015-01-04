@@ -12,7 +12,7 @@ public class MPBoxCollider : MPCollider
         Vector3 one = Vector3.one;
         EachTargets((w) =>
         {
-            MPAPI.mpAddBoxCollider(w.GetContext(), ref cprops, ref mat, ref one);
+            MPAPI.mpAddBoxCollider(w.GetContext(), ref m_cprops, ref mat, ref one);
         });
     }
 

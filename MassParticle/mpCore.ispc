@@ -588,8 +588,8 @@ export void Integrate(
         store3(particles[i],vx,vy,vz, vel);
         particles[i].speed = length3(vel);
 
-        imd[i].ax = 0.0f;
-        imd[i].ay = 0.0f;
-        imd[i].az = 0.0f;
+        imd[i].ax *= -params.timestep;
+        imd[i].ay *= -params.timestep;
+        imd[i].az *= -params.timestep;
     }
 }

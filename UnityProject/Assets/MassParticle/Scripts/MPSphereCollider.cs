@@ -13,7 +13,7 @@ public class MPSphereCollider : MPCollider
         Vector3 pos = m_trans.position;
         EachTargets((w) =>
         {
-            MPAPI.mpAddSphereCollider(w.GetContext(), ref cprops, ref pos, m_trans.localScale.magnitude * 0.25f);
+            MPAPI.mpAddSphereCollider(w.GetContext(), ref m_cprops, ref pos, m_trans.localScale.magnitude * 0.25f);
         });
     }
 

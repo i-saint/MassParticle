@@ -21,17 +21,18 @@ public struct MPParticle
 };
 
 [StructLayout(LayoutKind.Explicit)]
-public struct MPForceData
+public struct MPParticleIM
 {
-    [FieldOffset(0)]  public Vector3 position;
-    [FieldOffset(16)] public Vector3 velocity;
-    [FieldOffset(28)] public float speed;
-    [FieldOffset(32)] public int num_hits;
-    [FieldOffset(36)] public int pad1;
-    [FieldOffset(40)] public int pad2;
-    [FieldOffset(44)] public int pad3;
-}
+    [FieldOffset(0)]  public Vector3 accel;
+};
 
+[StructLayout(LayoutKind.Explicit)]
+public struct MPParticleForce
+{
+    [FieldOffset( 0)] public int num_hits;
+    [FieldOffset(16)] public Vector3 position_average;
+    [FieldOffset(32)] public Vector3 force;
+}
 
 public struct MPKernelParams
 {
@@ -81,7 +82,7 @@ public enum MPUpdateMode
 }
 
 public delegate void MPHitHandler(ref MPParticle particle);
-public delegate void MPForceHandler(ref MPForceData force);
+public delegate void MPForceHandler(ref MPParticleForce force);
 
 public struct MPColliderProperties
 {
@@ -178,6 +179,7 @@ public class MPAPI {
     [DllImport ("MassParticle")] public static extern void mpSetKernelParams(int context, ref MPKernelParams p);
 
     [DllImport ("MassParticle")] public static extern int mpGetNumParticles(int context);
+    [DllImport ("MassParticle")] unsafe public static extern MPParticleIM* mpGetIntermediateData(int context, int i=-1);
     [DllImport ("MassParticle")] unsafe public static extern MPParticle* mpGetParticles(int context);
     [DllImport ("MassParticle")] unsafe public static extern void mpCopyParticles (int context, MPParticle *dst);
     [DllImport ("MassParticle")] unsafe public static extern void mpWriteParticles(int context, MPParticle *from);

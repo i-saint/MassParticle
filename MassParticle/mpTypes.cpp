@@ -87,7 +87,9 @@ void mpSoAnize( i32 num, const mpParticle *particles, ispc::Particle_SOA8 *out )
     }
 }
 
-void mpAoSnize( i32 num, const ispc::Particle_SOA8 *soa, mpParticle *out )
+void mpAoSnize( i32 num,
+    const ispc::Particle_SOA8 *soa, mpParticle *out,
+    const ispc::ParticleIMData_SOA8 *soaim, mpParticleIM *outim)
 {
     i32 blocks = soa_blocks(num);
     for(i32 bi=0; bi<blocks; ++bi) {
@@ -116,6 +118,18 @@ void mpAoSnize( i32 num, const ispc::Particle_SOA8 *soa, mpParticle *out )
                 _mm_load_ps(soa[bi].vz + 4),
                 _mm_load_ps(soa[bi].speed + 4)),
         };
+        ist::vec4soa4 aos_axl[2] = {
+            ist::soa_transpose44(
+            _mm_load_ps(soaim[bi].ax + 0),
+            _mm_load_ps(soaim[bi].ay + 0),
+            _mm_load_ps(soaim[bi].az + 0),
+            _mm_set1_ps(0.0f)),
+            ist::soa_transpose44(
+            _mm_load_ps(soaim[bi].ax + 4),
+            _mm_load_ps(soaim[bi].ay + 4),
+            _mm_load_ps(soaim[bi].az + 4),
+            _mm_set1_ps(0.0f)),
+        };
 
         i32 e = std::min<i32>(SIMD_LANES, num-i);
         for(i32 ei=0; ei<e; ++ei) {
@@ -126,9 +140,11 @@ void mpAoSnize( i32 num, const ispc::Particle_SOA8 *soa, mpParticle *out )
             out[i + ei].hit_prev = out[i + ei].hit;
             out[i + ei].hit = (u16)soa[bi].hit[ei];
             out[i + ei].id = id;
+            outim[i + ei].accel = aos_axl[ei / 4][ei % 4];
         }
     }
 }
+
 
 inline u32 mpGenHash(mpWorld &world, const mpParticle &particle)
 {
@@ -165,7 +181,6 @@ mpWorld::mpWorld()
     , m_num_particles(0)
     , m_has_hithandler(false)
     , m_has_forcehandler(false)
-    , m_trail_enabled(false)
     , m_num_particles_gpu(0)
     , m_num_particles_gpu_prev(0)
 #ifdef mpWithCppScript
@@ -537,7 +552,6 @@ void mpWorld::clearParticles()
 
 void mpWorld::clearCollidersAndForces()
 {
-    m_hitdata.clear();
     m_plane_colliders.clear();
     m_sphere_colliders.clear();
     m_capsule_colliders.clear();
@@ -600,6 +614,7 @@ void mpWorld::update(float dt)
         int SOADataNum = cell_num + std::max<int>((kp.max_particles - cell_num) / 8, 0);
         m_cells.resize(cell_num);
         m_particles.resize(kp.max_particles);
+        m_imd.resize(kp.max_particles);
         m_particles_soa.resize(SOADataNum);
         m_imd_soa.resize(SOADataNum);
         m_particles_gpu.reserve(reserve_size);
@@ -876,8 +891,10 @@ void mpWorld::update(float dt)
                 i32 n = ce[i].end - ce[i].begin;
                 if(n > 0) {
                     mpParticle *p = &m_particles[ce[i].begin];
+                    mpParticleIM *pim = &m_imd[ce[i].begin];
                     mpParticleSOA8 *t = &m_particles_soa[ce[i].soai];
-                    mpAoSnize(n, t, p);
+                    mpParticleIMDSOA8 *tim = &m_imd_soa[ce[i].soai];
+                    mpAoSnize(n, t, p, tim, pim);
                 }
             }
     });
@@ -930,45 +947,46 @@ void mpWorld::callHandlers()
         for (int i = 0; i < m_num_particles; ++i) {
             mpParticle &p = m_particles[i];
             if (p.hit != 0) {
+                m_current = i;
                 mpHitHandler handler = (mpHitHandler)(m_collider_properties[p.hit]->hit_handler);
                 if (handler) { handler(&p); }
             }
         }
     }
     if (m_has_forcehandler) {
-        m_hitdata.resize(num_colliders);
-        memset((void*)&m_hitdata[0], 0, sizeof(mpHitForce)*m_hitdata.size());
+
+        m_pforce.resize(num_colliders);
+        memset((void*)&m_pforce[0], 0, sizeof(mpParticleForce)*m_pforce.size());
         tbb::parallel_for(tbb::blocked_range<int>(0, m_num_particles, g_particles_par_task),
             [&](const tbb::blocked_range<int> &r) {
-            mpHitDataCont &hits = m_hitdata_work.local();
-            hits.resize(num_colliders);
+            mpPForceCont &pf = m_pcombinable.local();
+            pf.resize(num_colliders);
             for (int i = r.begin(); i != r.end(); ++i) {
                 mpParticle &p = m_particles[i];
-                if (p.hit != 0 && p.hit_prev == 0) {
-                    (simdvec4&)hits[p.hit].position += (simdvec4&)p.position;
-                    (simdvec4&)hits[p.hit].velocity += (simdvec4&)p.velocity;
-                    ++hits[p.hit].num_hits;
+                if (p.hit != 0) {
+                    (simdvec4&)pf[p.hit].position += (simdvec4&)p.position;
+                    (simdvec4&)pf[p.hit].force += (simdvec4&)m_imd[i].accel;
+                    ++pf[p.hit].num_hits;
                 }
             }
         });
-        m_hitdata_work.combine_each([&](const mpHitDataCont &hits){
-            for (int i = 0; i < (int)hits.size(); ++i) {
-                const mpHitForce &h = hits[i];
-                (simdvec4&)m_hitdata[i].position += h.position;
-                (simdvec4&)m_hitdata[i].velocity += h.velocity;
-                m_hitdata[i].num_hits += h.num_hits;
+        m_pcombinable.combine_each([&](const mpPForceCont &pf){
+            for (int i = 0; i < (int)pf.size(); ++i) {
+                const mpParticleForce &h = pf[i];
+                (simdvec4&)m_pforce[i].position += h.position;
+                (simdvec4&)m_pforce[i].force += h.force;
+                m_pforce[i].num_hits += h.num_hits;
             }
-            memset((void*)&hits[0], 0, sizeof(mpHitForce)*hits.size());
+            memset((void*)&pf[0], 0, sizeof(mpParticleForce)*pf.size());
         });
 
         for (int i = 0; i < num_colliders; ++i) {
-            if (m_hitdata[i].num_hits == 0) continue;
-
-            (vec3&)m_hitdata[i].position /= m_hitdata[i].num_hits;
+            if (m_pforce[i].num_hits == 0) continue;
 
             mpForceHandler handler = (mpForceHandler)m_collider_properties[i]->force_handler;
             if (handler) {
-                handler(&m_hitdata[i]);
+                (vec3&)m_pforce[i].position /= m_pforce[i].num_hits;
+                handler(&m_pforce[i]);
             }
         }
     }
@@ -1059,7 +1077,7 @@ int mpWorld::updateDataTexture(void *tex)
     if (g_mpRenderer && !m_particles_gpu.empty()) {
         int num_needs_copy = std::max<int>(m_num_particles_gpu, m_num_particles_gpu_prev);
         m_num_particles_gpu_prev = m_num_particles_gpu;
-        g_mpRenderer->updateDataTexture(tex, &m_particles_gpu[0], sizeof(mpParticle)*num_needs_copy);
+        g_mpRenderer->updateDataTexture(tex, &m_particles_gpu[0], sizeof(mpParticle)*m_kparams.max_particles);
     }
     return m_num_particles_gpu;
 }
