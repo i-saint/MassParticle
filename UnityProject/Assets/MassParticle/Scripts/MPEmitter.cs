@@ -15,7 +15,7 @@ public class MPEmitter : MonoBehaviour {
 
     public MPWorld[] m_targets;
     public Shape m_shape = Shape.Sphere;
-    public float m_emit_count = 8.0f;
+    public float m_emit_count = 100.0f;
     public Vector3 m_velosity_base = Vector3.zero;
     public float m_velosity_random_diffuse = 0.5f;
     public float m_lifetime = 30.0f;
@@ -23,6 +23,9 @@ public class MPEmitter : MonoBehaviour {
     public int m_userdata;
     public MPHitHandler m_spawn_handler = null;
     MPSpawnParams m_params;
+    float m_emit_count_prev;
+    float m_local_time;
+    int m_total_emit;
 
 
     delegate void TargetEnumerator(MPWorld world);
@@ -47,7 +50,16 @@ public class MPEmitter : MonoBehaviour {
 
     public void MPUpdate()
     {
-        if (Time.deltaTime == 0.0f) { return; }
+        if (m_emit_count_prev != m_emit_count)
+        {
+            m_emit_count_prev = m_emit_count;
+            m_total_emit = Mathf.FloorToInt(m_local_time * m_emit_count);
+        }
+        m_local_time += Time.deltaTime;
+        int emit_total = Mathf.FloorToInt(m_local_time*m_emit_count);
+        int emit_this_frame = emit_total - m_total_emit;
+        if (emit_this_frame == 0) return;
+        m_total_emit = emit_total;
 
         m_params.velocity = m_velosity_base;
         m_params.velocity_random_diffuse = m_velosity_random_diffuse;
@@ -60,14 +72,14 @@ public class MPEmitter : MonoBehaviour {
         case Shape.Sphere:
             EachTargets((w) =>
             {
-                MPAPI.mpScatterParticlesSphereTransform(w.GetContext(), ref mat, (int)m_emit_count, ref m_params);
+                MPAPI.mpScatterParticlesSphereTransform(w.GetContext(), ref mat, emit_this_frame, ref m_params);
             });
             break;
 
         case Shape.Box:
             EachTargets((w) =>
             {
-                MPAPI.mpScatterParticlesBoxTransform(w.GetContext(), ref mat, (int)m_emit_count, ref m_params);
+                MPAPI.mpScatterParticlesBoxTransform(w.GetContext(), ref mat, emit_this_frame, ref m_params);
             });
             break;
         }
