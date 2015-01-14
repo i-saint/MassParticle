@@ -51,23 +51,22 @@ using glm::mat4;
 typedef glm::simdVec4 simdvec4;
 typedef glm::simdMat4 simdmat4;
 
-typedef ispc::Particle_SOA8			mpParticleSOA8;
-typedef ispc::ParticleIMData_SOA8	mpParticleIMDSOA8;
-typedef ispc::Cell					mpCell;
+typedef ispc::Context                   mpKernelContext;
+typedef ispc::Cell                      mpCell;
 
-typedef ispc::Plane					mpPlane;
-typedef ispc::Sphere				mpSphere;
-typedef ispc::Capsule				mpCapsule;
-typedef ispc::Box					mpBox;
+typedef ispc::Plane                     mpPlane;
+typedef ispc::Sphere                    mpSphere;
+typedef ispc::Capsule                   mpCapsule;
+typedef ispc::Box                       mpBox;
 
-typedef ispc::ColliderProperties	mpColliderProperties;
-typedef ispc::PlaneCollider			mpPlaneCollider;
-typedef ispc::SphereCollider		mpSphereCollider;
-typedef ispc::CapsuleCollider		mpCapsuleCollider;
-typedef ispc::BoxCollider			mpBoxCollider;
+typedef ispc::ColliderProperties        mpColliderProperties;
+typedef ispc::PlaneCollider             mpPlaneCollider;
+typedef ispc::SphereCollider            mpSphereCollider;
+typedef ispc::CapsuleCollider           mpCapsuleCollider;
+typedef ispc::BoxCollider               mpBoxCollider;
 
-typedef ispc::ForceProperties		mpForceProperties;
-typedef ispc::Force					mpForce;
+typedef ispc::ForceProperties           mpForceProperties;
+typedef ispc::Force                     mpForce;
 
 namespace glm {
     inline float length_sq(const vec2 &v) { return dot(v, v); }
@@ -239,10 +238,10 @@ public:
 template<class T, typename Alloc> inline bool operator==(const mpAlignedAllocator<T>& l, const mpAlignedAllocator<T>& r) { return (l.equals(r)); }
 template<class T, typename Alloc> inline bool operator!=(const mpAlignedAllocator<T>& l, const mpAlignedAllocator<T>& r) { return (!(l == r)); }
 
+typedef std::vector<float, mpAlignedAllocator<float> >                          mpFloatArray;
+typedef std::vector<int, mpAlignedAllocator<int> >                              mpIntArray;
 typedef std::vector<mpParticle, mpAlignedAllocator<mpParticle> >                mpParticleCont;
 typedef std::vector<mpParticleIM, mpAlignedAllocator<mpParticleIM> >            mpParticleIMCont;
-typedef std::vector<mpParticleSOA8, mpAlignedAllocator<mpParticleSOA8> >        mpParticleSOACont;
-typedef std::vector<mpParticleIMDSOA8, mpAlignedAllocator<mpParticleIMDSOA8> >  mpParticleIMDSOACont;
 typedef std::vector<mpParticleForce, mpAlignedAllocator<mpParticleForce> >      mpPForceCont;
 typedef tbb::combinable<mpPForceCont>                                           mpPForceConbinable;
 typedef std::vector<mpCell, mpAlignedAllocator<mpCell> >                            mpCellCont;
@@ -252,6 +251,51 @@ typedef std::vector<mpSphereCollider, mpAlignedAllocator<mpSphereCollider> >    
 typedef std::vector<mpCapsuleCollider, mpAlignedAllocator<mpCapsuleCollider> >  mpCapsuleColliderCont;
 typedef std::vector<mpBoxCollider, mpAlignedAllocator<mpBoxCollider> >          mpBoxColliderCont;
 typedef std::vector<mpForce, mpAlignedAllocator<mpForce> >                      mpForceCont;
+
+struct mpSoAData
+{
+    struct Reference
+    {
+        vec3 pos;
+        vec3 vel;
+        vec3 acl;
+        float speed;
+        float density;
+        float affection;
+        int hit;
+    };
+
+    mpFloatArray pos_x;
+    mpFloatArray pos_y;
+    mpFloatArray pos_z;
+    mpFloatArray vel_x;
+    mpFloatArray vel_y;
+    mpFloatArray vel_z;
+    mpFloatArray acl_x;
+    mpFloatArray acl_y;
+    mpFloatArray acl_z;
+    mpFloatArray speed;
+    mpFloatArray density;
+    mpFloatArray affection;
+    mpIntArray hit;
+
+    void resize(size_t n)
+    {
+        pos_x.resize(n);
+        pos_y.resize(n);
+        pos_z.resize(n);
+        vel_x.resize(n);
+        vel_y.resize(n);
+        vel_z.resize(n);
+        acl_x.resize(n);
+        acl_y.resize(n);
+        acl_z.resize(n);
+        speed.resize(n);
+        density.resize(n);
+        affection.resize(n);
+        hit.resize(n);
+    }
+};
 
 class mpWorld;
 
@@ -323,8 +367,7 @@ public:
 private:
     mpParticleCont          m_particles;
     mpParticleIMCont        m_imd;
-    mpParticleSOACont       m_particles_soa;
-    mpParticleIMDSOACont    m_imd_soa;
+    mpSoAData               m_soa;
     mpCellCont              m_cells;
     u32                     m_id_seed;
     int                     m_num_particles;

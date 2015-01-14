@@ -288,7 +288,7 @@ inline void mpBuildBoxCollider(int context, mpBoxCollider &o, mat4 transform, ve
         o.shape.planes[i].distance = distances[i];
     }
     for (int i = 0; i < mpCountof(vertices); ++i) {
-        vec3 p = (vec3&)vertices[i];
+        vec3 p = (vec3&)vertices[i] + (vec3&)o.shape.center;
         if (i == 0) {
             (vec3&)o.bounds.bl = p;
             (vec3&)o.bounds.ur = p;

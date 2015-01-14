@@ -4,15 +4,8 @@
 #include "ispc_vectormath.h"
 typedef int id_type;
 typedef unsigned int uint;
-
-struct vec3f
-{
-    float x, y, z;
-};
-struct vec3i
-{
-    int x, y, z;
-};
+typedef unsigned int16 uint16;
+typedef unsigned int32 uint32;
 
 struct Plane
 {
@@ -125,22 +118,6 @@ struct Force
     Box             box;
 };
 
-
-struct Particle
-{
-    float   x, y, z;
-    float   vx, vy, vz;
-    float   speed;
-    float   density;
-    int     hit;
-};
-
-struct ParticleIMData
-{
-    float ax, ay, az;
-    float inside_force;
-};
-
 struct Cell
 {
     int begin, end;
@@ -180,9 +157,5 @@ struct KernelParams
     float SPHGradPressureCoef;
     float SPHLapViscosityCoef;
 };
-
-#define to_vec3(v) {v.x, v.y,v.z}
-#define gather3(v, ex, ey, ez) {v.ex, v.ey,v.ez}
-#define store3(t, ex, ey, ez, v) t.ex=v.x; t.ey=v.y; t.ez=v.z;
 
 #endif // mpCollision_h
