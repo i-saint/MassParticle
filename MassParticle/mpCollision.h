@@ -141,7 +141,7 @@ struct KernelParams
     int id_as_float;
 
     float timestep;
-    float decelerate;
+    float damping;
     float advection;
     float pressure_stiffness;
 

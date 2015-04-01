@@ -16,7 +16,7 @@ mpKernelParams::mpKernelParams()
 
     solver_type = mpSolver_Impulse;
     timestep = 0.01f;
-    decelerate = 0.99f;
+    damping = 0.6f;
     advection = 0.5f;
 
     pressure_stiffness = 500.0f;
@@ -234,20 +234,20 @@ mpWorld::~mpWorld()
 void mpWorld::addParticles(mpParticle *p, size_t num)
 {
     num = std::min<uint32_t>(num, m_kparams.max_particles - m_num_particles);
-    for (int i = 0; i<num; ++i) {
+    for (int i = 0; i < (int)num; ++i) {
         m_particles[m_num_particles + i] = p[i];
     }
     if (m_kparams.id_as_float) {
-        for (int i = 0; i < num; ++i) {
+        for (int i = 0; i < (int)num; ++i) {
             (float&)m_particles[m_num_particles + i].id = float(++m_id_seed);
         }
     }
     else {
-        for (int i = 0; i < num; ++i) {
+        for (int i = 0; i < (int)num; ++i) {
             m_particles[m_num_particles + i].id = ++m_id_seed;
         }
     }
-    m_num_particles += num;
+    m_num_particles += (int)num;
 }
 
 void mpWorld::addPlaneColliders(mpPlaneCollider *col, size_t num)
@@ -653,7 +653,7 @@ void mpWorld::update(float dt)
     mpBoxCollider       *boxes = m_box_colliders.empty() ? nullptr : &m_box_colliders[0];
     mpForce             *forces = m_forces.empty() ? nullptr : &m_forces[0];
 
-    int num_colliders =  m_plane_colliders.size() + m_sphere_colliders.size() + m_capsule_colliders.size() + m_box_colliders.size();
+    int num_colliders =  int(m_plane_colliders.size() + m_sphere_colliders.size() + m_capsule_colliders.size() + m_box_colliders.size());
 
     {
         const float PI = 3.14159265359f;
@@ -670,7 +670,7 @@ void mpWorld::update(float dt)
         &m_soa.acl_x[0], &m_soa.acl_y[0], &m_soa.acl_z[0],
         &m_soa.speed[0], &m_soa.density[0], &m_soa.affection[0], &m_soa.hit[0],
         planes, spheres, capsules, boxes, forces,
-        m_plane_colliders.size(), m_sphere_colliders.size(), m_capsule_colliders.size(), m_box_colliders.size(), m_forces.size()
+        (int)m_plane_colliders.size(), (int)m_sphere_colliders.size(), (int)m_capsule_colliders.size(), (int)m_box_colliders.size(), (int)m_forces.size()
     };
 
     // clear grid

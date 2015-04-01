@@ -34,7 +34,7 @@ public unsafe class MPWorld : MonoBehaviour
     public bool m_id_as_float = true;
     public float m_particle_mass = 0.1f;
     public float m_timescale = 0.6f;
-    public float m_deceleration = 0.99f;
+    public float m_damping = 0.6f;
     public float m_advection = 0.1f;
     public float m_pressure_stiffness = 500.0f;
     public float m_particle_size = 0.08f;
@@ -202,7 +202,7 @@ public unsafe class MPWorld : MonoBehaviour
         p.enable_forces = m_enable_orces ? 1 : 0;
         p.id_as_float = m_id_as_float ? 1 : 0;
         p.timestep = Time.deltaTime * m_timescale;
-        p.decelerate = m_deceleration;
+        p.damping = m_damping;
         p.advection = m_advection;
         p.pressure_stiffness = m_pressure_stiffness;
         p.scaler = m_coord_scale;

@@ -52,7 +52,7 @@ public struct MPKernelParams
     public int id_as_float;
 
     public float timestep;
-    public float decelerate;
+    public float damping;
     public float advection;
     public float pressure_stiffness;
 

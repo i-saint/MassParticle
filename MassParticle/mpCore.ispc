@@ -594,13 +594,15 @@ export void Integrate(uniform Context &ctx, uniform const vec3i &idx)
 
     vec3f coord_scaler = kp.coord_scaler;
     float timestep = kp.timestep;
+    float decel = pow(abs(kp.damping), timestep);
+
     foreach(i=0 ... particle_num) {
         vec3f pos = get_particle_position(i);
         vec3f vel = get_particle_velocity(i);
         vec3f accel = get_particle_accel(i);
 
         vel = vel + accel * timestep;
-        vel = vel * kp.decelerate;
+        vel = vel * decel;
         vel = vel * coord_scaler;
 
         pos = pos + vel * timestep;

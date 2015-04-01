@@ -74,9 +74,9 @@ public class SceneTestDeferredShading : MonoBehaviour
         emitter.m_emit_count = (int)GUI.HorizontalSlider(new Rect(x + labelWidth + 55, y, 100, lineheight), emitter.m_emit_count, 0, 500);
         y += lineheight + margin;
 
-        GUI.Label(new Rect(x, y, labelWidth, lineheight), "particles deceleration:");
-        GUI.TextField(new Rect(x + labelWidth, y, 50, lineheight), world.m_deceleration.ToString());
-        world.m_deceleration = GUI.HorizontalSlider(new Rect(x + labelWidth + 55, y, 100, lineheight), world.m_deceleration, 0.9f, 1.0f);
+        GUI.Label(new Rect(x, y, labelWidth, lineheight), "particles damping:");
+        GUI.TextField(new Rect(x + labelWidth, y, 50, lineheight), world.m_damping.ToString());
+        world.m_damping = GUI.HorizontalSlider(new Rect(x + labelWidth + 55, y, 100, lineheight), world.m_damping, 0.9f, 1.0f);
         y += lineheight + margin;
 
         y += 10.0f;
