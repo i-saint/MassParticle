@@ -2,7 +2,9 @@
 #define _SPH_types_h_
 
 #define GLM_FORCE_RADIANS
-#define GLM_FORCE_SSE4
+#ifdef _WIN64
+#   define GLM_FORCE_SSE4
+#endif
 
 #include <cstdint>
 #include <vector>
@@ -84,13 +86,6 @@ enum mpSolverType
     mpSolver_Impulse,
     mpSolver_SPH,
     mpSolver_SPHEst,
-};
-
-enum mpRendererType
-{
-    mpRenderer_Cube,
-    mpRenderer_Line,
-    mpRenderer_Sprite,
 };
 
 struct mpKernelParams : ispc::KernelParams
@@ -323,13 +318,13 @@ public:
     void update(float dt);
     void callHandlers();
 
-    void addParticles(mpParticle *p, int num);
-    void addPlaneColliders(mpPlaneCollider *col, int num);
-    void addSphereColliders(mpSphereCollider *col, int num);
-    void addCapsuleColliders(mpCapsuleCollider *col, int num);
-    void addBoxColliders(mpBoxCollider *col, int num);
+    void addParticles(mpParticle *p, size_t num);
+    void addPlaneColliders(mpPlaneCollider *col, size_t num);
+    void addSphereColliders(mpSphereCollider *col, size_t num);
+    void addCapsuleColliders(mpCapsuleCollider *col, size_t num);
+    void addBoxColliders(mpBoxCollider *col, size_t num);
     void removeCollider(mpColliderProperties &props);
-    void addForces(mpForce *force, int num);
+    void addForces(mpForce *force, size_t num);
     void scanSphere(mpHitHandler handler, const vec3 &pos, float radius);
     void scanAABB(mpHitHandler handler, const vec3 &center, const vec3 &extent);
     void scanSphereParallel(mpHitHandler handler, const vec3 &pos, float radius);

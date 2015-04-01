@@ -231,7 +231,7 @@ mpWorld::~mpWorld()
 #endif // mpWithCppScript
 }
 
-void mpWorld::addParticles(mpParticle *p, int num)
+void mpWorld::addParticles(mpParticle *p, size_t num)
 {
     num = std::min<uint32_t>(num, m_kparams.max_particles - m_num_particles);
     for (int i = 0; i<num; ++i) {
@@ -250,22 +250,22 @@ void mpWorld::addParticles(mpParticle *p, int num)
     m_num_particles += num;
 }
 
-void mpWorld::addPlaneColliders(mpPlaneCollider *col, int num)
+void mpWorld::addPlaneColliders(mpPlaneCollider *col, size_t num)
 {
     m_plane_colliders.insert(m_plane_colliders.end(), col, col + num);
 }
 
-void mpWorld::addSphereColliders(mpSphereCollider *col, int num)
+void mpWorld::addSphereColliders(mpSphereCollider *col, size_t num)
 {
     m_sphere_colliders.insert(m_sphere_colliders.end(), col, col+num);
 }
 
-void mpWorld::addCapsuleColliders(mpCapsuleCollider *col, int num)
+void mpWorld::addCapsuleColliders(mpCapsuleCollider *col, size_t num)
 {
     m_capsule_colliders.insert(m_capsule_colliders.end(), col, col+num);
 }
 
-void mpWorld::addBoxColliders(mpBoxCollider *col, int num)
+void mpWorld::addBoxColliders(mpBoxCollider *col, size_t num)
 {
     m_box_colliders.insert(m_box_colliders.end(), col, col+num);
 }
@@ -308,7 +308,7 @@ void mpWorld::removeCollider(mpColliderProperties &props)
 }
 
 
-void mpWorld::addForces(mpForce *force, int num)
+void mpWorld::addForces(mpForce *force, size_t num)
 {
     m_forces.insert(m_forces.end(), force, force+num);
 }
