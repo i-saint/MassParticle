@@ -2,16 +2,14 @@
 #define _SPH_types_h_
 
 #define GLM_FORCE_RADIANS
-#define __SSSE3__
+#define GLM_FORCE_SSE4
 
 #include <cstdint>
 #include <vector>
 #include <mutex>
 #include <glm/glm.hpp>
-#include <glm/ext.hpp>
 #include <glm/gtx/simd_vec4.hpp>
 #include <glm/gtx/simd_mat4.hpp>
-#include <glm/gtc/matrix_transform.hpp>
 #include <tbb/tbb.h>
 #include <tbb/combinable.h>
 #include "mpCore_ispc.h"

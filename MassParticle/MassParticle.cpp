@@ -243,7 +243,7 @@ extern "C" EXPORT_API void mpScatterParticlesBoxTransform(int context, mat4 *tra
 
 
 
-inline void mpBuildBoxCollider(int context, mpBoxCollider &o, mat4 transform, vec3 size)
+inline void mpBuildBoxCollider(int context, mpBoxCollider &o, const mat4 &transform, vec3 &size)
 {
     float psize = g_worlds[context]->getKernelParams().particle_size;
     size.x = size.x * 0.5f;
