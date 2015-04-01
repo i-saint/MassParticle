@@ -113,7 +113,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
     <IncludePath>../external/UnityCppScript;../external/glm;../external/tbb/include;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
-    <LibraryPath>../external/UnityCppScript;../external\tbb\lib\ia32\vc12;$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);</LibraryPath>
+    <LibraryPath>../external/UnityCppScript;../external\tbb\lib\intel64\vc12;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>$(SolutionDir)build/$(ProjectName)_$(Configuration)/</OutDir>
@@ -125,7 +125,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
     <IncludePath>../external/UnityCppScript;../external/glm;../external/tbb/include;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
-    <LibraryPath>../external/UnityCppScript;../external\tbb\lib\ia32\vc12;$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);</LibraryPath>
+    <LibraryPath>../external/UnityCppScript;../external\tbb\lib\intel64\vc12;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Master|Win32'">
     <OutDir>$(SolutionDir)build/$(Configuration)\</OutDir>
@@ -149,7 +149,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Master|x64'">
     <LinkIncremental>false</LinkIncremental>
     <IncludePath>../external/UnityCppScript;../external/glm;../external/tbb/include;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
-    <LibraryPath>../external/UnityCppScript;../external\tbb\lib\ia32\vc12;$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);</LibraryPath>
+    <LibraryPath>../external/UnityCppScript;../external\tbb\lib\intel64\vc12;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
