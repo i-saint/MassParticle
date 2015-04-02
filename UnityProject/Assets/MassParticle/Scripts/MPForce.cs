@@ -5,7 +5,9 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
 
-public class MPForce : MonoBehaviour {
+[AddComponentMenu("MassParticle/Force")]
+public class MPForce : MonoBehaviour
+{
 
     static List<MPForce> s_instances = new List<MPForce>();
 
@@ -80,8 +82,8 @@ public class MPForce : MonoBehaviour {
             Vector3 dir = m_direction * m_strength_near * 0.5f;
             
             Gizmos.matrix = Matrix4x4.identity;
-            Gizmos.color = Color.yellow;
-            Gizmos.DrawRay (pos, dir);
+            Gizmos.color = Color.cyan;
+            Gizmos.DrawRay(pos, dir);
             
             Vector3 right = Quaternion.LookRotation(dir) * Quaternion.Euler(0,180+arrowHeadAngle,0) * new Vector3(0,0,1);
             Vector3 left = Quaternion.LookRotation(dir) * Quaternion.Euler(0,180-arrowHeadAngle,0) * new Vector3(0,0,1);
@@ -89,7 +91,6 @@ public class MPForce : MonoBehaviour {
             Gizmos.DrawRay(pos + dir, left * arrowHeadLength);
         }
         {
-            Gizmos.color = Color.yellow;
             Gizmos.matrix = transform.localToWorldMatrix;
             switch(m_shape_type) {
             case MPForceShape.Sphere:
@@ -97,7 +98,6 @@ public class MPForce : MonoBehaviour {
                 break;
 
             case MPForceShape.Box:
-                Gizmos.color = Color.yellow;
                 Gizmos.DrawWireCube(Vector3.zero, Vector3.one);
                 break;
             }

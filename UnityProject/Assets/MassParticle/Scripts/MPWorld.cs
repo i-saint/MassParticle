@@ -7,6 +7,7 @@ using System.Runtime.Serialization.Formatters.Binary;
 using System.IO;
 
 
+[AddComponentMenu("MassParticle/World")]
 public unsafe class MPWorld : MonoBehaviour
 {
     public static List<MPWorld> s_instances = new List<MPWorld>();
@@ -30,7 +31,7 @@ public unsafe class MPWorld : MonoBehaviour
     public MPSolverType m_solver = MPSolverType.Impulse;
     public bool m_enable_interaction = true;
     public bool m_enable_colliders = true;
-    public bool m_enable_orces = true;
+    public bool m_enable_forces = true;
     public bool m_id_as_float = true;
     public float m_particle_mass = 0.1f;
     public float m_timescale = 0.6f;
@@ -58,10 +59,9 @@ public unsafe class MPWorld : MonoBehaviour
     public void AddOneTimeAction(Action a) { m_onetime_actions.Add(a); }
 
 
-    public int UpdateDataTexture(RenderTexture rt)
+    public void UpdateDataTexture(RenderTexture rt)
     {
-        m_particle_num = MPAPI.mpUpdateDataTexture(GetContext(), rt.GetNativeTexturePtr());
-        return m_particle_num;
+        MPAPI.mpUpdateDataTexture(GetContext(), rt.GetNativeTexturePtr());
     }
 
 
@@ -179,15 +179,17 @@ public unsafe class MPWorld : MonoBehaviour
 
     void OnDrawGizmos()
     {
-        Gizmos.color = Color.yellow;
-        Gizmos.DrawWireCube(transform.position, transform.localScale * 2.0f);
         Gizmos.color = Color.cyan;
+        Gizmos.DrawWireCube(transform.position, transform.localScale * 2.0f);
+        Gizmos.color = Color.blue;
         Gizmos.DrawWireCube(transform.position + m_active_region_center, m_active_region_extent * 2.0f);
     }
 
 
     void UpdateKernelParams()
     {
+        m_particle_num = MPAPI.mpGetNumParticles(GetContext());
+
         MPKernelParams p = MPAPI.mpGetKernelParams(GetContext());
         p.world_center = transform.position;
         p.world_size = transform.localScale;
@@ -199,7 +201,7 @@ public unsafe class MPWorld : MonoBehaviour
         p.solver_type = (int)m_solver;
         p.enable_interaction = m_enable_interaction ? 1 : 0;
         p.enable_colliders = m_enable_colliders ? 1 : 0;
-        p.enable_forces = m_enable_orces ? 1 : 0;
+        p.enable_forces = m_enable_forces ? 1 : 0;
         p.id_as_float = m_id_as_float ? 1 : 0;
         p.timestep = Time.deltaTime * m_timescale;
         p.damping = m_damping;

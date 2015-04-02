@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 
+[AddComponentMenu("MassParticle/SphereCollider")]
 public class MPSphereCollider : MPCollider
 {
     public float radius = 0.5f;
@@ -20,7 +21,7 @@ public class MPSphereCollider : MPCollider
     void OnDrawGizmos()
     {
         Transform t = GetComponent<Transform>(); // エディタから実行されるので trans は使えない
-        Gizmos.color = Color.yellow;
+        Gizmos.color = Color.cyan;
         Gizmos.matrix = t.localToWorldMatrix;
         Gizmos.DrawWireSphere(Vector3.zero, 0.5f);
         Gizmos.matrix = Matrix4x4.identity;

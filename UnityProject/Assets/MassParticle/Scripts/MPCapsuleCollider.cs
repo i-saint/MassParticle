@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 
+[AddComponentMenu("MassParticle/CapsuleCollider")]
 public class MPCapsuleCollider : MPCollider
 {
     public enum Direction
@@ -59,7 +60,7 @@ public class MPCapsuleCollider : MPCollider
     {
         m_trans = GetComponent<Transform>();
         UpdateCapsule(); // エディタから実行される都合上必要
-        Gizmos.color = Color.yellow;
+        Gizmos.color = Color.cyan;
         Gizmos.DrawWireSphere(m_pos1, m_radius);
         Gizmos.DrawWireSphere(m_pos2, m_radius);
         Gizmos.DrawLine(m_pos1, m_pos2);

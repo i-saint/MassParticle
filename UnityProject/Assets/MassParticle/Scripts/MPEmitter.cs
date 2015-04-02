@@ -4,7 +4,10 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
-public class MPEmitter : MonoBehaviour {
+
+[AddComponentMenu("MassParticle/Emitter")]
+public class MPEmitter : MonoBehaviour
+{
 
     static List<MPEmitter> instances = new List<MPEmitter>();
 
@@ -95,7 +98,7 @@ public class MPEmitter : MonoBehaviour {
 
     void OnDrawGizmos()
     {
-        Gizmos.color = Color.yellow;
+        Gizmos.color = Color.blue;
         Gizmos.matrix = transform.localToWorldMatrix;
         switch(m_shape) {
         case Shape.Sphere:
@@ -103,7 +106,6 @@ public class MPEmitter : MonoBehaviour {
             break;
             
         case Shape.Box:
-            Gizmos.color = Color.yellow;
             Gizmos.DrawWireCube(Vector3.zero, Vector3.one);
             break;
         }

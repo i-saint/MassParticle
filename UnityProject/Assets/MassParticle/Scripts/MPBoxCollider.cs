@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 
+[AddComponentMenu("MassParticle/BoxCollider")]
 public class MPBoxCollider : MPCollider
 {
     public override void MPUpdate()
@@ -19,7 +20,7 @@ public class MPBoxCollider : MPCollider
     void OnDrawGizmos()
     {
         Transform t = GetComponent<Transform>(); // エディタから実行されるので trans は使えない
-        Gizmos.color = Color.yellow;
+        Gizmos.color = Color.cyan;
         Gizmos.matrix = t.localToWorldMatrix;
         Gizmos.DrawWireCube(Vector3.zero, Vector3.one);
         Gizmos.matrix = Matrix4x4.identity;
