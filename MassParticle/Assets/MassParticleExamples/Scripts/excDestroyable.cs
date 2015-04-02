@@ -73,6 +73,7 @@ public class excDestroyable : MonoBehaviour {
 
     void OnDestroy()
     {
+        if (MPWorld.s_instances.Count == 0) return;
         float radius = (trans.localScale.x + trans.localScale.y + trans.localScale.z) * 0.5f;
         MPUtils.AddRadialSphereForce(MPWorld.s_instances[0], trans.position, radius, radius * 100.0f);
     }
