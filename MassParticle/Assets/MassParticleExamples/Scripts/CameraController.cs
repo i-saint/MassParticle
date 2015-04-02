@@ -1,34 +1,59 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-public class CameraController : MonoBehaviour {
+public class CameraController : MonoBehaviour
+{
+    public bool m_rotate_by_time = false;
+    public float m_rotate_speed = -10.0f;
+    public Camera m_camera;
+    public Transform m_look_target;
 
-	public GameObject cube;
+    public float m_follow_strength = 1.0f;
+    public Vector3 m_target_offset;
+    Vector3 m_look_pos;
 
+    void Awake()
+    {
+        if (m_camera == null || m_look_target == null) return;
+        m_look_pos = m_look_target.position;
+    }
 
-	// Use this for initialization
-	void Start () {
-	
-	}
-	
-	// Update is called once per frame
-	void Update () {
-		Vector3 move = new Vector3 ();
-		move.x = Input.GetAxisRaw ("Horizontal");
-		move.z = Input.GetAxisRaw ("Vertical");
-		move *= 0.1f;
+    void Update()
+    {
+        if (m_camera == null || m_look_target == null) return;
+        Transform cam_t = m_camera.GetComponent<Transform>();
 
-		if (Input.GetButtonDown("Fire1"))
-		{
-			Instantiate(cube, new Vector3(Random.Range(-2.0f, 2.0f), 5.0f, Random.Range(-2.0f, 2.0f)), new Quaternion());
-		}
+        if (Input.GetKeyUp(KeyCode.R)) { m_rotate_by_time = !m_rotate_by_time; }
 
-		Collider[] colliders = Physics.OverlapSphere(transform.position, 10.0f);
-		for (int i = 0; i < colliders.Length; ++i)
-		{
-			Collider col = colliders[i];
-			col.transform.position += move;
-		}
-	}
+        Vector3 pos = cam_t.position - m_look_target.position;
+        if (m_rotate_by_time)
+        {
+            pos = Quaternion.Euler(0.0f, Time.deltaTime * m_rotate_speed, 0) * pos;
+        }
+        if (Input.GetMouseButton(0) || Input.GetMouseButton(1))
+        {
+            float ry = Input.GetAxis("Mouse X") * 3.0f;
+            float rxz = Input.GetAxis("Mouse Y") * 0.25f;
+            pos = Quaternion.Euler(0.0f, ry, 0) * pos;
+            pos.y += rxz;
+        }
+        {
+            float wheel = Input.GetAxis("Mouse ScrollWheel");
+            pos += pos.normalized * wheel * 4.0f;
+        }
+        cam_t.position = pos + m_look_target.position;
+
+        if (Input.GetMouseButton(2))
+        {
+            float xz = Input.GetAxis("Mouse X") * -0.1f;
+            float y = Input.GetAxis("Mouse Y") * -0.1f;
+            var rel = m_camera.cameraToWorldMatrix * new Vector4(xz, y, 0.0f, 0.0f);
+            cam_t.position = cam_t.position + (Vector3)rel;
+            m_look_target.position = m_look_target.position + (Vector3)rel;
+        }
+
+        m_look_pos += (m_look_target.position - m_look_pos) * m_follow_strength;
+        cam_t.transform.LookAt(m_look_pos + m_target_offset);
+    }
 }
 

@@ -6,8 +6,8 @@ float       g_spin;
 float4      g_instance_data_size;
 
 
-#define PI      3.1415926535897932384626433832795
-float deg2rad(float  deg) { return deg*PI/180.0; }
+#define PI 3.1415926535897932384626433832795
+float  deg2rad(float  deg) { return deg*PI/180.0; }
 float2 deg2rad(float2 deg) { return deg*PI/180.0; }
 float3 deg2rad(float3 deg) { return deg*PI/180.0; }
 float4 deg2rad(float4 deg) { return deg*PI/180.0; }
