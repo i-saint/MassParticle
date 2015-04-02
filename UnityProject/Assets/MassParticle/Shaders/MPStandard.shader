@@ -97,10 +97,7 @@ CGPROGRAM
     #pragma vertex vert
     #pragma fragment frag
     #pragma multi_compile_shadowcaster
-    #pragma glsl
     #include "UnityCG.cginc"
-
-    sampler2D _MainTex;
 
     struct v2f { 
         V2F_SHADOW_CASTER;
