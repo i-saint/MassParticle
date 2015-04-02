@@ -33,11 +33,9 @@ enum mpForceDirection
     mpFD_VectorField, //
 };
 
-extern "C" EXPORT_API void			mpGeneratePointMesh(int context, int mi, mpMeshData *mds);
-extern "C" EXPORT_API void			mpGenerateCubeMesh(int context, int mi, mpMeshData *mds);
-extern "C" EXPORT_API int			mpUpdateDataTexture(int context, void *tex);
+extern "C" EXPORT_API void			mpUpdateDataTexture(int context, void *tex);
 #ifdef mpWithCppScript
-extern "C" EXPORT_API int			mpUpdateDataBuffer(int context, UnityEngine::ComputeBuffer buf);
+extern "C" EXPORT_API void			mpUpdateDataBuffer(int context, UnityEngine::ComputeBuffer buf);
 #endif // mpWithCppScript
 
 extern "C" EXPORT_API int			mpCreateContext();

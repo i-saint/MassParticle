@@ -28,25 +28,16 @@ float mpGenRand1()
 }
 
 
-extern "C" EXPORT_API void mpGeneratePointMesh(int context, int mi, mpMeshData *mds)
+extern "C" EXPORT_API void mpUpdateDataTexture(int context, void *tex)
 {
-    g_worlds[context]->generatePointMesh(mi, mds);
-}
-
-extern "C" EXPORT_API void mpGenerateCubeMesh(int context, int mi, mpMeshData *mds)
-{
-    g_worlds[context]->generateCubeMesh(mi, mds);
-}
-
-extern "C" EXPORT_API int mpUpdateDataTexture(int context, void *tex)
-{
-    return g_worlds[context]->updateDataTexture(tex);
+    if (context == 0) return;
+    g_worlds[context]->updateDataTexture(tex);
 }
 
 #ifdef mpWithCppScript
-extern "C" EXPORT_API int mpUpdateDataBuffer(int context, UnityEngine::ComputeBuffer buf)
+extern "C" EXPORT_API void mpUpdateDataBuffer(int context, UnityEngine::ComputeBuffer buf)
 {
-    return g_worlds[context]->updateDataBuffer(buf);
+    g_worlds[context]->updateDataBuffer(buf);
 }
 struct mpUpdateDataBufferHelper
 {
@@ -129,6 +120,7 @@ extern "C" EXPORT_API void mpSetKernelParams(int context, ispc::KernelParams *pa
 
 extern "C" EXPORT_API int mpGetNumParticles(int context)
 {
+    if (context == 0) return 0;
     return g_worlds[context]->getNumParticles();
 }
 extern "C" EXPORT_API mpParticleIM*	mpGetIntermediateData(int context, int nth)
