@@ -1,11 +1,8 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-public class excDestroyable : MonoBehaviour {
-
-    private Rigidbody rigid;
-    private Transform trans;
-
+public class Destroyable : MonoBehaviour
+{
     public float life = 10.0f;
     
     public Vector3 accelDir = Vector3.zero;
@@ -15,19 +12,25 @@ public class excDestroyable : MonoBehaviour {
 
     public bool scatterFractions = true;
 
+    Rigidbody rigid;
+    Transform trans;
+    MPCollider m_mpcol;
 
-    // Use this for initialization
-    void Start () {
-        rigid = GetComponent<Rigidbody> ();
-        trans = GetComponent<Transform> ();
+
+    void Start()
+    {
+        rigid = GetComponent<Rigidbody>();
+        trans = GetComponent<Transform>();
+        m_mpcol = GetComponent<MPCollider>();
+        m_mpcol.m_hit_handler = OnHitParticle;
     }
     
-    // Update is called once per frame
-    void Update () {
+    void Update ()
+    {
         if(IsDead()) {
             if(scatterFractions) {
                 float volume = trans.localScale.x * trans.localScale.y * trans.localScale.z;
-                int num = (int)(volume * 1000.0f);
+                int num = (int)(volume * 500.0f);
                 Matrix4x4 mat = trans.localToWorldMatrix;
                 MPWorld.s_instances[0].AddOneTimeAction(() => {
                     MPSpawnParams sp = new MPSpawnParams();
@@ -48,16 +51,17 @@ public class excDestroyable : MonoBehaviour {
         if(rigid) {
             Vector3 vel = rigid.velocity;
             vel.x -= accel;
+            vel.y = 0.0f;
             rigid.velocity = vel;
             
             Vector3 pos = rigid.transform.position;
-            pos.y *= 0.98f;
+            pos.y *= 0.95f;
             rigid.transform.position = pos;
             
             float speed = rigid.velocity.magnitude;
             rigid.velocity = rigid.velocity.normalized * (Mathf.Min (speed, maxSpeed) * deccel);
             
-            rigid.angularVelocity *= 0.98f;
+            rigid.angularVelocity = rigid.angularVelocity * 0.98f;
         }
     }
 
@@ -74,7 +78,27 @@ public class excDestroyable : MonoBehaviour {
     void OnDestroy()
     {
         if (MPWorld.s_instances.Count == 0) return;
-        float radius = (trans.localScale.x + trans.localScale.y + trans.localScale.z) * 0.5f;
-        MPUtils.AddRadialSphereForce(MPWorld.s_instances[0], trans.position, radius, radius * 100.0f);
+
+        Vector3 pos = trans.position;
+        Vector3 scale = trans.localScale;
+        MPWorld.s_instances[0].AddOneTimeAction(() =>
+        {
+            float radius = (scale.x + scale.y + scale.z) * 0.5f;
+            MPUtils.AddRadialSphereForce(MPWorld.s_instances[0], pos, radius, radius * 100.0f);
+        });
+    }
+
+    void OnHitParticle(ref MPParticle particle)
+    {
+
+        m_mpcol.PropagateHit(ref particle);
+
+        const float VelocityThreshold = 12.5f;
+
+        if (particle.speed > VelocityThreshold)
+        {
+            particle.lifetime = 0.0f;
+            Damage(0.25f);
+        }
     }
 }

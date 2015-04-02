@@ -4,12 +4,12 @@ using System.Collections;
 public class Enemy : MonoBehaviour {
 
 	Rigidbody rigid;
-	excDestroyable stat;
+	Destroyable stat;
 
 	// Use this for initialization
 	void Start () {
 		rigid = GetComponent<Rigidbody> ();
-		stat = GetComponent<excDestroyable> ();
+		stat = GetComponent<Destroyable> ();
 		
 		rigid.maxAngularVelocity = 20.0f;
 	}

@@ -8,7 +8,7 @@ using System.IO;
 
 
 [AddComponentMenu("MassParticle/World")]
-public unsafe class MPWorld : MonoBehaviour
+public class MPWorld : MonoBehaviour
 {
     public static List<MPWorld> s_instances = new List<MPWorld>();
     public static MPWorld s_current;

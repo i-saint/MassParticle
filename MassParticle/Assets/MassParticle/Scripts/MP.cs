@@ -158,7 +158,7 @@ public struct MPSpawnParams
 
 public class MPAPI {
     
-    [DllImport ("MassParticleHelper")] unsafe public static extern void mphInitialize();
+    [DllImport ("MassParticleHelper")] public static extern void mphInitialize();
 
     [DllImport ("MassParticle")] public static extern void mpGeneratePointMesh(int context, int i, ref MPMeshData md);
     [DllImport ("MassParticle")] public static extern void mpGenerateCubeMesh(int context, int i, ref MPMeshData md);
