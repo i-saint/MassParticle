@@ -72,6 +72,86 @@ export uniform int GetProgramCount() { return programCount; }
 
 
 
+
+
+bool IsOverlaped(vec3f pos, uniform const AABB &aabb, float r)
+{
+    vec3f wext = (aabb.ur-aabb.bl) * 0.5 + r;
+    vec3f rpos = pos - (aabb.ur+aabb.bl) * 0.5;
+    rpos = abs(rpos);
+    if(rpos.x>wext.x || rpos.y>wext.y || rpos.z>wext.z)
+    {
+        return false;
+    }
+    return true;
+}
+
+
+struct DistanceData
+{
+    vec3f direction;
+    float distance;
+};
+
+
+DistanceData DistancePointSphere(vec3f ppos, uniform const Sphere &shape)
+{
+    vec3f diff = ppos - shape.center;
+    float distance = length(diff)-shape.radius;
+    vec3f dir = normalize(diff);
+
+    DistanceData ret = {dir, distance};
+    return ret;
+}
+
+
+DistanceData DistancePointCapsule(vec3f ppos, uniform const Capsule &shape)
+{
+    vec3f pos1 = shape.pos1;
+    vec3f pos2 = shape.pos2;
+    vec3f d = pos2-pos1;
+
+    float t = dot(ppos-pos1, pos2-pos1) / dot(d,d);
+    vec3f diff;
+    if(t<=0.0f) {
+        diff = ppos-pos1;
+    }
+    else if(t>=1.0f) {
+        diff = ppos-pos2;
+    }
+    else {
+        vec3f nearest = pos1 + (pos2-pos1)*t;
+        diff = ppos-nearest;
+    }
+    float distance = length(diff)-shape.radius;
+    vec3f dir = normalize(diff);
+
+    DistanceData ret = {dir, distance};
+    return ret;
+}
+
+DistanceData DistancePointBox(vec3f ppos, uniform const Box &shape)
+{
+    int inside = 0;
+    float closest_distance = -999.0f;
+    vec3f closest_normal;
+    vec3f rpos = ppos - shape.center;
+    for(int p=0; p<6; ++p) {
+        vec3f plane_normal = shape.planes[p].normal;
+        float plane_distance = shape.planes[p].distance;
+        float distance = dot(rpos, plane_normal) + plane_distance;
+        if(distance > closest_distance) {
+            closest_distance = distance;
+            closest_normal = plane_normal;
+        }
+    }
+
+    DistanceData ret = {closest_normal, closest_distance};
+    return ret;
+}
+
+
+
 vec3f ComputeGridBox(uniform const KernelParams &params, uniform const vec3i idx, uniform vec3f &o_bl, uniform vec3f &o_ur)
 {
     uniform vec3f wextent = params.world_extent;
@@ -132,7 +212,7 @@ export void ProcessColliders(uniform Context &ctx, uniform const vec3i &idx)
         uniform const float plane_distance = shape.distance;
         foreach(i=0 ... particle_num) {
             vec3f ppos = get_particle_position(i);
-            float distance = dot3(ppos, plane_normal) + plane_distance;
+            float distance = dot(ppos, plane_normal) + plane_distance;
             if(distance < 0.0f) {
                 repulse(plane_normal, distance, col.props);
             }
@@ -152,7 +232,7 @@ export void ProcessColliders(uniform Context &ctx, uniform const vec3i &idx)
         foreach(i=0 ... particle_num) {
             vec3f ppos = get_particle_position(i);
             vec3f diff = ppos - sphere_pos;
-            float len = length3(diff);
+            float len = length(diff);
             float distance = len - sphere_radius;
             if(distance < 0.0f) {
                 vec3f dir = diff / len;
@@ -175,7 +255,7 @@ export void ProcessColliders(uniform Context &ctx, uniform const vec3i &idx)
         uniform float rcp_lensq = shape.rcp_lensq;
         foreach(i=0 ... particle_num) {
             vec3f ppos = get_particle_position(i);
-            const float t = dot3(ppos-pos1, pos2-pos1) * rcp_lensq;
+            const float t = dot(ppos-pos1, pos2-pos1) * rcp_lensq;
             vec3f diff;
             if(t<=0.0f) {
                 diff = ppos-pos1;
@@ -187,7 +267,7 @@ export void ProcessColliders(uniform Context &ctx, uniform const vec3i &idx)
                 vec3f nearest = pos1 + (pos2-pos1)*t;
                 diff = ppos-nearest;
             }
-            float len = length3(diff);
+            float len = length(diff);
             float distance = len - radius;
             if(distance < 0.0f) {
                 vec3f dir = diff / len;
@@ -214,7 +294,7 @@ export void ProcessColliders(uniform Context &ctx, uniform const vec3i &idx)
             for(uniform int p=0; p<6; ++p) {
                 uniform const vec3f plane_normal = shape.planes[p].normal;
                 uniform const float plane_distance = shape.planes[p].distance;
-                float distance = dot3(ppos, plane_normal) + plane_distance;
+                float distance = dot(ppos, plane_normal) + plane_distance;
                 if(distance < 0.0f) {
                     inside++;
                     if(distance > closest_distance) {
@@ -231,6 +311,16 @@ export void ProcessColliders(uniform Context &ctx, uniform const vec3i &idx)
 }
 #undef repulse
 
+
+
+vec3f VectorField(vec3f pos, vec3f rcp_cellsize, float strength, float random_seed, float random_diffuse)
+{
+    vec3f dir = normalize(iq_rand(floor(pos * rcp_cellsize) * (1.0+random_seed)) * 2.0 - 1.0);
+    float rs = iq_rand(dot(pos, pos));
+    vec3f accel = dir * (strength + random_diffuse*rs);
+    return accel;
+
+}
 
 export void ProcessExternalForce(uniform Context &ctx, uniform const vec3i &idx)
 {
@@ -261,7 +351,7 @@ export void ProcessExternalForce(uniform Context &ctx, uniform const vec3i &idx)
             foreach(i=0 ... particle_num) {
                 vec3f ppos = get_particle_position(i);
                 vec3f diff = ppos - center;
-                float distance_sq = length_sq3(diff);
+                float distance_sq = length_sq(diff);
                 affection[i] = distance_sq<=radius_sq ? 1.0f : 0.0f;
             }
         }
@@ -282,7 +372,7 @@ export void ProcessExternalForce(uniform Context &ctx, uniform const vec3i &idx)
                 for(uniform int p=0; p<6; ++p) {
                     uniform const vec3f plane_normal = box.planes[p].normal;
                     uniform const float plane_distance = box.planes[p].distance;
-                    float distance = dot3(ppos, plane_normal) + plane_distance;
+                    float distance = dot(ppos, plane_normal) + plane_distance;
                     if(distance < 0.0f) {
                         inside++;
                     }
@@ -293,22 +383,22 @@ export void ProcessExternalForce(uniform Context &ctx, uniform const vec3i &idx)
 
         if(props.dir_type==FD_Directional) {
             foreach(i=0 ... particle_num) {
-                vec3f dir = props.directional_dir;
+                vec3f dir = props.direction;
                 float af = affection[i];
                 vec3f a = get_particle_accel(i);
-                a = a + dir * (lerp(props.strength_far, props.strength_near, pow(af, props.attenuation_exp)));
+                a = a + dir * lerp(props.strength_far, props.strength_near, pow(af, props.attenuation_exp));
                 set_particle_accel(i,a);
             }
         }
         else if(props.dir_type==FD_Radial) {
-            vec3f center = props.radial_center;
+            vec3f center = props.center;
             foreach(i=0 ... particle_num) {
                 vec3f ppos = get_particle_position(i);
                 vec3f diff = ppos - center;
-                vec3f dir = normalize3(diff);
+                vec3f dir = normalize(diff);
                 float af = affection[i];
                 vec3f a = get_particle_accel(i);
-                a = a + dir * (lerp(props.strength_far, props.strength_near, pow(af, props.attenuation_exp)));
+                a = a + dir * lerp(props.strength_far, props.strength_near, pow(af, props.attenuation_exp));
                 set_particle_accel(i,a);
             }
         }
@@ -316,7 +406,17 @@ export void ProcessExternalForce(uniform Context &ctx, uniform const vec3i &idx)
             // todo
         }
         else if(props.dir_type==FD_VectorField) {
-            // todo
+            float rseed = props.random_seed;
+            float rdiff = props.random_diffuse;
+            vec3f rcp_cell = props.rcp_cellsize;
+            foreach(i=0 ... particle_num) {
+                vec3f ppos = get_particle_position(i);
+                vec3f a = get_particle_accel(i);
+                float af = affection[i];
+                float s = lerp(props.strength_far, props.strength_near, pow(af, props.attenuation_exp));
+                a = a + VectorField(ppos, rcp_cell, s, rseed, rdiff);
+                set_particle_accel(i,a);
+            }
         }
     }
 }
@@ -326,7 +426,7 @@ static inline float sphComputeDensity(const uniform KernelParams &params, vec3f 
 {
     uniform const float h_sq = params.particle_size * params.particle_size;
     vec3f diff = pos2 - pos1;
-    float r_sq = dot3(diff, diff);
+    float r_sq = dot(diff, diff);
     if(r_sq < h_sq) {
         // Implements this equation:
         // W_poly6(r, h) = 315 / (64 * pi * h^9) * (h^2 - r^2)^3
@@ -483,7 +583,7 @@ static inline vec3f sphComputeAccel(
     uniform const float h_sq = params.particle_size * params.particle_size;
     vec3f accel = {0.0f, 0.0f, 0.0f};
     vec3f diff = pos2 - pos1;
-    float r_sq = dot3(diff, diff);
+    float r_sq = dot(diff, diff);
     if(r_sq < h_sq && r_sq > 0.0f) {
         float pressure2 = sphCalculatePressure(params, density2);
         float r = sqrt(r_sq);
@@ -570,7 +670,7 @@ export void impUpdatePressure(uniform Context &ctx, uniform const vec3i &idx)
                         vec3f vel2 = get_neighbor_velocity(t);
                         vec3f diff = pos2 - pos1;
                         vec3f dir = diff * kp.RcpParticleSize2; // vec3 dir = diff / d;
-                        float d = length3(diff);
+                        float d = length(diff);
                         if(d > 0.0f) { // d==0: same particle
                             accel = accel + dir * (min(0.0f, d-(kp.particle_size*2.0f)) * kp.pressure_stiffness);
                             accel = accel + (vel2-vel1) * advection;
@@ -610,7 +710,7 @@ export void Integrate(uniform Context &ctx, uniform const vec3i &idx)
 
         set_particle_position(i,pos);
         set_particle_velocity(i,vel);
-        speed[i] = length3(vel);
+        speed[i] = length(vel);
 
         vec3f a = accel * -timestep;
         set_particle_accel(i,a);

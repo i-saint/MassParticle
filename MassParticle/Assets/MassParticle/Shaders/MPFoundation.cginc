@@ -48,11 +48,11 @@ float4x4 rotation_matrix44(float3 axis, float angle)
 
 // o_pos: w=ID
 // o_params: y=lifetime
-void GetParticleParams(float2 i, out float4 o_pos, out float4 o_vel, out float4 o_params)
+void GetParticleParams(int iid, out float4 o_pos, out float4 o_vel, out float4 o_params)
 {
-    int iid = i.x + g_batch_begin;
+    float i = iid*3;
     float4 t = float4(
-        g_instance_data_size.xy * float2(fmod(iid*3, g_instance_data_size.z) + 0.5, floor(iid*3/g_instance_data_size.z) + 0.5),
+        g_instance_data_size.xy * float2(fmod(i, g_instance_data_size.z) + 0.5, floor(i/g_instance_data_size.z) + 0.5),
         0.0, 0.0);
     float4 pitch = float4(g_instance_data_size.x, 0.0, 0.0, 0.0);
     o_pos   = tex2Dlod(g_instance_data, t + pitch*0.0);
@@ -60,9 +60,10 @@ void GetParticleParams(float2 i, out float4 o_pos, out float4 o_vel, out float4 
     o_params= tex2Dlod(g_instance_data, t + pitch*2.0);
 }
 
-void ParticleTransform(inout appdata_full v, inout float4 pos, inout float4 vel, inout float4 params)
+void ParticleTransform(inout appdata_full v, out float4 pos, out float4 vel, out float4 params)
 {
-    GetParticleParams(v.texcoord1.xy, pos, vel, params);
+    int iid = v.texcoord1.x + g_batch_begin;
+    GetParticleParams(iid, pos, vel, params);
     float lifetime = params.y;
 
     v.vertex.xyz *= g_size;

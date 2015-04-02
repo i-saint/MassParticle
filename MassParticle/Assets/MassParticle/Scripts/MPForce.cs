@@ -19,7 +19,10 @@ public class MPForce : MonoBehaviour
     public float m_range_inner = 0.0f;
     public float m_range_outer = 100.0f;
     public float m_attenuation_exp = 0.5f;
+    public float m_random_seed = 0.0f;
+    public float m_random_diffuse = 1.0f;
     public Vector3 m_direction = new Vector3(0.0f, -1.0f, 0.0f);
+    public Vector3 m_cellsize = new Vector3(0.5f, 0.5f, 0.5f);
 
     MPForceProperties m_mpprops;
 
@@ -44,22 +47,19 @@ public class MPForce : MonoBehaviour
 
     public void MPUpdate()
     {
-        switch(m_direction_type) {
-        case MPForceDirection.Directional:
-            m_mpprops.directional_dir = m_direction;
-            break;
-
-        case MPForceDirection.Radial:
-            m_mpprops.radial_center = transform.position;
-            break;
-        }
         m_mpprops.dir_type = m_direction_type;
         m_mpprops.shape_type = m_shape_type;
         m_mpprops.strength_near = m_strength_near;
         m_mpprops.strength_far = m_strength_far;
+        m_mpprops.rcp_range = 1.0f / (m_strength_far - m_strength_near);
         m_mpprops.range_inner = m_range_inner;
         m_mpprops.range_outer = m_range_outer;
         m_mpprops.attenuation_exp = m_attenuation_exp;
+        m_mpprops.random_seed = m_random_seed;
+        m_mpprops.random_diffuse = m_random_diffuse;
+        m_mpprops.direction = m_direction;
+        m_mpprops.center = transform.position;
+        m_mpprops.rcp_cellsize = new Vector3(1.0f / m_cellsize.x, 1.0f / m_cellsize.y, 1.0f / m_cellsize.z);
         Matrix4x4 mat = transform.localToWorldMatrix;
         EachTargets((w) => {
             MPAPI.mpAddForce(w.GetContext(), ref m_mpprops, ref mat);

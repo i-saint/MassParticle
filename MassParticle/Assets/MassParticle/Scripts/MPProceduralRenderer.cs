@@ -5,7 +5,9 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
 
-public unsafe class MPProcedualRenderer : MonoBehaviour
+[AddComponentMenu("MassParticle/ProceduralRenderer")]
+[RequireComponent(typeof(MPWorld))]
+public unsafe class MPProceduralRenderer : MonoBehaviour
 {
     public struct Vertex
     {

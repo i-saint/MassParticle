@@ -61,7 +61,7 @@ public class Player : MonoBehaviour {
         fprops.dir_type = MPForceDirection.Radial;
         fprops.strength_near = strength;
         fprops.strength_far = strength;
-        fprops.radial_center = pos - (trans.forward * 6.0f);
+        fprops.center = pos - (trans.forward * 6.0f);
 
         MPWorld.s_instances[0].AddOneTimeAction(() => {
             MPAPI.mpAddForce(MPWorld.s_instances[0].GetContext(), ref fprops, ref blowMatrix);

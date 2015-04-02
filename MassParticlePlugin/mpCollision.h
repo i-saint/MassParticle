@@ -17,6 +17,7 @@ struct BoundingBox
 {
     vec3f bl, ur;
 };
+typedef BoundingBox AABB;
 
 struct Sphere
 {
@@ -99,14 +100,15 @@ struct ForceProperties
     float   strength_far;
     float   range_inner;
     float   range_outer;
+    float   rcp_range;
     float   attenuation_exp;
 
-    vec3f   directional_pos;
-    vec3f   directional_dir;
-    vec3f   radial_center;
+    float   random_seed;
+    float   random_diffuse;
 
-    float   directional_plane_distance;
-    float   rcp_range;
+    vec3f   direction;
+    vec3f   center;
+    vec3f   rcp_cellsize;
 };
 
 struct Force

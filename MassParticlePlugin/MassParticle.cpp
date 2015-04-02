@@ -351,7 +351,6 @@ extern "C" EXPORT_API void mpAddForce(int context, mpForceProperties *props, mat
     mat4 &trans = *_trans;
     mpForce force;
     force.props = *props;
-    force.props.rcp_range = 1.0f / (force.props.range_outer - force.props.range_inner);
 
     switch (force.props.shape_type) {
     case mpFS_Sphere:

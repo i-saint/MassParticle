@@ -125,11 +125,15 @@ public struct MPForceProperties
     public float strength_far;
     public float range_inner;
     public float range_outer;
+    public float rcp_range;
     public float attenuation_exp;
 
-    public Vector3 directional_pos;
-    public Vector3 directional_dir;
-    public Vector3 radial_center;
+    public float random_seed;
+    public float random_diffuse;
+
+    public Vector3 direction;
+    public Vector3 center;
+    public Vector3 rcp_cellsize;
 
     public void SetDefaultValues()
     {
@@ -214,7 +218,7 @@ public static class MPUtils
         MPForceProperties p = new MPForceProperties();
         p.shape_type = MPForceShape.Sphere;
         p.dir_type = MPForceDirection.Radial;
-        p.radial_center = pos;
+        p.center = pos;
         p.strength_near = strength;
         p.strength_far = 0.0f;
         p.attenuation_exp = 0.5f;
