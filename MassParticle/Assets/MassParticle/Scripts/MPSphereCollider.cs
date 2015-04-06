@@ -21,7 +21,7 @@ public class MPSphereCollider : MPCollider
     void OnDrawGizmos()
     {
         Transform t = GetComponent<Transform>(); // エディタから実行されるので trans は使えない
-        Gizmos.color = Color.cyan;
+        Gizmos.color = MPImpl.ColliderGizmoColor;
         Gizmos.matrix = t.localToWorldMatrix;
         Gizmos.DrawWireSphere(Vector3.zero, 0.5f);
         Gizmos.matrix = Matrix4x4.identity;

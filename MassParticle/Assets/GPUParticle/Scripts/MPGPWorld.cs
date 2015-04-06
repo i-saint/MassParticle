@@ -182,7 +182,7 @@ public class MPGPWorld : MonoBehaviour
         m_world_data[0].SetDefaultValues();
         m_world_data[0].num_max_particles = m_max_particles;
         m_world_data[0].SetWorldSize(transform.position, transform.localScale * 0.5f,
-            new UVector3 { x = (uint)m_world_div_x, y = (uint)m_world_div_y, z = (uint)m_world_div_z });
+            (uint)m_world_div_x, (uint)m_world_div_y, (uint)m_world_div_z);
         m_sph_params[0].SetDefaultValues(m_world_data[0].particle_size);
 
         m_particles = new MPGPParticle[m_max_particles];
@@ -193,9 +193,7 @@ public class MPGPWorld : MonoBehaviour
             m_particles[i].lifetime = 0.0f;
         }
 
-
-        IVector3 world_div = m_world_data[0].world_div;
-        int num_cells = world_div.x * world_div.y * world_div.z;
+        int num_cells = m_world_data[0].world_div_x * m_world_data[0].world_div_y * m_world_data[0].world_div_z;
 
         m_buf_world_data = new ComputeBuffer(1, MPGPWorldData.size);
         m_buf_world_idata = new ComputeBuffer(1, MPGPWorldIData.size);
@@ -283,8 +281,7 @@ public class MPGPWorld : MonoBehaviour
         m_buf_box_colliders.SetData(m_box_colliders.ToArray());         m_box_colliders.Clear();
         m_buf_forces.SetData(m_forces.ToArray());                       m_forces.Clear();
 
-        IVector3 world_div = m_world_data[0].world_div;
-        int num_cells = world_div.x * world_div.y * world_div.z;
+        int num_cells = m_world_data[0].world_div_x * m_world_data[0].world_div_y * m_world_data[0].world_div_z;
 
         m_world_data[0].num_additional_particles = m_particles_to_add.Count;
         m_buf_world_data.SetData(m_world_data);

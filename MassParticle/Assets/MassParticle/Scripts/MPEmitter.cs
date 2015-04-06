@@ -98,7 +98,7 @@ public class MPEmitter : MonoBehaviour
 
     void OnDrawGizmos()
     {
-        Gizmos.color = Color.blue;
+        Gizmos.color = MPImpl.EmitterGizmoColor;
         Gizmos.matrix = transform.localToWorldMatrix;
         switch(m_shape) {
         case Shape.Sphere:

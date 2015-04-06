@@ -210,6 +210,39 @@ public class MPAPI {
 }
 
 
+public static class MPImpl
+{
+    public static Color WorldGizmoColor = Color.cyan;
+    public static Color EmitterGizmoColor = Color.cyan;
+    public static Color ColliderGizmoColor = Color.cyan;
+    public static Color ForceGizmoColor = Color.cyan;
+
+    [StructLayout(LayoutKind.Explicit)]
+    public struct IntFloatUnion
+    {
+        [FieldOffset(0)]
+        public int i32;
+        [FieldOffset(0)]
+        public float f32;
+    }
+
+    public static int FloatToBinary(float f)
+    {
+        IntFloatUnion ifu;
+        ifu.i32 = 0; // shut up compiler
+        ifu.f32 = f;
+        return ifu.i32;
+    }
+
+    public static float BinaryToFloat(int b)
+    {
+        IntFloatUnion ifu;
+        ifu.f32 = 0.0f; // shut up compiler
+        ifu.i32 = b;
+        return ifu.f32;
+    }
+}
+
 public static class MPUtils
 {
     public static void AddRadialSphereForce(MPWorld world, Vector3 pos, float radius, float strength)
@@ -227,28 +260,5 @@ public static class MPUtils
         world.AddOneTimeAction(() => {
             MPAPI.mpAddForce(world.GetContext(), ref p, ref mat);
         });
-    }
-
-    [StructLayout(LayoutKind.Explicit)]
-    public struct IntFloatUnion
-    {
-    [FieldOffset(0)]  public int i32;
-    [FieldOffset(0)]  public float f32;
-    }
-
-    public static int FloatToBinary(float f)
-    {
-        IntFloatUnion ifu;
-        ifu.i32 = 0; // shut up compiler
-        ifu.f32 = f;
-        return ifu.i32;
-    }
-
-    public static float BinaryToFloat(int b)
-    {
-        IntFloatUnion ifu;
-        ifu.f32 = 0.0f; // shut up compiler
-        ifu.i32 = b;
-        return ifu.f32;
     }
 }

@@ -3,21 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 
 
-public struct IVector3
-{
-    public int x;
-    public int y;
-    public int z;
-}
-
-public struct UVector3
-{
-    public uint x;
-    public uint y;
-    public uint z;
-}
-
-
 public struct MPGPParticle
 {
     public const int size = 44;
@@ -152,9 +137,15 @@ public struct MPGPWorldData
     public int num_forces;
     public Vector3 world_center;
     public Vector3 world_extents;
-    public IVector3 world_div;
-    public IVector3 world_div_bits;
-    public UVector3 world_div_shift;
+    public int world_div_x;
+    public int world_div_y;
+    public int world_div_z;
+    public int world_div_bits_x;
+    public int world_div_bits_y;
+    public int world_div_bits_z;
+    public uint world_div_shift_x;
+    public uint world_div_shift_y;
+    public uint world_div_shift_z;
     public Vector3 world_cellsize;
     public Vector3 rcp_world_cellsize;
     public Vector2 rt_size;
@@ -189,26 +180,26 @@ public struct MPGPWorldData
         return 0;
     }
 
-    public void SetWorldSize(Vector3 center, Vector3 extents, UVector3 div)
+    public void SetWorldSize(Vector3 center, Vector3 extents, uint div_x, uint div_y, uint div_z)
     {
         world_center = center;
         world_extents = extents;
-        div.x = MSB(div.x);
-        div.y = MSB(div.y);
-        div.z = MSB(div.z);
-        world_div_bits.x = (int)div.x;
-        world_div_bits.y = (int)div.y;
-        world_div_bits.z = (int)div.z;
-        world_div.x = (int)(1U << (int)div.x);
-        world_div.y = (int)(1U << (int)div.y);
-        world_div.z = (int)(1U << (int)div.z);
-        world_div_shift.x = 1U;
-        world_div_shift.y = 1U << (int)(div.x);
-        world_div_shift.z = 1U << (int)(div.x + div.y);
+        div_x = MSB(div_x);
+        div_y = MSB(div_y);
+        div_z = MSB(div_z);
+        world_div_bits_x = (int)div_x;
+        world_div_bits_y = (int)div_y;
+        world_div_bits_z = (int)div_z;
+        world_div_x = (int)(1U << (int)div_x);
+        world_div_y = (int)(1U << (int)div_y);
+        world_div_z = (int)(1U << (int)div_z);
+        world_div_shift_x = 1U;
+        world_div_shift_y = 1U << (int)(div_x);
+        world_div_shift_z = 1U << (int)(div_x + div_y);
         world_cellsize = new Vector3(
-            world_extents.x * 2.0f / world_div.x,
-            world_extents.y * 2.0f / world_div.y,
-            world_extents.z * 2.0f / world_div.z );
+            world_extents.x * 2.0f / world_div_x,
+            world_extents.y * 2.0f / world_div_y,
+            world_extents.z * 2.0f / world_div_z);
         rcp_world_cellsize = new Vector3(
             1.0f / world_cellsize.x,
             1.0f / world_cellsize.y,

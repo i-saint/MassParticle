@@ -82,7 +82,7 @@ public class MPForce : MonoBehaviour
             Vector3 dir = m_direction * m_strength_near * 0.5f;
             
             Gizmos.matrix = Matrix4x4.identity;
-            Gizmos.color = Color.cyan;
+            Gizmos.color = MPImpl.ForceGizmoColor;
             Gizmos.DrawRay(pos, dir);
             
             Vector3 right = Quaternion.LookRotation(dir) * Quaternion.Euler(0,180+arrowHeadAngle,0) * new Vector3(0,0,1);
