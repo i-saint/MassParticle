@@ -1,3 +1,6 @@
+#ifndef MPFoundation_h
+#define MPFoundation_h
+
 int         g_batch_begin;
 sampler2D   g_instance_data;
 float       g_size;
@@ -78,3 +81,5 @@ void ParticleTransform(inout appdata_full v, inout float4 pos, inout float4 vel,
     }
     v.vertex.xyz += pos.xyz;
 }
+
+#endif // MPFoundation_h
