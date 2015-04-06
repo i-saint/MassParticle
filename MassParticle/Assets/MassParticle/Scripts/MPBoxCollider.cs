@@ -5,15 +5,17 @@ using System.Collections.Generic;
 [AddComponentMenu("MassParticle/BoxCollider")]
 public class MPBoxCollider : MPCollider
 {
+    public Vector3 m_center;
+    public Vector3 m_size = Vector3.one;
+
     public override void MPUpdate()
     {
         base.MPUpdate();
 
         Matrix4x4 mat = m_trans.localToWorldMatrix;
-        Vector3 one = Vector3.one;
         EachTargets((w) =>
         {
-            MPAPI.mpAddBoxCollider(w.GetContext(), ref m_cprops, ref mat, ref one);
+            MPAPI.mpAddBoxCollider(w.GetContext(), ref m_cprops, ref mat, ref m_center, ref m_size);
         });
     }
 
@@ -22,7 +24,7 @@ public class MPBoxCollider : MPCollider
         Transform t = GetComponent<Transform>(); // エディタから実行されるので trans は使えない
         Gizmos.color = MPImpl.ColliderGizmoColor;
         Gizmos.matrix = t.localToWorldMatrix;
-        Gizmos.DrawWireCube(Vector3.zero, Vector3.one);
+        Gizmos.DrawWireCube(m_center, m_size);
         Gizmos.matrix = Matrix4x4.identity;
     }
 }

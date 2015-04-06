@@ -235,23 +235,21 @@ extern "C" EXPORT_API void mpScatterParticlesBoxTransform(int context, mat4 *tra
 
 
 
-inline void mpBuildBoxCollider(int context, mpBoxCollider &o, const mat4 &transform, vec3 &size)
+inline void mpBuildBoxCollider(int context, mpBoxCollider &o, const mat4 &transform, const vec3 &center, const vec3 &_size)
 {
     float psize = g_worlds[context]->getKernelParams().particle_size;
-    size.x = size.x * 0.5f;
-    size.y = size.y * 0.5f;
-    size.z = size.z * 0.5f;
+    vec3 size = _size * 0.5f;
 
     simdmat4 st = simdmat4(transform);
     simdvec4 vertices[] = {
-        simdvec4(size.x, size.y, size.z, 0.0f),
-        simdvec4(-size.x, size.y, size.z, 0.0f),
-        simdvec4(-size.x, -size.y, size.z, 0.0f),
-        simdvec4(size.x, -size.y, size.z, 0.0f),
-        simdvec4(size.x, size.y, -size.z, 0.0f),
-        simdvec4(-size.x, size.y, -size.z, 0.0f),
-        simdvec4(-size.x, -size.y, -size.z, 0.0f),
-        simdvec4(size.x, -size.y, -size.z, 0.0f),
+        simdvec4(size.x + center.x, size.y + center.y, size.z + center.z, 0.0f),
+        simdvec4(-size.x + center.x, size.y + center.y, size.z + center.z, 0.0f),
+        simdvec4(-size.x + center.x, -size.y + center.y, size.z + center.z, 0.0f),
+        simdvec4(size.x + center.x, -size.y + center.y, size.z + center.z, 0.0f),
+        simdvec4(size.x + center.x, size.y + center.y, -size.z + center.z, 0.0f),
+        simdvec4(-size.x + center.x, size.y + center.y, -size.z + center.z, 0.0f),
+        simdvec4(-size.x + center.x, -size.y + center.y, -size.z + center.z, 0.0f),
+        simdvec4(size.x + center.x, -size.y + center.y, -size.z + center.z, 0.0f),
     };
     for (int i = 0; i < mpCountof(vertices); ++i) {
         vertices[i] = st * vertices[i];
@@ -317,11 +315,11 @@ inline void mpBuildCapsuleCollider(int context, mpCapsuleCollider &o, vec3 pos1,
 }
 
 
-extern "C" EXPORT_API void mpAddBoxCollider(int context, mpColliderProperties *props, mat4 *transform, vec3 *size)
+extern "C" EXPORT_API void mpAddBoxCollider(int context, mpColliderProperties *props, mat4 *transform, vec3 *size, vec3 *center)
 {
     mpBoxCollider col;
     col.props = *props;
-    mpBuildBoxCollider(context, col, *transform, *size);
+    mpBuildBoxCollider(context, col, *transform, *size, *center);
     g_worlds[context]->addBoxColliders(&col, 1);
 }
 
@@ -380,7 +378,7 @@ extern "C" EXPORT_API void mpAddForce(int context, mpForceProperties *props, mat
     case mpFS_Box:
         {
             mpBoxCollider col;
-            mpBuildBoxCollider(context, col, trans, vec3(1.0f, 1.0f, 1.0f));
+            mpBuildBoxCollider(context, col, trans, vec3(1.0f, 1.0f, 1.0f), vec3());
             force.bounds = col.bounds;
             force.box.center = col.shape.center;
             for (int i = 0; i < 6; ++i) {

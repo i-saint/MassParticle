@@ -12,7 +12,9 @@ public class MPCapsuleCollider : MPCollider
         Z,
     }
     public Direction m_direction = Direction.Y;
-    float m_radius = 0.0f;
+    public Vector3 m_center;
+    public float m_radius = 0.5f;
+    public float m_height = 0.5f;
     Vector4 m_pos1 = Vector4.zero;
     Vector4 m_pos2 = Vector4.zero;
 
@@ -30,26 +32,19 @@ public class MPCapsuleCollider : MPCollider
 
     void UpdateCapsule()
     {
-        float h = 0.0f;
         switch (m_direction)
         {
             case Direction.X:
-                m_radius = (m_trans.localScale.y + m_trans.localScale.z) * 0.5f * 0.5f;
-                h = Mathf.Max(0.0f, m_trans.localScale.x - m_radius * 2.0f);
-                m_pos1.Set(h * 0.5f, 0.0f, 0.0f, 1.0f);
-                m_pos2.Set(-h * 0.5f, 0.0f, 0.0f, 1.0f);
+                m_pos1.Set(m_height * 0.5f + m_center.x, m_center.y, m_center.z, 1.0f);
+                m_pos2.Set(-m_height * 0.5f + m_center.x, m_center.y, m_center.z, 1.0f);
                 break;
             case Direction.Y:
-                m_radius = (m_trans.localScale.x + m_trans.localScale.z) * 0.5f * 0.5f;
-                h = Mathf.Max(0.0f, m_trans.localScale.y - m_radius * 2.0f);
-                m_pos1.Set(0.0f, h * 0.5f, 0.0f, 1.0f);
-                m_pos2.Set(0.0f, -h * 0.5f, 0.0f, 1.0f);
+                m_pos1.Set(m_center.x, m_height * 0.5f + m_center.y, m_center.z, 1.0f);
+                m_pos2.Set(m_center.x, -m_height * 0.5f + m_center.y, m_center.z, 1.0f);
                 break;
             case Direction.Z:
-                m_radius = (m_trans.localScale.x + m_trans.localScale.y) * 0.5f * 0.5f;
-                h = Mathf.Max(0.0f, m_trans.localScale.z - m_radius * 2.0f);
-                m_pos1.Set(0.0f, 0.0f, h * 0.5f, 1.0f);
-                m_pos2.Set(0.0f, 0.0f, -h * 0.5f, 1.0f);
+                m_pos1.Set(m_center.x, m_center.y, m_height * 0.5f + m_center.z, 1.0f);
+                m_pos2.Set(m_center.x, m_center.y, -m_height * 0.5f + m_center.z, 1.0f);
                 break;
         }
         m_pos1 = m_trans.localToWorldMatrix * m_pos1;

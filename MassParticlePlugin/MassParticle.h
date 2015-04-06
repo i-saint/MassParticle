@@ -64,7 +64,7 @@ extern "C" EXPORT_API void			mpScatterParticlesBoxTransform(int context, mat4 *t
 
 extern "C" EXPORT_API void			mpAddSphereCollider(int context, mpColliderProperties *props, vec3 *center, float radius);
 extern "C" EXPORT_API void			mpAddCapsuleCollider(int context, mpColliderProperties *props, vec3 *pos1, vec3 *pos2, float radius);
-extern "C" EXPORT_API void			mpAddBoxCollider(int context, mpColliderProperties *props, mat4 *transform, vec3 *size);
+extern "C" EXPORT_API void			mpAddBoxCollider(int context, mpColliderProperties *props, mat4 *transform, vec3 *center, vec3 *size);
 extern "C" EXPORT_API void			mpRemoveCollider(int context, mpColliderProperties *props);
 extern "C" EXPORT_API void			mpAddForce(int context, mpForceProperties *p, mat4 *trans);
 
