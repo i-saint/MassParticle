@@ -111,7 +111,10 @@ void AddParticles(uint3 dtid : SV_DispatchThreadID)
         particles[ai].id = world_idata[0].id_seed + tid;
     }
 
+    // workaround for PS4
+#ifndef SHADER_API_PSSL
     AllMemoryBarrier();
+#endif // SHADER_API_PSSL
     if(tid==0) {
         world_idata[0].id_seed += min(
             (uint)world_data[0].num_max_particles - (uint)world_idata[0].num_active_particles,

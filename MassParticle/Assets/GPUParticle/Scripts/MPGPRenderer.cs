@@ -12,7 +12,6 @@ public class MPGPRenderer : BatchRendererBase
     public float m_size = 0.2f;
 
     MPGPWorld m_world;
-    RenderTexture m_instance_texture;
     Bounds m_bounds;
 
 #if UNITY_EDITOR
@@ -29,16 +28,8 @@ public class MPGPRenderer : BatchRendererBase
     {
         Material m = new Material(m_material);
         m.SetInt("g_batch_begin", nth * m_instances_par_batch);
-        m.SetTexture("g_instance_data", m_instance_texture);
         m.SetFloat("g_size", m_size);
         m.SetBuffer("particles", m_world.GetParticleBuffer());
-
-        Vector4 ts = new Vector4(
-            1.0f / m_instance_texture.width,
-            1.0f / m_instance_texture.height,
-            m_instance_texture.width,
-            m_instance_texture.height);
-        m.SetVector("g_instance_data_size", ts);
 
         // fix rendering order for transparent objects
         if (m.renderQueue >= 3000)
@@ -51,11 +42,6 @@ public class MPGPRenderer : BatchRendererBase
 
     public virtual void ReleaseGPUResources()
     {
-        if (m_instance_texture != null)
-        {
-            m_instance_texture.Release();
-            m_instance_texture = null;
-        }
         if (m_materials != null)
         {
             m_materials.Clear();
@@ -66,21 +52,20 @@ public class MPGPRenderer : BatchRendererBase
     {
         ReleaseGPUResources();
 
-        m_instance_texture = new RenderTexture(MPWorld.DataTextureWidth, MPWorld.DataTextureHeight, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Default);
-        m_instance_texture.filterMode = FilterMode.Point;
-        m_instance_texture.Create();
-
         UpdateGPUResources();
     }
 
     public override void UpdateGPUResources()
     {
-        m_materials.ForEach((v) =>
+        if (m_materials != null)
         {
-            v.SetInt("g_num_max_instances", m_max_instances);
-            v.SetInt("g_num_instances", m_instance_count);
-            v.SetFloat("g_size", m_size);
-        });
+            m_materials.ForEach((v) =>
+            {
+                v.SetInt("g_num_max_instances", m_max_instances);
+                v.SetInt("g_num_instances", m_instance_count);
+                v.SetFloat("g_size", m_size);
+            });
+        }
     }
 
 

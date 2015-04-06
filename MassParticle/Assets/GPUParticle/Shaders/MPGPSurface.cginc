@@ -48,6 +48,7 @@ int ParticleTransform(inout appdata_full v)
 #if defined(MPGP_STANDARD) || defined(MPGP_SURFACE)
     sampler2D _MainTex;
     fixed4 _Color;
+    fixed4 _Emission;
 
     struct Input {
         float2 uv_MainTex;
@@ -76,11 +77,12 @@ int ParticleTransform(inout appdata_full v)
     void surf(Input data, inout SurfaceOutput o)
     {
         o.Albedo = _Color * tex2D(_MainTex, data.uv_MainTex);
+        o.Emission += _Emission;
 
     #ifdef ENABLE_HEAT_EMISSION
         float speed = data.velocity.w;
         float ei = max(speed-2.0, 0.0) * 1.0;
-        o.Emission = float3(0.25, 0.05, 0.025)*ei;
+        o.Emission += float3(0.25, 0.05, 0.025)*ei;
     #endif // ENABLE_HEAT_EMISSION
     }
 #endif // MPGP_SURFACE
@@ -99,6 +101,7 @@ int ParticleTransform(inout appdata_full v)
         o.Metallic = _Metallic;
         o.Smoothness = _Glossiness;
         o.Alpha = c.a;
+        o.Emission += _Emission;
 
     #ifdef ENABLE_HEAT_EMISSION
         float speed = IN.velocity.w;

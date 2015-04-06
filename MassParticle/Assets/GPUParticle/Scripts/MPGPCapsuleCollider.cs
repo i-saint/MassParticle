@@ -24,5 +24,12 @@ public class MPGPCapsuleCollider : MPGPColliderBase
 
     void OnDrawGizmos()
     {
+        m_trans = GetComponent<Transform>();
+        MPGPImpl.BuildCapsuleCollider(ref m_collider_data, m_trans, m_radius, m_height, (int)m_direction, m_id);
+        Gizmos.color = MPGPImpl.ColliderGizmoColor;
+        Gizmos.DrawWireSphere(m_collider_data.shape.pos1, m_radius);
+        Gizmos.DrawWireSphere(m_collider_data.shape.pos2, m_radius);
+        Gizmos.DrawLine(m_collider_data.shape.pos1, m_collider_data.shape.pos2);
+        Gizmos.matrix = Matrix4x4.identity;
     }
 }

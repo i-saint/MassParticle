@@ -80,7 +80,7 @@ public class MPGPEmitter : MonoBehaviour
         }
         else if (m_shape == Shape.Box)
         {
-            Vector3 s = transform.localScale;
+            Vector3 s = transform.localScale * 0.5f;
             for (int i = 0; i < m_tmp_to_add.Length; ++i)
             {
                 m_tmp_to_add[i].position = pos + new Vector3(R(s.x), R(s.y), R(s.z));
@@ -101,7 +101,6 @@ public class MPGPEmitter : MonoBehaviour
                 break;
 
             case Shape.Box:
-                Gizmos.color = Color.yellow;
                 Gizmos.DrawWireCube(Vector3.zero, Vector3.one);
                 break;
         }

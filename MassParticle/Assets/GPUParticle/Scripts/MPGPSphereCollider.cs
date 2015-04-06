@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 
 
+[AddComponentMenu("GPUParticle/SphereCollider")]
 public class MPGPSphereCollider : MPGPColliderBase
 {
     public float m_radius = 0.5f;
@@ -19,7 +20,7 @@ public class MPGPSphereCollider : MPGPColliderBase
         Transform t = GetComponent<Transform>(); // エディタから実行されるので trans は使えない
         Gizmos.color = MPGPImpl.ColliderGizmoColor;
         Gizmos.matrix = t.localToWorldMatrix;
-        Gizmos.DrawWireSphere(Vector3.zero, 0.5f);
+        Gizmos.DrawWireSphere(Vector3.zero, m_radius);
         Gizmos.matrix = Matrix4x4.identity;
     }
 
