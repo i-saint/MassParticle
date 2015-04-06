@@ -23,7 +23,7 @@ public class MPGPWorld : MonoBehaviour
 
 
 
-    public delegate void ParticleHandler(CSParticle[] particles, int num_particles, List<MPGPColliderBase> colliders);
+    public delegate void ParticleHandler(MPGPParticle[] particles, int num_particles, List<MPGPColliderBase> colliders);
 
     public enum Dimension
     {
@@ -77,12 +77,12 @@ public class MPGPWorld : MonoBehaviour
     public ComputeShader m_cs_sort;
     public ComputeShader m_cs_hashgrid;
 
-    CSParticle[] m_particles;
-    CSWorldData[] m_world_data = new CSWorldData[1];
-    CSWorldIData[] m_world_idata = new CSWorldIData[1];
-    CSSPHParams[] m_sph_params = new CSSPHParams[1];
+    MPGPParticle[] m_particles;
+    MPGPWorldData[] m_world_data = new MPGPWorldData[1];
+    MPGPWorldIData[] m_world_idata = new MPGPWorldIData[1];
+    MPGPSPHParams[] m_sph_params = new MPGPSPHParams[1];
 
-    List<CSParticle> m_particles_to_add = new List<CSParticle>();
+    List<MPGPParticle> m_particles_to_add = new List<MPGPParticle>();
     ComputeBuffer m_buf_world_data;
     ComputeBuffer m_buf_world_idata;
     ComputeBuffer m_buf_sph_params;
@@ -101,12 +101,12 @@ public class MPGPWorld : MonoBehaviour
     ComputeBuffer m_buf_box_colliders;
     ComputeBuffer m_buf_capsule_colliders;
     ComputeBuffer m_buf_forces;
-    List<CSSphereCollider> m_sphere_colliders = new List<CSSphereCollider>();
-    List<CSCapsuleCollider> m_capsule_colliders = new List<CSCapsuleCollider>();
-    List<CSBoxCollider> m_box_colliders = new List<CSBoxCollider>();
+    List<MPGPSphereColliderData> m_sphere_colliders = new List<MPGPSphereColliderData>();
+    List<MPGPCapsuleColliderData> m_capsule_colliders = new List<MPGPCapsuleColliderData>();
+    List<MPGPBoxColliderData> m_box_colliders = new List<MPGPBoxColliderData>();
     List<CSForce> m_forces = new List<CSForce>();
 
-    CSCell[] m_dbg_cell_data;
+    MPGPCell[] m_dbg_cell_data;
     MPGPGPUSort.KIP[] m_dbg_sort_data;
 
     int kAddParticles;
@@ -128,10 +128,10 @@ public class MPGPWorld : MonoBehaviour
     public int GetNumMaxParticles() { return m_max_particles; }
     //public int GetNumParticles() { return m_world_idata[0].num_active_particles; }
 
-    public void AddParticles(CSParticle[] particles) { if(enabled) m_particles_to_add.AddRange(particles); }
-    public void AddSphereCollider(ref CSSphereCollider v) { if (enabled) m_sphere_colliders.Add(v); }
-    public void AddCapsuleCollider(ref CSCapsuleCollider v) { if (enabled) m_capsule_colliders.Add(v); }
-    public void AddBoxCollider(ref CSBoxCollider v) { if (enabled) m_box_colliders.Add(v); }
+    public void AddParticles(MPGPParticle[] particles) { if(enabled) m_particles_to_add.AddRange(particles); }
+    public void AddSphereCollider(ref MPGPSphereColliderData v) { if (enabled) m_sphere_colliders.Add(v); }
+    public void AddCapsuleCollider(ref MPGPCapsuleColliderData v) { if (enabled) m_capsule_colliders.Add(v); }
+    public void AddBoxCollider(ref MPGPBoxColliderData v) { if (enabled) m_box_colliders.Add(v); }
     public void AddForce(ref CSForce v) { if (enabled) m_forces.Add(v); }
 
 #if UNITY_EDITOR
@@ -185,7 +185,7 @@ public class MPGPWorld : MonoBehaviour
             new UVector3 { x = (uint)m_world_div_x, y = (uint)m_world_div_y, z = (uint)m_world_div_z });
         m_sph_params[0].SetDefaultValues(m_world_data[0].particle_size);
 
-        m_particles = new CSParticle[m_max_particles];
+        m_particles = new MPGPParticle[m_max_particles];
         for (int i = 0; i < m_particles.Length; ++i)
         {
             m_particles[i].hit_objid = -1;
@@ -197,25 +197,25 @@ public class MPGPWorld : MonoBehaviour
         IVector3 world_div = m_world_data[0].world_div;
         int num_cells = world_div.x * world_div.y * world_div.z;
 
-        m_buf_world_data = new ComputeBuffer(1, CSWorldData.size);
-        m_buf_world_idata = new ComputeBuffer(1, CSWorldIData.size);
+        m_buf_world_data = new ComputeBuffer(1, MPGPWorldData.size);
+        m_buf_world_idata = new ComputeBuffer(1, MPGPWorldIData.size);
         m_buf_world_idata.SetData(m_world_idata);
-        m_buf_sph_params = new ComputeBuffer(1, CSSPHParams.size);
-        m_buf_cells = new ComputeBuffer(num_cells, CSCell.size);
-        m_buf_particles[0] = new ComputeBuffer(m_max_particles, CSParticle.size);
-        m_buf_particles[1] = new ComputeBuffer(m_max_particles, CSParticle.size);
+        m_buf_sph_params = new ComputeBuffer(1, MPGPSPHParams.size);
+        m_buf_cells = new ComputeBuffer(num_cells, MPGPCell.size);
+        m_buf_particles[0] = new ComputeBuffer(m_max_particles, MPGPParticle.size);
+        m_buf_particles[1] = new ComputeBuffer(m_max_particles, MPGPParticle.size);
         m_buf_particles[0].SetData(m_particles);
-        m_buf_particles_to_add = new ComputeBuffer(m_max_particles, CSParticle.size);
-        m_buf_imd = new ComputeBuffer(m_max_particles, CSParticleIData.size);
-        m_buf_sort_data[0] = new ComputeBuffer(m_max_particles, CSSortData.size);
-        m_buf_sort_data[1] = new ComputeBuffer(m_max_particles, CSSortData.size);
+        m_buf_particles_to_add = new ComputeBuffer(m_max_particles, MPGPParticle.size);
+        m_buf_imd = new ComputeBuffer(m_max_particles, MPGPParticleIData.size);
+        m_buf_sort_data[0] = new ComputeBuffer(m_max_particles, MPGPSortData.size);
+        m_buf_sort_data[1] = new ComputeBuffer(m_max_particles, MPGPSortData.size);
 
         m_bitonic_sort = new MPGPGPUSort();
         m_bitonic_sort.Initialize(m_cs_sort);
 
-        m_buf_sphere_colliders = new ComputeBuffer(m_max_sphere_colliders, CSSphereCollider.size);
-        m_buf_capsule_colliders = new ComputeBuffer(m_max_capsule_colliders, CSCapsuleCollider.size);
-        m_buf_box_colliders = new ComputeBuffer(m_max_box_colliders, CSBoxCollider.size);
+        m_buf_sphere_colliders = new ComputeBuffer(m_max_sphere_colliders, MPGPSphereColliderData.size);
+        m_buf_capsule_colliders = new ComputeBuffer(m_max_capsule_colliders, MPGPCapsuleColliderData.size);
+        m_buf_box_colliders = new ComputeBuffer(m_max_box_colliders, MPGPBoxColliderData.size);
         m_buf_forces = new ComputeBuffer(m_max_forces, CSForce.size);
     }
 
@@ -288,7 +288,7 @@ public class MPGPWorld : MonoBehaviour
 
         m_world_data[0].num_additional_particles = m_particles_to_add.Count;
         m_buf_world_data.SetData(m_world_data);
-        CSWorldData csWorldData = m_world_data[0];
+        MPGPWorldData csWorldData = m_world_data[0];
         m_buf_sph_params.SetData(m_sph_params);
 
 
@@ -480,7 +480,7 @@ public class MPGPWorld : MonoBehaviour
 
     void OnDrawGizmos()
     {
-        Gizmos.color = Color.yellow;
+        Gizmos.color = MPGPImpl.WorldGizmoColor;
         Gizmos.DrawWireCube(transform.position, transform.localScale);
     }
 

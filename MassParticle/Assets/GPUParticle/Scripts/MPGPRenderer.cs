@@ -5,90 +5,114 @@ using UnityEditor;
 #endif // UNITY_EDITOR
 
 
-[RequireComponent(typeof(MPGPWorld))]
-public class MPGPRendererBase : MonoBehaviour
-{
-    public Camera[] m_camera;
-    public Mesh m_mesh;
-    public Material m_material;
-
-    protected MPGPWorld m_pw;
-    protected ComputeBuffer m_buf_vertices;
-    protected int m_num_vertices;
-
-    public virtual void OnEnable()
-    {
-        m_pw = GetComponent<MPGPWorld>();
-        MPGPUtils.CreateVertexBuffer(m_mesh, ref m_buf_vertices, ref m_num_vertices);
-        if (m_camera == null || m_camera.Length == 0)
-        {
-            m_camera = new Camera[1] { Camera.main };
-        }
-    }
-}
-
 [AddComponentMenu("GPUParticle/Renderer")]
-public class MPGPRenderer : MPGPRendererBase
+[RequireComponent(typeof(MPGPWorld))]
+public class MPGPRenderer : BatchRendererBase
 {
-    public bool m_enable_depth_prepass;
+    public float m_size = 0.2f;
 
-    System.Action m_act_depth_prepass;
-    System.Action m_act_render;
+    MPGPWorld m_world;
+    RenderTexture m_instance_texture;
+    Bounds m_bounds;
 
 #if UNITY_EDITOR
     void Reset()
     {
         m_mesh = AssetDatabase.LoadAssetAtPath("Assets/BatchRenderer/Meshes/cube.asset", typeof(Mesh)) as Mesh;
-        m_material = AssetDatabase.LoadAssetAtPath("Assets/GPUParticle/Materials/ParticleGBuffer.mat", typeof(Material)) as Material;
+        m_material = AssetDatabase.LoadAssetAtPath("Assets/GPUParticle/Materials/MPGPStandard.mat", typeof(Material)) as Material;
     }
 #endif // UNITY_EDITOR
 
+
+
+    public override Material CloneMaterial(int nth)
+    {
+        Material m = new Material(m_material);
+        m.SetInt("g_batch_begin", nth * m_instances_par_batch);
+        m.SetTexture("g_instance_data", m_instance_texture);
+        m.SetFloat("g_size", m_size);
+        m.SetBuffer("particles", m_world.GetParticleBuffer());
+
+        Vector4 ts = new Vector4(
+            1.0f / m_instance_texture.width,
+            1.0f / m_instance_texture.height,
+            m_instance_texture.width,
+            m_instance_texture.height);
+        m.SetVector("g_instance_data_size", ts);
+
+        // fix rendering order for transparent objects
+        if (m.renderQueue >= 3000)
+        {
+            m.renderQueue = m.renderQueue + (nth + 1);
+        }
+        return m;
+    }
+
+
+    public virtual void ReleaseGPUResources()
+    {
+        if (m_instance_texture != null)
+        {
+            m_instance_texture.Release();
+            m_instance_texture = null;
+        }
+        if (m_materials != null)
+        {
+            m_materials.Clear();
+        }
+    }
+
+    public virtual void ResetGPUResoures()
+    {
+        ReleaseGPUResources();
+
+        m_instance_texture = new RenderTexture(MPWorld.DataTextureWidth, MPWorld.DataTextureHeight, 0, RenderTextureFormat.ARGBFloat, RenderTextureReadWrite.Default);
+        m_instance_texture.filterMode = FilterMode.Point;
+        m_instance_texture.Create();
+
+        UpdateGPUResources();
+    }
+
+    public override void UpdateGPUResources()
+    {
+        m_materials.ForEach((v) =>
+        {
+            v.SetInt("g_num_max_instances", m_max_instances);
+            v.SetInt("g_num_instances", m_instance_count);
+            v.SetFloat("g_size", m_size);
+        });
+    }
+
+
     public override void OnEnable()
     {
+        m_world = GetComponent<MPGPWorld>();
+        m_max_instances = m_world.GetNumMaxParticles();
+
         base.OnEnable();
+        ResetGPUResoures();
+    }
 
-        if (m_act_depth_prepass==null)
+    public override void OnDisable()
+    {
+        base.OnDisable();
+        ReleaseGPUResources();
+    }
+
+    public override void LateUpdate()
+    {
+        if (m_world != null)
         {
-            m_act_depth_prepass = DepthPrePass;
-            m_act_render = Render;
-            foreach (var c in m_camera)
-            {
-                if (c == null) continue;
-                DSRenderer dsr = c.GetComponent<DSRenderer>();
-                dsr.AddCallbackPreGBuffer(m_act_depth_prepass);
-                dsr.AddCallbackPostGBuffer(m_act_render);
-            }
-
+            m_instance_count = m_max_instances;
+            Transform t = m_world.GetComponent<Transform>();
+            Vector3 min = t.position - t.localScale;
+            Vector3 max = t.position + t.localScale;
+            m_bounds.SetMinMax(min, max);
+            base.LateUpdate();
         }
     }
 
-    void OnDisable()
+    public override void OnDrawGizmos()
     {
-        if (m_buf_vertices != null)
-        {
-            m_buf_vertices.Release();
-            m_buf_vertices = null;
-        }
-    }
-
-
-    public void DepthPrePass()
-    {
-        if (!enabled || !m_pw.enabled) return;
-
-        m_material.SetBuffer("vertices", m_buf_vertices);
-        m_material.SetBuffer("particles", m_pw.GetParticleBuffer());
-        m_material.SetPass(1);
-        Graphics.DrawProcedural(m_mesh.GetTopology(0), m_num_vertices, m_pw.GetNumMaxParticles());
-    }
-
-    public void Render()
-    {
-        if (!enabled || !m_pw.enabled) return;
-
-        m_material.SetBuffer("vertices", m_buf_vertices);
-        m_material.SetBuffer("particles", m_pw.GetParticleBuffer());
-        m_material.SetPass(m_enable_depth_prepass ? 2 : 0);
-        Graphics.DrawProcedural(m_mesh.GetTopology(0), m_num_vertices, m_pw.GetNumMaxParticles());
     }
 }

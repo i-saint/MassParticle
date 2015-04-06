@@ -56,6 +56,9 @@ struct Input {
     float2 uv_MainTex;
     float4 color;
     float4 emission;
+#ifdef ENABLE_HEAT_EMISSION
+    float4 velocity;
+#endif // ENABLE_HEAT_EMISSION
 };
 
 void vert(inout appdata_full v, out Input o)
@@ -69,6 +72,9 @@ void vert(inout appdata_full v, out Input o)
     o.uv_MainTex = v.texcoord.xy;
     o.color = color;
     o.emission = emission;
+#ifdef ENABLE_HEAT_EMISSION
+    o.velocity = ;
+#endif // ENABLE_HEAT_EMISSION
 }
 
 void surf(Input IN, inout SurfaceOutput o)
@@ -77,6 +83,11 @@ void surf(Input IN, inout SurfaceOutput o)
     o.Albedo = c.rgb;
     o.Alpha = c.a;
     o.Emission = IN.emission.xyz;
+
+#ifdef ENABLE_HEAT_EMISSION
+    float ei = max(speed-2.0, 0.0) * 1.0;
+    o.Emission += float3(0.25, 0.05, 0.025)*ei;
+#endif // ENABLE_HEAT_EMISSION
 }
 
 void surf_detailed(Input IN, inout SurfaceOutput o)
@@ -88,5 +99,27 @@ void surf_detailed(Input IN, inout SurfaceOutput o)
     o.Emission = g_base_emission + tex2D(_EmissionMap, IN.uv_MainTex).xyz;
     o.Specular *= tex2D(_SpecularMap, IN.uv_MainTex).x;
     o.Gloss *= tex2D(_GrossMap, IN.uv_MainTex).x;
+
+#ifdef ENABLE_HEAT_EMISSION
+    float ei = max(speed-2.0, 0.0) * 1.0;
+    o.Emission += float3(0.25, 0.05, 0.025)*ei;
+#endif // ENABLE_HEAT_EMISSION
 }
+
+void surf_std(Input IN, inout SurfaceOutputStandard o)
+{
+    float speed = IN.velocity.w;
+
+    fixed4 c = tex2D(_MainTex, IN.uv_MainTex) * _Color;
+    o.Albedo = c.rgb;
+    o.Metallic = _Metallic;
+    o.Smoothness = _Glossiness;
+    o.Alpha = c.a;
+
+#ifdef ENABLE_HEAT_EMISSION
+    float ei = max(speed-2.0, 0.0) * 1.0;
+    o.Emission += float3(0.25, 0.05, 0.025)*ei;
+#endif // ENABLE_HEAT_EMISSION
+}
+
 #endif // WITHOUT_COMMON_VERT_SURF

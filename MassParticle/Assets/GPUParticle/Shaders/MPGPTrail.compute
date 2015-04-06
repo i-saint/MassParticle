@@ -1,7 +1,7 @@
 ﻿#pragma kernel Initialize
 #pragma kernel Update
 
-#include "ParticleDataType.cginc"
+#include "MPGPFoundation.cginc"
 
 #define BLOCK_SIZE 512
 

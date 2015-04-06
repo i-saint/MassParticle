@@ -13,8 +13,8 @@
 #pragma kernel ProcessInteraction_SPH_Force2D
 
 
-#include "ParticleDataType.cginc"
-#include "Collision.cginc"
+#include "MPGPFoundation.cginc"
+#include "MPGPCollision.cginc"
 
 
 

@@ -109,7 +109,7 @@ public class TestShooter : MonoBehaviour
         }
     }
 
-    void EnemyBulletHandler(CSParticle[] particles, int num_particles, List<MPGPColliderBase> colliders)
+    void EnemyBulletHandler(MPGPParticle[] particles, int num_particles, List<MPGPColliderBase> colliders)
     {
         for (int i = 0; i < num_particles; ++i)
         {
@@ -130,7 +130,7 @@ public class TestShooter : MonoBehaviour
         }
     }
 
-    void FractionHandler(CSParticle[] particles, int num_particles, List<MPGPColliderBase> colliders)
+    void FractionHandler(MPGPParticle[] particles, int num_particles, List<MPGPColliderBase> colliders)
     {
         for (int i = 0; i < num_particles; ++i)
         {

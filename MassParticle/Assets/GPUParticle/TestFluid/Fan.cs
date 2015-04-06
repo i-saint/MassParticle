@@ -27,7 +27,7 @@ public class Fan : MonoBehaviour
         force.info.dir_type = CSForceDirection.Directional;
         force.info.strength = strength;
         force.info.direction = transform.forward;
-        CSImpl.BuildBox(ref force.box, forceMatrix, Vector3.one);
+        MPGPImpl.BuildBox(ref force.box, forceMatrix, Vector3.one);
         MPGPWorld.GetInstances().ForEach((t) => { t.AddForce(ref force); });
 
         foreach (Transform child in transform)

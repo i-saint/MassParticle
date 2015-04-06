@@ -86,7 +86,7 @@ public class StageController : MonoBehaviour
     }
 
 
-    void FluidHandler(CSParticle[] particles, int num_particles, List<MPGPColliderBase> colliders)
+    void FluidHandler(MPGPParticle[] particles, int num_particles, List<MPGPColliderBase> colliders)
     {
         for (int i = 0; i < num_particles; ++i)
         {

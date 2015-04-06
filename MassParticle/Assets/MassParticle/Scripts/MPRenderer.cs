@@ -117,7 +117,6 @@ public class MPRenderer : BatchRendererBase
             Vector3 max = t.position + t.localScale;
             m_bounds.SetMinMax(min, max);
             base.LateUpdate();
-            m_instance_count = m_world.m_particle_num;
         }
     }
 

@@ -25,8 +25,8 @@ public class MPGPTrailRenderer : MonoBehaviour
     ComputeBuffer m_buf_trail_history;
     ComputeBuffer m_buf_trail_vertices;
 
-    MPGPWorld m_pw;
-    CSTrailParams[] m_tmp_params;
+    MPGPWorld m_world;
+    MPGPTrailParams[] m_tmp_params;
     System.Action m_act_render;
     int m_max_entities;
     bool m_first = true;
@@ -44,29 +44,18 @@ public class MPGPTrailRenderer : MonoBehaviour
 
     void OnEnable()
     {
-        m_pw = GetComponent<MPGPWorld>();
+        m_world = GetComponent<MPGPWorld>();
         if (m_camera == null || m_camera.Length == 0)
         {
             m_camera = new Camera[1] { Camera.main };
         }
-        m_tmp_params = new CSTrailParams[1];
+        m_tmp_params = new MPGPTrailParams[1];
 
-        m_max_entities = m_pw.GetNumMaxParticles() * 2;
-        m_buf_trail_params = new ComputeBuffer(1, CSTrailParams.size);
-        m_buf_trail_entities = new ComputeBuffer(m_max_entities, CSTrailEntity.size);
-        m_buf_trail_history = new ComputeBuffer(m_max_entities * m_trail_max_history, CSTrailHistory.size);
-        m_buf_trail_vertices = new ComputeBuffer(m_max_entities * m_trail_max_history * 2, CSTrailVertex.size);
-
-        if (m_act_render==null)
-        {
-            m_act_render = Render;
-            foreach (var c in m_camera)
-            {
-                if (c == null) continue;
-                DSRenderer dsr = c.GetComponent<DSRenderer>();
-                dsr.AddCallbackTransparent(m_act_render);
-            }
-        }
+        m_max_entities = m_world.GetNumMaxParticles() * 2;
+        m_buf_trail_params = new ComputeBuffer(1, MPGPTrailParams.size);
+        m_buf_trail_entities = new ComputeBuffer(m_max_entities, MPGPTrailEntity.size);
+        m_buf_trail_history = new ComputeBuffer(m_max_entities * m_trail_max_history, MPGPTrailHistory.size);
+        m_buf_trail_vertices = new ComputeBuffer(m_max_entities * m_trail_max_history * 2, MPGPTrailVertex.size);
     }
 
     void OnDisable()
@@ -89,7 +78,7 @@ public class MPGPTrailRenderer : MonoBehaviour
 
     void DispatchTrailKernel(int i)
     {
-        if (!enabled || !m_pw.enabled || Time.deltaTime == 0.0f) return;
+        if (!enabled || !m_world.enabled || Time.deltaTime == 0.0f) return;
 
         m_tmp_params[0].delta_time = Time.deltaTime;
         m_tmp_params[0].max_entities = m_max_entities;
@@ -99,22 +88,22 @@ public class MPGPTrailRenderer : MonoBehaviour
         m_tmp_params[0].width = m_width;
         m_buf_trail_params.SetData(m_tmp_params);
 
-        m_cs_trail.SetBuffer(i, "particles", m_pw.GetParticleBuffer());
+        m_cs_trail.SetBuffer(i, "particles", m_world.GetParticleBuffer());
         m_cs_trail.SetBuffer(i, "params", m_buf_trail_params);
         m_cs_trail.SetBuffer(i, "entities", m_buf_trail_entities);
         m_cs_trail.SetBuffer(i, "history", m_buf_trail_history);
         m_cs_trail.SetBuffer(i, "vertices", m_buf_trail_vertices);
-        m_cs_trail.Dispatch(i, m_pw.m_max_particles/BLOCK_SIZE, 1, 1);
+        m_cs_trail.Dispatch(i, m_world.m_max_particles/BLOCK_SIZE, 1, 1);
     }
 
     void Render()
     {
-        if (!enabled || !m_pw.enabled || m_mat_trail == null) return;
+        if (!enabled || !m_world.enabled || m_mat_trail == null) return;
 
-        m_mat_trail.SetBuffer("particles", m_pw.GetParticleBuffer());
+        m_mat_trail.SetBuffer("particles", m_world.GetParticleBuffer());
         m_mat_trail.SetBuffer("params", m_buf_trail_params);
         m_mat_trail.SetBuffer("vertices", m_buf_trail_vertices);
         m_mat_trail.SetPass(0);
-        Graphics.DrawProcedural(MeshTopology.Triangles, (m_trail_max_history - 1) * 6, m_pw.GetNumMaxParticles());
+        Graphics.DrawProcedural(MeshTopology.Triangles, (m_trail_max_history - 1) * 6, m_world.GetNumMaxParticles());
     }
 }

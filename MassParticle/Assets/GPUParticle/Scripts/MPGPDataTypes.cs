@@ -18,7 +18,7 @@ public struct UVector3
 }
 
 
-public struct CSParticle
+public struct MPGPParticle
 {
     public const int size = 44;
 
@@ -31,7 +31,7 @@ public struct CSParticle
     public uint id;
 };
 
-public struct CSSortData
+public struct MPGPSortData
 {
     public const int size = 8;
 
@@ -39,7 +39,7 @@ public struct CSSortData
     public uint index;
 }
 
-public struct CSCell
+public struct MPGPCell
 {
     public const int size = 8;
 
@@ -47,7 +47,7 @@ public struct CSCell
     public int end;
 }
 
-public struct CSParticleIData
+public struct MPGPParticleIData
 {
     public const int size = 16;
 
@@ -55,75 +55,75 @@ public struct CSParticleIData
     public int end;
 }
 
-public struct CSAABB
+public struct MPGPAABB
 {
     public Vector3 center;
     public Vector3 extents;
 }
 
-public struct CSColliderInfo
+public struct MPGPColliderInfo
 {
     public int owner_objid;
-    public CSAABB aabb;
+    public MPGPAABB aabb;
 }
 
-public struct CSSphere
+public struct MPGPSphere
 {
     public Vector3 center;
     public float radius;
 }
 
-public struct CSCapsule
+public struct MPGPCapsule
 {
     public Vector3 pos1;
     public Vector3 pos2;
     public float radius;
 }
 
-public struct CSPlane
+public struct MPGPPlane
 {
     public Vector3 normal;
     public float distance;
 }
 
-public struct CSBox
+public struct MPGPBox
 {
     public Vector3 center;
-    public CSPlane plane0;
-    public CSPlane plane1;
-    public CSPlane plane2;
-    public CSPlane plane3;
-    public CSPlane plane4;
-    public CSPlane plane5;
+    public MPGPPlane plane0;
+    public MPGPPlane plane1;
+    public MPGPPlane plane2;
+    public MPGPPlane plane3;
+    public MPGPPlane plane4;
+    public MPGPPlane plane5;
 }
 
-public struct CSSphereCollider
+public struct MPGPSphereColliderData
 {
     public const int size = 44;
 
-    public CSColliderInfo info;
-    public CSSphere shape;
+    public MPGPColliderInfo info;
+    public MPGPSphere shape;
 }
 
-public struct CSCapsuleCollider
+public struct MPGPCapsuleColliderData
 {
     public const int size = 56;
 
-    public CSColliderInfo info;
-    public CSCapsule shape;
+    public MPGPColliderInfo info;
+    public MPGPCapsule shape;
 }
 
-public struct CSBoxCollider
+public struct MPGPBoxColliderData
 {
     public const int size = 136;
 
-    public CSColliderInfo info;
-    public CSBox shape;
+    public MPGPColliderInfo info;
+    public MPGPBox shape;
 }
 
 
 
-public struct CSWorldIData
+public struct MPGPWorldIData
 {
     public const int size = 16;
 
@@ -133,7 +133,7 @@ public struct CSWorldIData
     public int dummy3;
 }
 
-public struct CSWorldData
+public struct MPGPWorldData
 {
     public const int size = 224;
 
@@ -216,7 +216,7 @@ public struct CSWorldData
     }
 };
 
-public struct CSSPHParams
+public struct MPGPSPHParams
 {
     public const int size = 32;
 
@@ -244,7 +244,7 @@ public struct CSSPHParams
 };
 
 
-public struct CSTrailParams
+public struct MPGPTrailParams
 {
     public const int size = 32;
 
@@ -256,7 +256,7 @@ public struct CSTrailParams
     public Vector3 camera_position;
 };
 
-public struct CSTrailEntity
+public struct MPGPTrailEntity
 {
     public const int size = 12;
 
@@ -265,14 +265,14 @@ public struct CSTrailEntity
     public uint frame;
 };
 
-public struct CSTrailHistory
+public struct MPGPTrailHistory
 {
     public const int size = 12;
 
     public Vector3 position;
 };
 
-public struct CSTrailVertex
+public struct MPGPTrailVertex
 {
     public const int size = 20;
 
@@ -282,16 +282,21 @@ public struct CSTrailVertex
 
 
 
-public class CSImpl
+public class MPGPImpl
 {
-    static void BuildColliderInfo<T>(ref CSColliderInfo info, T col, int id) where T : Collider
+    public static Color WorldGizmoColor = Color.magenta;
+    public static Color EmitterGizmoColor = Color.magenta;
+    public static Color ColliderGizmoColor = Color.magenta;
+    public static Color ForceGizmoColor = Color.magenta;
+
+    static void BuildColliderInfo<T>(ref MPGPColliderInfo info, T col, int id) where T : Collider
     {
         info.owner_objid = id;
         info.aabb.center = col.bounds.center;
         info.aabb.extents = col.bounds.extents;
     }
 
-    static public void BuildSphereCollider(ref CSSphereCollider cscol, Transform t, float radius, int id)
+    static public void BuildSphereCollider(ref MPGPSphereColliderData cscol, Transform t, float radius, int id)
     {
         cscol.shape.center = t.position;
         cscol.shape.radius = radius * t.localScale.x;
@@ -300,7 +305,7 @@ public class CSImpl
         cscol.info.owner_objid = id;
     }
 
-    static public void BuildCapsuleCollider(ref CSCapsuleCollider cscol, Transform t, float radius, float length, int dir, int id)
+    static public void BuildCapsuleCollider(ref MPGPCapsuleColliderData cscol, Transform t, float radius, float length, int dir, int id)
     {
         Vector3 e = Vector3.zero;
         float h = Mathf.Max(0.0f, length - radius * 2.0f);
@@ -323,7 +328,7 @@ public class CSImpl
         cscol.info.owner_objid = id;
     }
 
-    static public void BuildBox(ref CSBox shape, Matrix4x4 mat, Vector3 size)
+    static public void BuildBox(ref MPGPBox shape, Matrix4x4 mat, Vector3 size)
     {
         size *= 0.5f;
         Vector3[] vertices = new Vector3[8] {
@@ -371,7 +376,7 @@ public class CSImpl
         shape.plane5.distance = distances[5];
     }
 
-    static public void BuildBoxCollider(ref CSBoxCollider cscol, Transform t, Vector3 size, int id)
+    static public void BuildBoxCollider(ref MPGPBoxColliderData cscol, Transform t, Vector3 size, int id)
     {
         BuildBox(ref cscol.shape, t.localToWorldMatrix, size);
 

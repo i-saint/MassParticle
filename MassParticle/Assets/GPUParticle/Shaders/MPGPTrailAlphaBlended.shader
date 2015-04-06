@@ -17,7 +17,7 @@ CGPROGRAM
 #pragma target 5.0
 #pragma vertex vert
 #pragma fragment frag 
-#include "Trail.cginc"
+#include "MPGPTrail.cginc"
 ENDCG
         }
     }

@@ -3,7 +3,7 @@ using System.Collections;
 
 public class SmallCube : MonoBehaviour
 {
-	static CSParticle[] particles_to_add;
+	static MPGPParticle[] particles_to_add;
 
 	void Start()
 	{
@@ -31,7 +31,7 @@ public class SmallCube : MonoBehaviour
 
 		if (particles_to_add == null)
 		{
-			particles_to_add = new CSParticle[512];
+			particles_to_add = new MPGPParticle[512];
 		}
 		for (int i = 0; i < particles_to_add.Length; ++i)
 		{
@@ -48,7 +48,7 @@ public class SmallCube : MonoBehaviour
 
 		if (particles_to_add == null)
 		{
-			particles_to_add = new CSParticle[512];
+			particles_to_add = new MPGPParticle[512];
 		}
 		for (int i = 0; i < particles_to_add.Length; ++i)
 		{

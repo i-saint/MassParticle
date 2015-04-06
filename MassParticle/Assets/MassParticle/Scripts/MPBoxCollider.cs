@@ -25,5 +25,4 @@ public class MPBoxCollider : MPCollider
         Gizmos.DrawWireCube(Vector3.zero, Vector3.one);
         Gizmos.matrix = Matrix4x4.identity;
     }
-
 }

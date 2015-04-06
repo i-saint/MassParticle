@@ -2,7 +2,7 @@
 #pragma kernel GenerateSortKeys
 #pragma kernel ReorderParticles
 
-#include "ParticleDataType.cginc"
+#include "MPGPFoundation.cginc"
 #define BLOCK_SIZE 512
 
 

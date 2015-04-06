@@ -27,7 +27,7 @@ public class MPGPEmitter : MonoBehaviour
     public Shape m_shape = Shape.Sphere;
     public Vector3 m_velosity_base = Vector3.zero;
     public float m_velosity_diffuse = 0.5f;
-    CSParticle[] m_tmp_to_add;
+    MPGPParticle[] m_tmp_to_add;
     float m_delta;
 
     void OnEnable()
@@ -65,7 +65,7 @@ public class MPGPEmitter : MonoBehaviour
 
         if(m_tmp_to_add==null || m_tmp_to_add.Length!=n)
         {
-            m_tmp_to_add = new CSParticle[n];
+            m_tmp_to_add = new MPGPParticle[n];
         }
 
         Vector3 pos = transform.position;
@@ -92,7 +92,7 @@ public class MPGPEmitter : MonoBehaviour
 
     void OnDrawGizmos()
     {
-        Gizmos.color = Color.yellow;
+        Gizmos.color = MPGPImpl.EmitterGizmoColor;
         Gizmos.matrix = transform.localToWorldMatrix;
         switch (m_shape)
         {

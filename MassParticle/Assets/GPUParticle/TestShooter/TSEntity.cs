@@ -84,7 +84,7 @@ public class TSEntity : MonoBehaviour
 		deltaDamage += damage;
 	}
 
-	public void OnHitParticle(ref CSParticle particle)
+	public void OnHitParticle(ref MPGPParticle particle)
 	{
 		if (particle.speed > 12.5f)
 		{

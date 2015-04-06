@@ -1,4 +1,4 @@
-﻿Shader "MassParticle/Standard" {
+﻿Shader "GPUParticle/Standard" {
 
 Properties {
     _MainTex ("Base (RGB)", 2D) = "white" {}
@@ -14,11 +14,11 @@ SubShader {
     Tags { "RenderType"="Opaque" }
 
 CGPROGRAM
+#pragma target 5.0
 #pragma surface surf Standard fullforwardshadows vertex:vert
-#pragma target 3.0
 
-#define MP_STANDARD
-#include "MPSurface.cginc"
+#define MPGP_STANDARD
+#include "MPGPSurface.cginc"
 ENDCG
 
     Pass {
@@ -30,14 +30,16 @@ ENDCG
         Offset 1, 1
 
 CGPROGRAM
+#pragma target 5.0
 #pragma vertex vert
 #pragma fragment frag
 #pragma multi_compile_shadowcaster
 
-#define MP_SHADOW_CASTER
-#include "MPSurface.cginc"
+#define MPGP_SHADOW_CASTER
+#include "MPGPSurface.cginc"
 ENDCG
     }
+
 }
 FallBack Off
 

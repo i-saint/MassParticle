@@ -180,6 +180,19 @@ struct TrailVertex
 };
 
 
+struct Vertex
+{
+    float3 position;
+    float3 normal;
+    float4 tangent;
+    float2 texcoord;
+};
+
+#define PI 3.1415926535897932384626433832795
+float  deg2rad(float  deg) { return deg*PI/180.0; }
+float2 deg2rad(float2 deg) { return deg*PI/180.0; }
+float3 deg2rad(float3 deg) { return deg*PI/180.0; }
+float4 deg2rad(float4 deg) { return deg*PI/180.0; }
 
 float  modc(float  a, float  b) { return a - b * floor(a/b); }
 float2 modc(float2 a, float2 b) { return a - b * floor(a/b); }
@@ -209,6 +222,34 @@ float3 iq_rand( float3 p )
 {
         p = float3( dot(p,float3(127.1,311.7,311.7)), dot(p,float3(269.5,183.3,183.3)), dot(p,float3(269.5,183.3,183.3)) );
         return frac(sin(p)*43758.5453);
+}
+
+
+float3x3 rotation_matrix33(float3 axis, float angle)
+{
+    axis = normalize(axis);
+    float s = sin(angle);
+    float c = cos(angle);
+    float oc = 1.0 - c;
+    
+    return float3x3(
+        oc * axis.x * axis.x + c,           oc * axis.x * axis.y - axis.z * s,  oc * axis.z * axis.x + axis.y * s,
+        oc * axis.x * axis.y + axis.z * s,  oc * axis.y * axis.y + c,           oc * axis.y * axis.z - axis.x * s,
+        oc * axis.z * axis.x - axis.y * s,  oc * axis.y * axis.z + axis.x * s,  oc * axis.z * axis.z + c          );
+}
+
+float4x4 rotation_matrix44(float3 axis, float angle)
+{
+    axis = normalize(axis);
+    float s = sin(angle);
+    float c = cos(angle);
+    float oc = 1.0 - c;
+    
+    return float4x4(
+        oc * axis.x * axis.x + c,           oc * axis.x * axis.y - axis.z * s,  oc * axis.z * axis.x + axis.y * s,  0.0,
+        oc * axis.x * axis.y + axis.z * s,  oc * axis.y * axis.y + c,           oc * axis.y * axis.z - axis.x * s,  0.0,
+        oc * axis.z * axis.x - axis.y * s,  oc * axis.y * axis.z + axis.x * s,  oc * axis.z * axis.z + c,           0.0,
+        0.0,                                0.0,                                0.0,                                1.0);
 }
 
 #endif // MPGPFoundation_h

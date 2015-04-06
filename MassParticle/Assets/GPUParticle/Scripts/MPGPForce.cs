@@ -34,9 +34,9 @@ public struct CSForce
     public const int size = 208;
 
     public CSForceInfo info;
-    public CSSphere sphere;
-    public CSCapsule capsule;
-    public CSBox box;
+    public MPGPSphere sphere;
+    public MPGPCapsule capsule;
+    public MPGPBox box;
 }
 
 
@@ -108,7 +108,7 @@ public class MPGPForce : MonoBehaviour
         }
         else if (m_shape_type == CSForceShape.Box)
         {
-            CSImpl.BuildBox(ref m_force_data.box, transform.localToWorldMatrix, Vector3.one);
+            MPGPImpl.BuildBox(ref m_force_data.box, transform.localToWorldMatrix, Vector3.one);
         }
         EachTargets((t) => { t.AddForce(ref m_force_data); });
     }
@@ -122,7 +122,7 @@ public class MPGPForce : MonoBehaviour
             Vector3 dir = m_direction * m_strength_near * 0.5f;
 
             Gizmos.matrix = Matrix4x4.identity;
-            Gizmos.color = Color.yellow;
+            Gizmos.color = MPGPImpl.ForceGizmoColor;
             Gizmos.DrawRay(pos, dir);
 
             Vector3 right = Quaternion.LookRotation(dir) * Quaternion.Euler(0, 180 + arrowHeadAngle, 0) * new Vector3(0, 0, 1);
@@ -131,7 +131,6 @@ public class MPGPForce : MonoBehaviour
             Gizmos.DrawRay(pos + dir, left * arrowHeadLength);
         }
         {
-            Gizmos.color = Color.yellow;
             Gizmos.matrix = transform.localToWorldMatrix;
             switch (m_shape_type)
             {
@@ -140,7 +139,6 @@ public class MPGPForce : MonoBehaviour
                     break;
 
                 case CSForceShape.Box:
-                    Gizmos.color = Color.yellow;
                     Gizmos.DrawWireCube(Vector3.zero, Vector3.one);
                     break;
             }

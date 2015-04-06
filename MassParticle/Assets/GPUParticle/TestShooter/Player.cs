@@ -60,7 +60,7 @@ public class MPGPPlayer : MonoBehaviour
         {
             Vector3 pos = transform.position;
             Vector3 dir = transform.forward;
-            CSParticle[] additional = new CSParticle[26];
+            MPGPParticle[] additional = new MPGPParticle[26];
             for (int i = 0; i < additional.Length; ++i)
             {
                 additional[i].position = pos + dir * 0.5f;
@@ -87,7 +87,7 @@ public class MPGPPlayer : MonoBehaviour
             force.info.dir_type = CSForceDirection.Radial;
             force.info.strength = strength;
             force.info.center = pos - (trans.forward * 6.0f);
-            CSImpl.BuildBox(ref force.box, blowMatrix, Vector3.one);
+            MPGPImpl.BuildBox(ref force.box, blowMatrix, Vector3.one);
             MPGPWorld.GetInstances().ForEach((t) => { t.AddForce(ref force); });
         }
     }

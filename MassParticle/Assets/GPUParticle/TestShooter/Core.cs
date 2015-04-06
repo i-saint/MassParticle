@@ -24,7 +24,7 @@ public class Core : MonoBehaviour
 		{
 			//const int num = 52;
 			const int num = 16;
-			CSParticle[] additional = new CSParticle[num];
+			MPGPParticle[] additional = new MPGPParticle[num];
 			for (int i = 0; i < additional.Length; ++i)
 			{
 				additional[i].velocity = new Vector3(Random.Range(-2.0f, -0.5f), Random.Range(-1.0f, 1.0f), 0.0f) * 4.0f;
