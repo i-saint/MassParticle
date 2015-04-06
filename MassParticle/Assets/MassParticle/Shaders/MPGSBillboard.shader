@@ -24,14 +24,14 @@ struct GS_INPUT
     float4  pos     : POSITION;
     float3  normal  : NORMAL;
     float2  tex0    : TEXCOORD0;
-    float lifetime: TEXCOORD1;
+    float   lifetime: TEXCOORD1;
 };
 
 struct FS_INPUT
 {
-    float4	pos		: POSITION;
-    float2  tex0	: TEXCOORD0;
-    float lifetime: TEXCOORD1;
+    float4  pos     : POSITION;
+    float2  tex0    : TEXCOORD0;
+    float   lifetime: TEXCOORD1;
 };
 
 

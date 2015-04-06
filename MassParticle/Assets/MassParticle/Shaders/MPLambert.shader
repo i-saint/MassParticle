@@ -12,38 +12,9 @@ SubShader {
 
 CGPROGRAM
 #pragma surface surf Lambert vertex:vert
-#include "UnityCG.cginc"
-#include "MPFoundation.cginc" 
 
-sampler2D _MainTex;
-float4 _Color;
-
-struct Input {
-    float2 uv_MainTex;
-    float4 velocity;
-};
-
-void vert (inout appdata_full v, out Input data)
-{
-    UNITY_INITIALIZE_OUTPUT(Input,data);
-
-    float4 pos;
-    float4 vel;
-    float4 params;
-    ParticleTransform(v, pos, vel, params);
-
-    data.velocity = vel;
-}
-
-void surf (Input data, inout SurfaceOutput o)
-{
-    o.Albedo = (_Color * tex2D(_MainTex, data.uv_MainTex)).xyz;
-    o.Alpha = 1.0f;
-
-    float speed = data.velocity.w;
-    float ei = max(speed-2.0, 0.0) * 1.0;
-    o.Emission = float3(0.25, 0.05, 0.025)*ei;
-}
+#define MP_SURFACE
+#include "MPSurface.cginc" 
 ENDCG
 
 
@@ -59,32 +30,9 @@ CGPROGRAM
 #pragma vertex vert
 #pragma fragment frag
 #pragma multi_compile_shadowcaster
-#include "UnityCG.cginc"
-#include "MPFoundation.cginc" 
 
-sampler2D _MainTex;
-float4 _Color;
-
-struct v2f { 
-    V2F_SHADOW_CASTER;
-};
-
-v2f vert( appdata_full v )
-{
-    float4 pos;
-    float4 vel;
-    float4 params;
-    ParticleTransform(v, pos, vel, params);
-
-    v2f o;
-    TRANSFER_SHADOW_CASTER(o)
-    return o;
-}
-
-float4 frag( v2f i ) : SV_Target
-{
-    SHADOW_CASTER_FRAGMENT(i)
-}
+#define MP_SHADOW_CASTER
+#include "MPSurface.cginc" 
 ENDCG
     }
 
@@ -101,33 +49,8 @@ CGPROGRAM
 #pragma fragment frag
 #pragma multi_compile_shadowcollector
 
-#define SHADOW_COLLECTOR_PASS
-#include "UnityCG.cginc"
-#include "MPFoundation.cginc" 
-
-sampler2D _MainTex;
-float4 _Color;
-
-struct v2f { 
-    V2F_SHADOW_COLLECTOR;
-};
-
-v2f vert( appdata_full v )
-{
-    float4 pos;
-    float4 vel;
-    float4 params;
-    ParticleTransform(v, pos, vel, params);
-
-    v2f o;
-    TRANSFER_SHADOW_COLLECTOR(o)
-    return o;
-}
-        
-fixed4 frag (v2f i) : SV_Target
-{
-    SHADOW_COLLECTOR_FRAGMENT(i)
-}
+#define MP_SHADOW_COLLECTOR
+#include "MPSurface.cginc" 
 ENDCG
     }
 }
