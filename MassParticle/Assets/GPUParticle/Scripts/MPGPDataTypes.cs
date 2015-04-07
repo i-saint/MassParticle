@@ -319,18 +319,18 @@ public class MPGPImpl
         cscol.info.owner_objid = id;
     }
 
-    static public void BuildBox(ref MPGPBox shape, Matrix4x4 mat, Vector3 size)
+    static public void BuildBox(ref MPGPBox shape, ref Matrix4x4 mat, ref Vector3 center, ref Vector3 _size)
     {
-        size *= 0.5f;
+        Vector3 size = _size * 0.5f;
         Vector3[] vertices = new Vector3[8] {
-            new Vector3(size.x, size.y, size.z),
-            new Vector3(-size.x, size.y, size.z),
-            new Vector3(-size.x, -size.y, size.z),
-            new Vector3(size.x, -size.y, size.z),
-            new Vector3(size.x, size.y, -size.z),
-            new Vector3(-size.x, size.y, -size.z),
-            new Vector3(-size.x, -size.y, -size.z),
-            new Vector3(size.x, -size.y, -size.z),
+            new Vector3(size.x + center.x, size.y + center.y, size.z + center.z),
+            new Vector3(-size.x + center.x, size.y + center.y, size.z + center.z),
+            new Vector3(-size.x + center.x, -size.y + center.y, size.z + center.z),
+            new Vector3(size.x + center.x, -size.y + center.y, size.z + center.z),
+            new Vector3(size.x + center.x, size.y + center.y, -size.z + center.z),
+            new Vector3(-size.x + center.x, size.y + center.y, -size.z + center.z),
+            new Vector3(-size.x + center.x, -size.y + center.y, -size.z + center.z),
+            new Vector3(size.x + center.x, -size.y + center.y, -size.z + center.z),
         };
         for (int i = 0; i < vertices.Length; ++i)
         {
@@ -367,9 +367,10 @@ public class MPGPImpl
         shape.plane5.distance = distances[5];
     }
 
-    static public void BuildBoxCollider(ref MPGPBoxColliderData cscol, Transform t, Vector3 size, int id)
+    static public void BuildBoxCollider(ref MPGPBoxColliderData cscol, Transform t, ref Vector3 center, ref Vector3 size, int id)
     {
-        BuildBox(ref cscol.shape, t.localToWorldMatrix, size);
+        Matrix4x4 m = t.localToWorldMatrix;
+        BuildBox(ref cscol.shape, ref m, ref center, ref size);
 
         Vector3 scaled = new Vector3(
             size.x * t.localScale.x,
@@ -377,8 +378,8 @@ public class MPGPImpl
             size.z * t.localScale.z );
         float s = Mathf.Max(Mathf.Max(scaled.x, scaled.y), scaled.z);
 
-        cscol.info.aabb.center = t.position;
-        cscol.info.aabb.extents = Vector3.one * s * 1.415f;
+        cscol.info.aabb.center = t.position + center;
+        cscol.info.aabb.extents = Vector3.one * (s * 1.415f);
         cscol.info.owner_objid = id;
     }
 }

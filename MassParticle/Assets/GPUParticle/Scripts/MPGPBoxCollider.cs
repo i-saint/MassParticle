@@ -6,12 +6,13 @@ using System.Collections.Generic;
 [AddComponentMenu("GPUParticle/BoxCollider")]
 public class MPGPBoxCollider : MPGPColliderBase
 {
+    public Vector3 m_center;
     public Vector3 m_size = Vector3.one;
     MPGPBoxColliderData m_collider_data;
 
     public override void ActualUpdate()
     {
-        MPGPImpl.BuildBoxCollider(ref m_collider_data, m_trans, m_size, m_id);
+        MPGPImpl.BuildBoxCollider(ref m_collider_data, m_trans, ref m_center, ref m_size, m_id);
         EachTargets((t) => { t.AddBoxCollider(ref m_collider_data); });
     }
 
@@ -20,7 +21,7 @@ public class MPGPBoxCollider : MPGPColliderBase
         Transform t = GetComponent<Transform>(); // エディタから実行されるので trans は使えない
         Gizmos.color = MPGPImpl.ColliderGizmoColor;
         Gizmos.matrix = t.localToWorldMatrix;
-        Gizmos.DrawWireCube(Vector3.zero, Vector3.one);
+        Gizmos.DrawWireCube(m_center, m_size);
         Gizmos.matrix = Matrix4x4.identity;
     }
 

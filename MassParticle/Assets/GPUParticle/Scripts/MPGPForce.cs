@@ -108,7 +108,10 @@ public class MPGPForce : MonoBehaviour
         }
         else if (m_shape_type == CSForceShape.Box)
         {
-            MPGPImpl.BuildBox(ref m_force_data.box, transform.localToWorldMatrix, Vector3.one);
+            Vector3 zero = Vector3.zero;
+            Vector3 one = Vector3.one;
+            Matrix4x4 m = transform.localToWorldMatrix;
+            MPGPImpl.BuildBox(ref m_force_data.box, ref m, ref zero, ref one);
         }
         EachTargets((t) => { t.AddForce(ref m_force_data); });
     }

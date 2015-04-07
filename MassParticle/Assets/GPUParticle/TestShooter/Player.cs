@@ -79,6 +79,8 @@ public class MPGPPlayer : MonoBehaviour
         TestShooter ts = TestShooter.instance;
         if (ts.gameMode == TestShooter.GameMode.Exception)
         {
+            Vector3 zero = Vector3.zero;
+            Vector3 one = Vector3.one;
             Vector3 pos = trans.position;
             float strength = 2000.0f;
 
@@ -87,7 +89,7 @@ public class MPGPPlayer : MonoBehaviour
             force.info.dir_type = CSForceDirection.Radial;
             force.info.strength = strength;
             force.info.center = pos - (trans.forward * 6.0f);
-            MPGPImpl.BuildBox(ref force.box, blowMatrix, Vector3.one);
+            MPGPImpl.BuildBox(ref force.box, ref blowMatrix, ref zero, ref one);
             MPGPWorld.GetInstances().ForEach((t) => { t.AddForce(ref force); });
         }
     }

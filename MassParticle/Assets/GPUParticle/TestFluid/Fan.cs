@@ -16,6 +16,8 @@ public class Fan : MonoBehaviour
 
     void Update()
     {
+        Vector3 zero = Vector3.zero;
+        Vector3 one = Vector3.one;
         Vector3 s = transform.localScale;
         Matrix4x4 bt = Matrix4x4.identity;
         bt.SetColumn(3, new Vector4(0.0f, 0.0f, 0.5f, 1.0f));
@@ -27,7 +29,7 @@ public class Fan : MonoBehaviour
         force.info.dir_type = CSForceDirection.Directional;
         force.info.strength = strength;
         force.info.direction = transform.forward;
-        MPGPImpl.BuildBox(ref force.box, forceMatrix, Vector3.one);
+        MPGPImpl.BuildBox(ref force.box, ref forceMatrix, ref zero, ref one);
         MPGPWorld.GetInstances().ForEach((t) => { t.AddForce(ref force); });
 
         foreach (Transform child in transform)
