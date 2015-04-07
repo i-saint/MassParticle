@@ -1,3 +1,6 @@
+#ifndef BatchRenderer_h
+#define BatchRenderer_h
+
 //// flag to always use StructuredBuffer as instance data source
 //#define ALWAYS_USE_BUFFER_DATA_SOURCE
 
@@ -209,3 +212,5 @@ float4  GetInstanceEmission(int i)      { return GetInstanceEmissionT(i);    }
 float4  GetInstanceUVOffset(int i)      { return GetInstanceUVOffsetT(i);    }
 
 #endif // WITH_STRUCTURED_BUFFER
+
+#endif // BatchRenderer_h
