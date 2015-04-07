@@ -287,16 +287,16 @@ public class MPGPImpl
         info.aabb.extents = col.bounds.extents;
     }
 
-    static public void BuildSphereCollider(ref MPGPSphereColliderData cscol, Transform t, float radius, int id)
+    static public void BuildSphereCollider(ref MPGPSphereColliderData cscol, Transform t, ref Vector3 center, float radius, int id)
     {
-        cscol.shape.center = t.position;
+        cscol.shape.center = t.localToWorldMatrix * new Vector4(center.x, center.y, center.z, 1.0f);
         cscol.shape.radius = radius * t.localScale.x;
         cscol.info.aabb.center = t.position;
         cscol.info.aabb.extents = Vector3.one * cscol.shape.radius;
         cscol.info.owner_objid = id;
     }
 
-    static public void BuildCapsuleCollider(ref MPGPCapsuleColliderData cscol, Transform t, float radius, float length, int dir, int id)
+    static public void BuildCapsuleCollider(ref MPGPCapsuleColliderData cscol, Transform t, ref Vector3 center, float radius, float length, int dir, int id)
     {
         Vector3 e = Vector3.zero;
         float h = Mathf.Max(0.0f, length - radius * 2.0f);
@@ -307,8 +307,8 @@ public class MPGPImpl
             case 1: e.Set(0.0f, h * 0.5f, 0.0f); break;
             case 2: e.Set(0.0f, 0.0f, h * 0.5f); break;
         }
-        Vector4 pos1 = new Vector4(e.x, e.y, e.z, 1.0f);
-        Vector4 pos2 = new Vector4(-e.x, -e.y, -e.z, 1.0f);
+        Vector4 pos1 = new Vector4(e.x + center.x, e.y + center.y, e.z + center.z, 1.0f);
+        Vector4 pos2 = new Vector4(-e.x + center.x, -e.y + center.y, -e.z + center.z, 1.0f);
         pos1 = t.localToWorldMatrix * pos1;
         pos2 = t.localToWorldMatrix * pos2;
         cscol.shape.radius = r;

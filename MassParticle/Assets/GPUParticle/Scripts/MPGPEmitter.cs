@@ -92,6 +92,7 @@ public class MPGPEmitter : MonoBehaviour
 
     void OnDrawGizmos()
     {
+        if (!enabled) return;
         Gizmos.color = MPGPImpl.EmitterGizmoColor;
         Gizmos.matrix = transform.localToWorldMatrix;
         switch (m_shape)

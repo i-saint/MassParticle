@@ -32,27 +32,24 @@ public class MPCapsuleCollider : MPCollider
 
     void UpdateCapsule()
     {
+        Vector3 e = Vector3.zero;
+        float h = Mathf.Max(0.0f, m_height - m_radius * 2.0f);
+        float r = m_radius * m_trans.localScale.x;
         switch (m_direction)
         {
-            case Direction.X:
-                m_pos1.Set(m_height * 0.5f + m_center.x, m_center.y, m_center.z, 1.0f);
-                m_pos2.Set(-m_height * 0.5f + m_center.x, m_center.y, m_center.z, 1.0f);
-                break;
-            case Direction.Y:
-                m_pos1.Set(m_center.x, m_height * 0.5f + m_center.y, m_center.z, 1.0f);
-                m_pos2.Set(m_center.x, -m_height * 0.5f + m_center.y, m_center.z, 1.0f);
-                break;
-            case Direction.Z:
-                m_pos1.Set(m_center.x, m_center.y, m_height * 0.5f + m_center.z, 1.0f);
-                m_pos2.Set(m_center.x, m_center.y, -m_height * 0.5f + m_center.z, 1.0f);
-                break;
+            case Direction.X: e.Set(h * 0.5f, 0.0f, 0.0f); break;
+            case Direction.Y: e.Set(0.0f, h * 0.5f, 0.0f); break;
+            case Direction.Z: e.Set(0.0f, 0.0f, h * 0.5f); break;
         }
-        m_pos1 = m_trans.localToWorldMatrix * m_pos1;
-        m_pos2 = m_trans.localToWorldMatrix * m_pos2;
+        Vector4 pos1 = new Vector4(e.x + m_center.x, e.y + m_center.y, e.z + m_center.z, 1.0f);
+        Vector4 pos2 = new Vector4(-e.x + m_center.x, -e.y + m_center.y, -e.z + m_center.z, 1.0f);
+        m_pos1 = m_trans.localToWorldMatrix * pos1;
+        m_pos2 = m_trans.localToWorldMatrix * pos2;
     }
 
     void OnDrawGizmos()
     {
+        if (!enabled) return;
         m_trans = GetComponent<Transform>();
         UpdateCapsule(); // エディタから実行される都合上必要
         Gizmos.color = MPImpl.ColliderGizmoColor;

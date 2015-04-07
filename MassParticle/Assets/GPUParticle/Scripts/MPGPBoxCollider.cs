@@ -18,6 +18,7 @@ public class MPGPBoxCollider : MPGPColliderBase
 
     void OnDrawGizmos()
     {
+        if (!enabled) return;
         Transform t = GetComponent<Transform>(); // エディタから実行されるので trans は使えない
         Gizmos.color = MPGPImpl.ColliderGizmoColor;
         Gizmos.matrix = t.localToWorldMatrix;

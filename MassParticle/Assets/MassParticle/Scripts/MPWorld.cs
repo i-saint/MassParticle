@@ -179,6 +179,7 @@ public class MPWorld : MonoBehaviour
 
     void OnDrawGizmos()
     {
+        if (!enabled) return;
         Gizmos.color = Color.cyan;
         Gizmos.DrawWireCube(transform.position, transform.localScale * 2.0f);
         Gizmos.color = Color.blue;

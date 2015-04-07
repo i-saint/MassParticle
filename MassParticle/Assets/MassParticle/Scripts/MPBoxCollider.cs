@@ -21,6 +21,7 @@ public class MPBoxCollider : MPCollider
 
     void OnDrawGizmos()
     {
+        if (!enabled) return;
         Transform t = GetComponent<Transform>(); // エディタから実行されるので trans は使えない
         Gizmos.color = MPImpl.ColliderGizmoColor;
         Gizmos.matrix = t.localToWorldMatrix;

@@ -118,6 +118,7 @@ public class MPGPForce : MonoBehaviour
 
     void OnDrawGizmos()
     {
+        if (!enabled) return;
         {
             float arrowHeadAngle = 30.0f;
             float arrowHeadLength = 0.5f;

@@ -477,6 +477,7 @@ public class MPGPWorld : MonoBehaviour
 
     void OnDrawGizmos()
     {
+        if (!enabled) return;
         Gizmos.color = MPGPImpl.WorldGizmoColor;
         Gizmos.DrawWireCube(transform.position, transform.localScale);
     }
