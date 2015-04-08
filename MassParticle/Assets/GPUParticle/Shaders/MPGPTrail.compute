@@ -64,9 +64,6 @@ void Update(uint3 dtid : SV_DispatchThreadID)
 
     history[hi + f].position = ppos;
     f = (f+1) % max_history;
-
-    float3 camera = params[0].camera_position;
-    float width = params[0].width;
     float vstep = 1.0/(max_history-1);
 
     for(uint i=0; i<max_history; ++i) {
@@ -75,18 +72,12 @@ void Update(uint3 dtid : SV_DispatchThreadID)
         float3 pos = history[hi + (f+i)%max_history].position;
         float3 pos_next = history[hi + (f+inext)%max_history].position;
         float3 pos_prev = history[hi + (f+iprev)%max_history].position;
-
         float3 tangent = normalize(pos_next - pos_prev);
-        float3 aim_camera= normalize(camera-pos);
-        float3 distance = cross(tangent, aim_camera) * (width*0.5f);
-
-        float3 right= pos + distance;
-        float3 left = pos - distance;
         float v = vstep * i;
 
-        vertices[hi*2 + i*2 + 0].position = right;
-        vertices[hi*2 + i*2 + 1].position = left;
-        vertices[hi*2 + i*2 + 0].texcoord = float2(1.0f, v);
-        vertices[hi*2 + i*2 + 1].texcoord = float2(0.0f, v);
+        vertices[hi + i].position = pos;
+        vertices[hi + i].tangent = tangent;
+        vertices[hi + i].texcoord = float2(0.0f, v);
     }
 }
+

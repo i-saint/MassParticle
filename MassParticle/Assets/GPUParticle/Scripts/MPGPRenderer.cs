@@ -12,7 +12,6 @@ public class MPGPRenderer : BatchRendererBase
     public float m_size = 0.2f;
 
     MPGPWorld m_world;
-    Bounds m_bounds;
 
 #if UNITY_EDITOR
     void Reset()
@@ -92,7 +91,7 @@ public class MPGPRenderer : BatchRendererBase
             Transform t = m_world.GetComponent<Transform>();
             Vector3 min = t.position - t.localScale;
             Vector3 max = t.position + t.localScale;
-            m_bounds.SetMinMax(min, max);
+            m_expanded_mesh.bounds = new Bounds(min, max);
             base.LateUpdate();
         }
     }

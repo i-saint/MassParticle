@@ -237,14 +237,12 @@ public struct MPGPSPHParams
 
 public struct MPGPTrailParams
 {
-    public const int size = 32;
+    public const int size = 16;
 
     public float delta_time;
-    public float width;
     public int max_entities;
     public int max_history;
     public float interval;
-    public Vector3 camera_position;
 };
 
 public struct MPGPTrailEntity
@@ -265,9 +263,10 @@ public struct MPGPTrailHistory
 
 public struct MPGPTrailVertex
 {
-    public const int size = 20;
+    public const int size = 32;
 
     public Vector3 position;
+    public Vector3 tangent;
     public Vector2 texcoord;
 };
 
@@ -387,40 +386,4 @@ public class MPGPImpl
 
 public class MPGPUtils
 {
-    public static void Swap<T>(ref T lhs, ref T rhs)
-    {
-        T temp;
-        temp = lhs;
-        lhs = rhs;
-        rhs = temp;
-    }
-
-    public struct VertexT
-    {
-        public const int size = 48;
-
-        public Vector3 vertex;
-        public Vector3 normal;
-        public Vector4 tangent;
-        public Vector2 texcoord;
-    }
-
-    public static void CreateVertexBuffer(Mesh mesh, ref ComputeBuffer ret, ref int num_vertices)
-    {
-        int[] indices = mesh.GetIndices(0);
-        Vector3[] vertices = mesh.vertices;
-        Vector3[] normals = mesh.normals;
-        Vector4[] tangents = mesh.tangents;
-        Vector2[] uv = mesh.uv;
-
-        VertexT[] v = new VertexT[indices.Length];
-        if (vertices != null) { for (int i = 0; i < indices.Length; ++i) { v[i].vertex = vertices[indices[i]]; } }
-        if (normals != null) { for (int i = 0; i < indices.Length; ++i) { v[i].normal = normals[indices[i]]; } }
-        if (tangents != null) { for (int i = 0; i < indices.Length; ++i) { v[i].tangent = tangents[indices[i]]; } }
-        if (uv != null) { for (int i = 0; i < indices.Length; ++i) { v[i].texcoord = uv[indices[i]]; } }
-
-        ret = new ComputeBuffer(indices.Length, VertexT.size);
-        ret.SetData(v);
-        num_vertices = v.Length;
-    }
 }

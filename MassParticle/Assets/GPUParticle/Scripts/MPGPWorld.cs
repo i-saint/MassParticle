@@ -13,6 +13,7 @@ using UnityEditor;
 public class MPGPWorld : MonoBehaviour
 {
     static List<MPGPWorld> s_instances;
+    static MPGPWorld s_current;
     static int s_update_count;
 
     public static List<MPGPWorld> GetInstances()
@@ -20,6 +21,8 @@ public class MPGPWorld : MonoBehaviour
         if (s_instances == null) { s_instances = new List<MPGPWorld>(); }
         return s_instances;
     }
+
+    public static MPGPWorld GetCurrent() { return s_current; }
 
 
 
@@ -336,7 +339,7 @@ public class MPGPWorld : MonoBehaviour
                 cs.SetBuffer(kernel, "sort_keys", m_buf_sort_data[0]);
                 cs.SetBuffer(kernel, "cells_rw", m_buf_cells);
                 cs.Dispatch(kernel, m_max_particles / BLOCK_SIZE, 1, 1);
-                MPGPUtils.Swap(ref m_buf_particles[0], ref m_buf_particles[1]);
+                BatchRendererUtil.Swap(ref m_buf_particles[0], ref m_buf_particles[1]);
             }
         }
 

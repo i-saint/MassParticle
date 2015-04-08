@@ -4,15 +4,16 @@
 #include "UnityCG.cginc"
 #include "MPGPFoundation.cginc"
 
-float4 _BaseColor;
-float _FadeTime;
+fixed4 _BaseColor;
+float  _FadeTime;
+int     g_batch_begin;
+float   g_width;
 StructuredBuffer<Particle> particles;
 StructuredBuffer<TrailParams> params;
 StructuredBuffer<TrailVertex> vertices;
 
 struct ia_out {
-    uint vertexID : SV_VertexID;
-    uint instanceID : SV_InstanceID;
+    float4 vertex : POSITION;
 };
 
 struct vs_out {
@@ -26,23 +27,38 @@ struct ps_out
     float4 color : COLOR0;
 };
 
+
 vs_out vert(ia_out io)
 {
-    float lifetime = particles[io.instanceID].lifetime;
+    uint vertex_id = io.vertex.x;
+    uint instance_id = g_batch_begin + io.vertex.y;
+
+    float lifetime = particles[instance_id].lifetime;
     float fade = min(lifetime/_FadeTime, 1.0);
 
-    uint ii = (particles[io.instanceID].id % params[0].max_entities) * params[0].max_history * 2;
-    const uint ls[6] = {0,3,1, 0,2,3};
-    uint iv = (io.vertexID/6)*2 + ls[io.vertexID%6];
-    TrailVertex tv = vertices[ii + iv];
+    float4 vp = 0.0;
+    float2 tc = 0.0;
+    if(lifetime > 0.0) {
+        uint ii = (particles[instance_id].id % params[0].max_entities) * params[0].max_history;
+        TrailVertex tv = vertices[ii + vertex_id/2];
 
-    float4 v = float4(tv.position, 1.0);
-    if(lifetime<=0.0) { v=0.0; }
-    float4 vp = mul(UNITY_MATRIX_VP, v);
+        float3 pos = tv.position;
+        float3 tangent = tv.tangent;
+        float3 aim_camera = normalize(_WorldSpaceCameraPos-pos);
+        float3 distance = cross(tangent, aim_camera) * (g_width*0.5f);
+
+        // right if vertex_id%2==0. otherwise left 
+        float rl = 1.0 - 2.0*(vertex_id & 1);
+        pos += distance * rl;
+
+        vp = mul(UNITY_MATRIX_VP, float4(pos, 1.0));
+        tc = tv.texcoord;
+        tc.x = rl*0.5 + 0.5;
+    }
 
     vs_out o;
     o.vertex = vp;
-    o.texcoord = tv.texcoord;
+    o.texcoord = tc;
     o.color = _BaseColor * fade;
 
     return o;

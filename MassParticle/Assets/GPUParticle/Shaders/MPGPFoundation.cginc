@@ -154,11 +154,9 @@ struct Force
 struct TrailParams
 {
     float delta_time;
-    float width;
     uint max_entities;
     uint max_history;
     float interval;
-    float3 camera_position;
 };
 
 struct TrailEntity
@@ -176,6 +174,7 @@ struct TrailHistory
 struct TrailVertex
 {
     float3 position;
+    float3 tangent;
     float2 texcoord;
 };
 

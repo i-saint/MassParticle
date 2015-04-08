@@ -11,14 +11,12 @@ using UnityEditor;
 
 [AddComponentMenu("GPUParticle/TrailRenderer")]
 [RequireComponent(typeof(MPGPWorld))]
-public class MPGPTrailRenderer : MonoBehaviour
+public class MPGPTrailRenderer : BatchRendererBase
 {
-    public Camera[] m_camera;
-    public int m_trail_max_history = 32;
+    public int m_max_trail_history = 32;
     public float m_samples_per_second = 30.0f;
     public float m_width = 0.1f;
     public ComputeShader m_cs_trail;
-    public Material m_mat_trail;
 
     ComputeBuffer m_buf_trail_params;
     ComputeBuffer m_buf_trail_entities;
@@ -37,55 +35,143 @@ public class MPGPTrailRenderer : MonoBehaviour
     void Reset()
     {
         m_cs_trail = AssetDatabase.LoadAssetAtPath("Assets/GPUParticle/Shaders/Trail.compute", typeof(ComputeShader)) as ComputeShader;
-        m_mat_trail = AssetDatabase.LoadAssetAtPath("Assets/GPUParticle/Materials/Trail.mat", typeof(Material)) as Material;
+        m_material = AssetDatabase.LoadAssetAtPath("Assets/GPUParticle/Materials/Trail.mat", typeof(Material)) as Material;
+    }
+
+    void OnValidate()
+    {
+        m_max_trail_history = Mathf.Max(m_max_trail_history, 2);
     }
 #endif // UNITY_EDITOR
 
 
-    void OnEnable()
+    public override Material CloneMaterial(int nth)
+    {
+        Material m = new Material(m_material);
+
+        m.SetInt("g_batch_begin", nth * m_instances_par_batch);
+        m.SetFloat("g_width", m_width);
+        m.SetBuffer("particles", m_world.GetParticleBuffer());
+        m.SetBuffer("params", m_buf_trail_params);
+        m.SetBuffer("vertices", m_buf_trail_vertices);
+
+        // fix rendering order for transparent objects
+        if (m.renderQueue >= 3000)
+        {
+            m.renderQueue = m.renderQueue + (nth + 1);
+        }
+        return m;
+    }
+
+
+    public virtual void ReleaseGPUResources()
+    {
+        if (m_materials != null)
+        {
+            m_materials.Clear();
+        }
+
+        if (m_buf_trail_vertices != null)
+        {
+            m_buf_trail_vertices.Release();
+            m_buf_trail_vertices = null;
+        }
+        if (m_buf_trail_history != null)
+        {
+            m_buf_trail_history.Release();
+            m_buf_trail_history = null;
+        }
+        if (m_buf_trail_entities != null)
+        {
+            m_buf_trail_entities.Release();
+            m_buf_trail_entities = null;
+        }
+        if (m_buf_trail_params != null)
+        {
+            m_buf_trail_params.Release();
+            m_buf_trail_params = null;
+        }
+    }
+
+    public virtual void ResetGPUResoures()
+    {
+        ReleaseGPUResources();
+
+        m_buf_trail_params = new ComputeBuffer(1, MPGPTrailParams.size);
+        m_buf_trail_entities = new ComputeBuffer(m_max_entities, MPGPTrailEntity.size);
+        m_buf_trail_history = new ComputeBuffer(m_max_entities * m_max_trail_history, MPGPTrailHistory.size);
+        m_buf_trail_vertices = new ComputeBuffer(m_max_entities * m_max_trail_history, MPGPTrailVertex.size);
+        {
+            int[] indices = new int[(m_max_trail_history - 1) * 6];
+            int[] ls = new int[6]{0,3,1, 0,2,3};
+            for (int i = 0; i < m_max_trail_history - 1; ++i )
+            {
+                indices[i * 6 + 0] = i * 2 + ls[0];
+                indices[i * 6 + 1] = i * 2 + ls[1];
+                indices[i * 6 + 2] = i * 2 + ls[2];
+                indices[i * 6 + 3] = i * 2 + ls[3];
+                indices[i * 6 + 4] = i * 2 + ls[4];
+                indices[i * 6 + 5] = i * 2 + ls[5];
+            }
+            m_expanded_mesh = BatchRendererUtil.CreateIndexOnlyMesh(m_max_trail_history * 2, indices, out m_instances_par_batch);
+        }
+        UpdateGPUResources();
+    }
+
+    public override void UpdateGPUResources()
+    {
+        if (m_materials != null)
+        {
+            m_materials.ForEach((v) =>
+            {
+                v.SetInt("g_num_max_instances", m_max_instances);
+                v.SetInt("g_num_instances", m_instance_count);
+            });
+        }
+    }
+
+    public override void OnEnable()
     {
         m_world = GetComponent<MPGPWorld>();
-        if (m_camera == null || m_camera.Length == 0)
-        {
-            m_camera = new Camera[1] { Camera.main };
-        }
+        m_max_instances = m_world.GetNumMaxParticles();
         m_tmp_params = new MPGPTrailParams[1];
 
         m_max_entities = m_world.GetNumMaxParticles() * 2;
-        m_buf_trail_params = new ComputeBuffer(1, MPGPTrailParams.size);
-        m_buf_trail_entities = new ComputeBuffer(m_max_entities, MPGPTrailEntity.size);
-        m_buf_trail_history = new ComputeBuffer(m_max_entities * m_trail_max_history, MPGPTrailHistory.size);
-        m_buf_trail_vertices = new ComputeBuffer(m_max_entities * m_trail_max_history * 2, MPGPTrailVertex.size);
+
+        base.OnEnable();
+        ResetGPUResoures();
     }
 
-    void OnDisable()
+    public override void OnDisable()
     {
-        m_buf_trail_vertices.Release();
-        m_buf_trail_history.Release();
-        m_buf_trail_entities.Release();
-        m_buf_trail_params.Release();
+        base.OnDisable();
+        ReleaseGPUResources();
     }
 
-    void LateUpdate()
+    public override void LateUpdate()
     {
+        if (!enabled || !m_world.enabled || Time.deltaTime == 0.0f) return;
         if (m_first)
         {
             m_first = false;
             DispatchTrailKernel(0);
         }
         DispatchTrailKernel(1);
+
+        m_instance_count = m_max_instances;
+        Transform t = m_world.GetComponent<Transform>();
+        Vector3 min = t.position - t.localScale;
+        Vector3 max = t.position + t.localScale;
+        m_expanded_mesh.bounds = new Bounds(min, max);
+        base.LateUpdate();
     }
 
     void DispatchTrailKernel(int i)
     {
-        if (!enabled || !m_world.enabled || Time.deltaTime == 0.0f) return;
-
         m_tmp_params[0].delta_time = Time.deltaTime;
         m_tmp_params[0].max_entities = m_max_entities;
-        m_tmp_params[0].max_history = m_trail_max_history;
+        m_tmp_params[0].max_history = m_max_trail_history;
         m_tmp_params[0].interval = 1.0f / m_samples_per_second;
-        m_tmp_params[0].camera_position = Camera.current != null ? Camera.current.transform.position : Vector3.zero;
-        m_tmp_params[0].width = m_width;
         m_buf_trail_params.SetData(m_tmp_params);
 
         m_cs_trail.SetBuffer(i, "particles", m_world.GetParticleBuffer());
@@ -98,12 +184,6 @@ public class MPGPTrailRenderer : MonoBehaviour
 
     void Render()
     {
-        if (!enabled || !m_world.enabled || m_mat_trail == null) return;
-
-        m_mat_trail.SetBuffer("particles", m_world.GetParticleBuffer());
-        m_mat_trail.SetBuffer("params", m_buf_trail_params);
-        m_mat_trail.SetBuffer("vertices", m_buf_trail_vertices);
-        m_mat_trail.SetPass(0);
-        Graphics.DrawProcedural(MeshTopology.Triangles, (m_trail_max_history - 1) * 6, m_world.GetNumMaxParticles());
+        Graphics.DrawProcedural(MeshTopology.Triangles, (m_max_trail_history - 1) * 6, m_world.GetNumMaxParticles());
     }
 }

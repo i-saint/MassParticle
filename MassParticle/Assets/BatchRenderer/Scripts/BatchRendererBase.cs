@@ -37,7 +37,7 @@ public abstract class BatchRendererBase : MonoBehaviour
 
     public virtual void Flush()
     {
-        if (m_mesh == null || m_instance_count==0)
+        if (m_expanded_mesh == null || m_instance_count == 0)
         {
             m_instance_count = 0;
             return;
@@ -64,16 +64,16 @@ public abstract class BatchRendererBase : MonoBehaviour
 
 
 
-
     public virtual void OnEnable()
     {
-        if (m_mesh == null) return;
-
         m_trans = GetComponent<Transform>();
         m_materials = new List<Material>();
 
-        m_expanded_mesh = BatchRendererUtil.CreateExpandedMesh(m_mesh, out m_instances_par_batch);
-        m_expanded_mesh.UploadMeshData(true);
+        if (m_expanded_mesh == null && m_mesh != null)
+        {
+            m_expanded_mesh = BatchRendererUtil.CreateExpandedMesh(m_mesh, out m_instances_par_batch);
+            m_expanded_mesh.UploadMeshData(true);
+        }
 
         int layer_mask = m_layer_selector.value;
         for (int i = 0; i < 32; ++i )
