@@ -9,7 +9,7 @@ Category {
     Blend SrcAlpha One
     AlphaTest Greater .01
     ColorMask RGB
-    Cull Off Lighting Off ZWrite Off ZTest Always Fog { Color (0,0,0,0) }
+    Cull Off Lighting Off ZWrite Off ZTest Less Fog { Color (0,0,0,0) }
     
     SubShader {
         Pass {

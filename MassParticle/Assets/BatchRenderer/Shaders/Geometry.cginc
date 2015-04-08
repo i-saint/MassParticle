@@ -1,6 +1,43 @@
-#ifndef Collision
-#define Collision
-#include "MPGPFoundation.cginc"
+#ifndef BRGeometry_h
+#define BRGeometry_h
+
+struct Plane
+{
+    float3 normal;
+    float distance;
+};
+
+struct Ray
+{
+    float3 origin;
+    float3 direction;
+};
+
+struct Sphere
+{
+    float3 center;
+    float radius;
+};
+
+struct Capsule
+{
+    float3 pos1;
+    float3 pos2;
+    float radius;
+};
+
+struct Box
+{
+    float3 center;
+    Plane planes[6];
+};
+
+struct AABB
+{
+    float3 center;
+    float3 extents;
+};
+
 
 bool IsOverlaped(float3 pos, AABB aabb, float r)
 {
@@ -79,4 +116,21 @@ DistanceData DistancePointBox(float3 ppos, Box shape)
     return ret;
 }
 
-#endif // Collision
+float DistancePointPlane(Plane plane, float3 pos)
+{
+    return dot(pos, plane.normal) + plane.distance;
+}
+
+float3 IntersectionRayPlane(Plane plane, Ray ray)
+{
+    float t = (-dot(ray.origin, plane.normal) - plane.distance) / dot(plane.normal, ray.direction);
+    return ray.origin + ray.direction * t;
+}
+
+float3 ProjectToPlane(Plane plane, float3 pos)
+{
+    float d = DistancePointPlane(plane, pos);
+    return pos - d*plane.normal;
+}
+
+#endif // BRGeometry_h

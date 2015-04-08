@@ -80,4 +80,3 @@ void Update(uint3 dtid : SV_DispatchThreadID)
         vertices[hi + i].texcoord = float2(0.0f, v);
     }
 }
-

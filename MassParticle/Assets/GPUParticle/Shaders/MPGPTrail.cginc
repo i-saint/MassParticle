@@ -69,7 +69,10 @@ ps_out frag(vs_out vo)
     ps_out o;
     float ua = pow( 1.0 - abs(vo.texcoord.x*2.0f-1.0f)+0.0001, 0.5 );
     float va = pow((vo.texcoord.y+0.0001), 0.5);
-    o.color = vo.color * ua * va;
+    float a = ua * va;
+    o.color = vo.color;
+    o.color.a *= a;
     return o;
 }
+
 #endif // Trail_h

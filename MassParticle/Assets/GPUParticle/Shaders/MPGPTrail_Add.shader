@@ -1,4 +1,4 @@
-﻿Shader "GPUParticle/Trail AlphaBlended" {
+﻿Shader "GPUParticle/Trail Add" {
 
 Properties {
     _BaseColor ("BaseColor", Vector) = (0.15, 0.15, 0.2, 5.0)

@@ -35,6 +35,7 @@ int ParticleTransform(inout appdata_full v)
     v.vertex.xyz *= min(1.0, p.lifetime/g_fade_time);
     if(p.lifetime<=0.0) {
         v.vertex.xyz = 0.0;
+        return iid;
     }
     #ifdef MPGP_ENABLE_SPIN
     if(g_spin != 0.0) {
@@ -164,6 +165,89 @@ int ParticleTransform(inout appdata_full v)
     }
 #endif // MPGP_SHADOW_COLLECTOR
 
+
+
+#if defined(MPGP_BILLBOARD) || defined(MPGP_FIXED_BILLBOARD)
+
+    void ApplyBillboardTransform(inout appdata_full v)
+    {
+        int iid = v.texcoord1.x + g_batch_begin;
+
+    #ifdef MPGP_WITH_STRUCTURED_BUFFER
+        MPGPParticle p = particles[iid];
+
+        if(p.lifetime<=0.0) {
+            v.vertex.xyz = 0.0;
+            return;
+        }
+
+        float3 camera_pos = _WorldSpaceCameraPos.xyz;
+        float3 pos = p.position;
+        float3 look = normalize(pos-camera_pos);
+        float3 axis = cross(look, float3(0.0, 1.0, 0.0));
+        float3 up = mul(axis_rotation_matrix33(axis, 90.0), look);
+
+        v.vertex.xyz *= g_size;
+        v.vertex.xyz *= min(1.0, p.lifetime/g_fade_time);
+        #ifdef MPGP_ENABLE_SPIN
+        if(g_spin != 0.0) {
+            float ang = (dot(p.position.xyz, 1.0) * min(1.0, p.speed*0.02)) * g_spin;
+            float3x3 rot = rotation_matrix33(normalize(iq_rand(p.id)), ang);
+            v.vertex.xyz = mul(rot, v.vertex.xyz);
+            v.normal.xyz = mul(rot, v.normal.xyz);
+        }
+        #endif // MPGP_ENABLE_SPIN
+        v.vertex.xyz = mul(look_matrix33(look, up), vertex.xyz);
+        v.vertex.xyz += pos;
+        vertex = mul(UNITY_MATRIX_VP, vertex);
+    #endif // MPGP_WITH_STRUCTURED_BUFFER
+    }
+
+
+    bool ApplyViewPlaneProjection(inout float4 vertex, float3 pos)
+    {
+        float4 vp = mul(UNITY_MATRIX_VP, float4(pos, 1.0));
+        if(vp.z<0.0) {
+            vertex.xyz *= 0.0;
+            return false;
+        }
+
+        float aspect = _ScreenParams.x / _ScreenParams.y;
+        float3 camera_pos = _WorldSpaceCameraPos.xyz;
+        float3 look = normalize(camera_pos-pos);
+        Plane view_plane = {look, 1.0};
+        pos = camera_pos + ProjectToPlane(view_plane, pos-camera_pos);
+        vertex.y *= -aspect;
+        vertex.xy += vp.xy / vp.w;
+        vertex.zw = float2(0.0, 1.0);
+        return true;
+    }
+
+    void ApplyViewPlaneBillboardTransform(inout appdata_full v)
+    {
+        int iid = v.texcoord1.x + g_batch_begin;
+
+    #ifdef MPGP_WITH_STRUCTURED_BUFFER
+        float3 pos = particles[iid].position;
+        v.vertex.xyz *= g_size;
+
+        float4 vp = mul(UNITY_MATRIX_VP, float4(pos, 1.0));
+        if(vp.z<0.0) {
+            v.vertex.xyz *= 0.0;
+            return false;
+        }
+
+        float aspect = _ScreenParams.x / _ScreenParams.y;
+        float3 camera_pos = _WorldSpaceCameraPos.xyz;
+        float3 look = normalize(camera_pos-pos);
+        Plane view_plane = {look, 1.0};
+        pos = camera_pos + ProjectToPlane(view_plane, pos-camera_pos);
+        v.vertex.y *= -aspect;
+        v.vertex.xy += vp.xy / vp.w;
+        v.vertex.zw = float2(0.0, 1.0);
+    #endif // MPGP_WITH_STRUCTURED_BUFFER
+    }
+#endif // defined(MPGP_BILLBOARD) || defined(MPGP_FIXED_BILLBOARD)
 
 
 #endif // MPGPSurface_h
