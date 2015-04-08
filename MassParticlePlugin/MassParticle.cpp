@@ -378,7 +378,7 @@ extern "C" EXPORT_API void mpAddForce(int context, mpForceProperties *props, mat
     case mpFS_Box:
         {
             mpBoxCollider col;
-            mpBuildBoxCollider(context, col, trans, vec3(1.0f, 1.0f, 1.0f), vec3());
+            mpBuildBoxCollider(context, col, trans, vec3(), vec3(1.0f, 1.0f, 1.0f));
             force.bounds = col.bounds;
             force.box.center = col.shape.center;
             for (int i = 0; i < 6; ++i) {

@@ -14,8 +14,8 @@ using UnityEditor;
 public class MPGPTrailRenderer : BatchRendererBase
 {
     public int m_max_trail_history = 32;
-    public float m_samples_per_second = 30.0f;
-    public float m_width = 0.1f;
+    public float m_samples_per_second = 32.0f;
+    public float m_width = 0.2f;
     public ComputeShader m_cs_trail;
 
     ComputeBuffer m_buf_trail_params;
@@ -34,8 +34,8 @@ public class MPGPTrailRenderer : BatchRendererBase
 #if UNITY_EDITOR
     void Reset()
     {
-        m_cs_trail = AssetDatabase.LoadAssetAtPath("Assets/GPUParticle/Shaders/Trail.compute", typeof(ComputeShader)) as ComputeShader;
-        m_material = AssetDatabase.LoadAssetAtPath("Assets/GPUParticle/Materials/Trail.mat", typeof(Material)) as Material;
+        m_cs_trail = AssetDatabase.LoadAssetAtPath("Assets/GPUParticle/Shaders/MPGPTrail.compute", typeof(ComputeShader)) as ComputeShader;
+        m_material = AssetDatabase.LoadAssetAtPath("Assets/GPUParticle/Materials/MPGPTrail.mat", typeof(Material)) as Material;
     }
 
     void OnValidate()
