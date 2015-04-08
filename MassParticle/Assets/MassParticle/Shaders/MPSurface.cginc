@@ -1,7 +1,8 @@
 #ifndef MPSurface_h
 #define MPSurface_h
 
-#define ENABLE_HEAT_EMISSION
+#define MP_ENABLE_SPIN
+#define MP_ENABLE_HEAT_EMISSION
 
 #ifdef MP_SHADOW_COLLECTOR
 #   define SHADOW_COLLECTOR_PASS
@@ -17,9 +18,9 @@
 
     struct Input {
         float2 uv_MainTex;
-    #ifdef ENABLE_HEAT_EMISSION
+    #ifdef MP_ENABLE_HEAT_EMISSION
         float4 velocity;
-    #endif // ENABLE_HEAT_EMISSION
+    #endif // MP_ENABLE_HEAT_EMISSION
     };
 
     void vert(inout appdata_full v, out Input data)
@@ -31,9 +32,9 @@
         float4 params;
         ParticleTransform(v, pos, vel, params);
 
-    #ifdef ENABLE_HEAT_EMISSION
+    #ifdef MP_ENABLE_HEAT_EMISSION
         data.velocity = vel;
-    #endif // ENABLE_HEAT_EMISSION
+    #endif // MP_ENABLE_HEAT_EMISSION
     }
 #endif // defined(MP_STANDARD) || defined(MP_SURFACE)
 
@@ -45,11 +46,11 @@
     {
         o.Albedo = _Color * tex2D(_MainTex, data.uv_MainTex);
 
-    #ifdef ENABLE_HEAT_EMISSION
+    #ifdef MP_ENABLE_HEAT_EMISSION
         float speed = data.velocity.w;
         float ei = max(speed-2.0, 0.0) * 1.0;
         o.Emission = float3(0.25, 0.05, 0.025)*ei;
-    #endif // ENABLE_HEAT_EMISSION
+    #endif // MP_ENABLE_HEAT_EMISSION
     }
 #endif // MP_SURFACE
 
@@ -68,11 +69,11 @@
         o.Smoothness = _Glossiness;
         o.Alpha = c.a;
 
-    #ifdef ENABLE_HEAT_EMISSION
+    #ifdef MP_ENABLE_HEAT_EMISSION
         float speed = IN.velocity.w;
         float ei = max(speed-2.0, 0.0) * 1.0;
         o.Emission += float3(0.25, 0.05, 0.025)*ei;
-    #endif // ENABLE_HEAT_EMISSION
+    #endif // MP_ENABLE_HEAT_EMISSION
     }
 #endif // MP_STANDARD
 

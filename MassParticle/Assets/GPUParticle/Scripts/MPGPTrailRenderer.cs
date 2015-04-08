@@ -13,8 +13,8 @@ using UnityEditor;
 [RequireComponent(typeof(MPGPWorld))]
 public class MPGPTrailRenderer : BatchRendererBase
 {
-    public int m_max_trail_history = 32;
-    public float m_samples_per_second = 32.0f;
+    public int m_max_trail_history = 8;
+    public float m_samples_per_second = 8.0f;
     public float m_width = 0.2f;
     public ComputeShader m_cs_trail;
 
@@ -182,8 +182,7 @@ public class MPGPTrailRenderer : BatchRendererBase
         m_cs_trail.Dispatch(i, m_world.m_max_particles/BLOCK_SIZE, 1, 1);
     }
 
-    void Render()
+    public override void OnDrawGizmos()
     {
-        Graphics.DrawProcedural(MeshTopology.Triangles, (m_max_trail_history - 1) * 6, m_world.GetNumMaxParticles());
     }
 }

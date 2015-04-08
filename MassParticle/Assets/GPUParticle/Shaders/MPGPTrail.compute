@@ -55,11 +55,11 @@ void Update(uint3 dtid : SV_DispatchThreadID)
     }
 
     entities[eid].time += params[0].delta_time;
-    if(entities[eid].time < params[0].interval) {
-        return;
+    uint frame = entities[eid].frame;
+    if(entities[eid].time >= params[0].interval) {
+        entities[eid].time -= params[0].interval;
+        entities[eid].frame++;
     }
-    entities[eid].time -= params[0].interval;
-    uint frame = entities[eid].frame++;
     int f = frame % max_history;
 
     history[hi + f].position = ppos;

@@ -1,6 +1,10 @@
 #ifndef MPGPSurface_h
 #define MPGPSurface_h
 
+#define MPGP_ENABLE_SPIN
+#define MPGP_ENABLE_HEAT_EMISSION
+
+
 #if (defined(SHADER_API_D3D11) || defined(SHADER_API_PSSL))
     #define MPGP_WITH_STRUCTURED_BUFFER
 #endif
@@ -32,12 +36,14 @@ int ParticleTransform(inout appdata_full v)
     if(p.lifetime<=0.0) {
         v.vertex.xyz = 0.0;
     }
+    #ifdef MPGP_ENABLE_SPIN
     if(g_spin != 0.0) {
         float ang = (dot(p.position.xyz, 1.0) * min(1.0, p.speed*0.02)) * g_spin;
         float3x3 rot = rotation_matrix33(normalize(iq_rand(p.id)), ang);
         v.vertex.xyz = mul(rot, v.vertex.xyz);
         v.normal.xyz = mul(rot, v.normal.xyz);
     }
+    #endif // MPGP_ENABLE_SPIN
     v.vertex.xyz += p.position.xyz;
 #endif // MPGP_WITH_STRUCTURED_BUFFER
     return iid;
@@ -52,9 +58,9 @@ int ParticleTransform(inout appdata_full v)
 
     struct Input {
         float2 uv_MainTex;
-    #ifdef ENABLE_HEAT_EMISSION
+    #ifdef MPGP_ENABLE_HEAT_EMISSION
         float4 velocity;
-    #endif // ENABLE_HEAT_EMISSION
+    #endif // MPGP_ENABLE_HEAT_EMISSION
     };
 
     void vert(inout appdata_full v, out Input data)
@@ -63,9 +69,9 @@ int ParticleTransform(inout appdata_full v)
 
         int iid = ParticleTransform(v);
     #ifdef MPGP_WITH_STRUCTURED_BUFFER
-    #ifdef ENABLE_HEAT_EMISSION
-        data.velocity = particles[iid].velocity;
-    #endif // ENABLE_HEAT_EMISSION
+    #ifdef MPGP_ENABLE_HEAT_EMISSION
+        data.velocity = float4(particles[iid].velocity, particles[iid].speed);
+    #endif // MPGP_ENABLE_HEAT_EMISSION
     #endif // MPGP_WITH_STRUCTURED_BUFFER
     }
 #endif // defined(MPGP_STANDARD) || defined(MPGP_SURFACE)
@@ -79,11 +85,11 @@ int ParticleTransform(inout appdata_full v)
         o.Albedo = _Color * tex2D(_MainTex, data.uv_MainTex);
         o.Emission += _Emission;
 
-    #ifdef ENABLE_HEAT_EMISSION
+    #ifdef MPGP_ENABLE_HEAT_EMISSION
         float speed = data.velocity.w;
         float ei = max(speed-2.0, 0.0) * 1.0;
         o.Emission += float3(0.25, 0.05, 0.025)*ei;
-    #endif // ENABLE_HEAT_EMISSION
+    #endif // MPGP_ENABLE_HEAT_EMISSION
     }
 #endif // MPGP_SURFACE
 
@@ -103,11 +109,11 @@ int ParticleTransform(inout appdata_full v)
         o.Alpha = c.a;
         o.Emission += _Emission;
 
-    #ifdef ENABLE_HEAT_EMISSION
+    #ifdef MPGP_ENABLE_HEAT_EMISSION
         float speed = IN.velocity.w;
         float ei = max(speed-2.0, 0.0) * 1.0;
         o.Emission += float3(0.25, 0.05, 0.025)*ei;
-    #endif // ENABLE_HEAT_EMISSION
+    #endif // MPGP_ENABLE_HEAT_EMISSION
     }
 #endif // MPGP_STANDARD
 

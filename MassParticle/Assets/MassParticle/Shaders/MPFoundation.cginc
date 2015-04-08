@@ -74,12 +74,14 @@ void ParticleTransform(inout appdata_full v, out float4 pos, out float4 vel, out
     if(lifetime<=0.0) {
         v.vertex.xyz = 0.0;
     }
+#ifdef MP_ENABLE_SPIN
     if(g_spin != 0.0) {
         float ang = (dot(pos.xyz, 1.0) * min(1.0, vel.w*0.02)) * g_spin;
         float3x3 rot = rotation_matrix33(normalize(iq_rand(pos.www)), ang);
         v.vertex.xyz = mul(rot, v.vertex.xyz);
         v.normal.xyz = mul(rot, v.normal.xyz);
     }
+#endif // MP_ENABLE_SPIN
     v.vertex.xyz += pos.xyz;
 }
 

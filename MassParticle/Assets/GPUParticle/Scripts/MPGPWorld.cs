@@ -73,12 +73,15 @@ public class MPGPWorld : MonoBehaviour
     public bool m_process_colliders = true;
     public bool m_process_forces = true;
     public bool m_process_gbuffer_collision = false;
-    public bool m_writeback_to_cpu_size = false;
+    public bool m_writeback_to_cpu = false;
     public ParticleHandler handler;
 
     public ComputeShader m_cs_core;
     public ComputeShader m_cs_sort;
     public ComputeShader m_cs_hashgrid;
+
+    List<Action> m_actions = new List<Action>();
+    List<Action> m_onetime_actions = new List<Action>();
 
     MPGPParticle[] m_particles;
     MPGPWorldData[] m_world_data = new MPGPWorldData[1];
@@ -127,15 +130,20 @@ public class MPGPWorld : MonoBehaviour
 
     const int BLOCK_SIZE = 512;
 
-    public ComputeBuffer GetParticleBuffer() { return m_buf_particles[0]; }
-    public int GetNumMaxParticles() { return m_max_particles; }
-    //public int GetNumParticles() { return m_world_idata[0].num_active_particles; }
+    public void AddUpdateRoutine(Action a) { m_actions.Add(a); }
+    public void RemoveUpdateRoutine(Action a) { m_actions.Remove(a); }
+    public void AddOneTimeAction(Action a) { m_onetime_actions.Add(a); }
 
     public void AddParticles(MPGPParticle[] particles) { if(enabled) m_particles_to_add.AddRange(particles); }
     public void AddSphereCollider(ref MPGPSphereColliderData v) { if (enabled) m_sphere_colliders.Add(v); }
     public void AddCapsuleCollider(ref MPGPCapsuleColliderData v) { if (enabled) m_capsule_colliders.Add(v); }
     public void AddBoxCollider(ref MPGPBoxColliderData v) { if (enabled) m_box_colliders.Add(v); }
     public void AddForce(ref CSForce v) { if (enabled) m_forces.Add(v); }
+
+    public MPGPParticle[] GetParticles() { return m_particles; }
+    public ComputeBuffer GetParticleBuffer() { return m_buf_particles[0]; }
+    public int GetNumMaxParticles() { return m_max_particles; }
+    public int GetNumParticles() { return m_world_idata[0].num_active_particles; }
 
 #if UNITY_EDITOR
     void Reset()
@@ -183,16 +191,15 @@ public class MPGPWorld : MonoBehaviour
         GetInstances().Add(this);
 
         m_world_data[0].SetDefaultValues();
-        m_world_data[0].num_max_particles = m_max_particles;
-        m_world_data[0].SetWorldSize(transform.position, transform.localScale * 0.5f,
-            (uint)m_world_div_x, (uint)m_world_div_y, (uint)m_world_div_z);
         m_sph_params[0].SetDefaultValues(m_world_data[0].particle_size);
+        m_world_data[0].num_max_particles = m_max_particles;
+        m_world_data[0].SetWorldSize(transform.position, transform.localScale,
+            (uint)m_world_div_x, (uint)m_world_div_y, (uint)m_world_div_z);
 
         m_particles = new MPGPParticle[m_max_particles];
         for (int i = 0; i < m_particles.Length; ++i)
         {
             m_particles[i].hit_objid = -1;
-            //particles[i].owner_objid = -1;
             m_particles[i].lifetime = 0.0f;
         }
 
@@ -260,6 +267,23 @@ public class MPGPWorld : MonoBehaviour
             MPGPColliderBase.UpdateAll();
         }
 
+        if (m_writeback_to_cpu)
+        {
+            m_buf_particles[0].GetData(m_particles);
+            m_buf_world_idata.GetData(m_world_idata);
+
+            m_actions.ForEach((a) => { a.Invoke(); });
+            m_onetime_actions.ForEach((a) => { a.Invoke(); });
+            m_onetime_actions.Clear();
+
+            m_buf_particles[0].SetData(m_particles);
+            m_buf_world_idata.SetData(m_world_idata);
+        }
+
+
+        m_world_data[0].num_max_particles = m_max_particles;
+        m_world_data[0].SetWorldSize(transform.position, transform.localScale,
+            (uint)m_world_div_x, (uint)m_world_div_y, (uint)m_world_div_z);
         m_world_data[0].timestep = Time.deltaTime * 0.6f;
         m_world_data[0].particle_size = m_particle_radius;
         m_world_data[0].particle_lifetime = m_lifetime;
@@ -482,7 +506,7 @@ public class MPGPWorld : MonoBehaviour
     {
         if (!enabled) return;
         Gizmos.color = MPGPImpl.WorldGizmoColor;
-        Gizmos.DrawWireCube(transform.position, transform.localScale);
+        Gizmos.DrawWireCube(transform.position, transform.localScale*2.0f);
     }
 
 }
