@@ -29,7 +29,7 @@ public class Player : MonoBehaviour {
             move.z = Input.GetAxis ("Vertical");
             trans.position += move * 0.1f;
         }
-        {			
+        {
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
             Plane plane = new Plane(Vector3.up, Vector3.zero);
             float distance = 0; 
