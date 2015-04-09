@@ -2,7 +2,7 @@
 #define BRSurface_h
 
 #include "UnityCG.cginc"
-#include "BatchRenderer.cginc"
+#include "Assets/BatchRenderer/Shaders/BatchRenderer.cginc"
 
 void ApplyInstanceTransform(float2 id, inout float4 vertex, inout float3 normal, inout float4 tangent, inout float2 texcoord, inout float4 color, inout float4 emission)
 {

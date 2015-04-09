@@ -24,9 +24,9 @@ CGPROGRAM
 #pragma fragment frag
 #pragma multi_compile_shadowcaster
 #include "UnityCG.cginc"
-#include "BatchRenderer.cginc"
+#include "Assets/BatchRenderer/Shaders/BatchRenderer.cginc"
 #define WITHOUT_COMMON_VERT_SURF
-#include "Surface.cginc"
+#include "Assets/BatchRenderer/Shaders/Surface.cginc"
 
 struct appdata {
     float4 vertex : POSITION;

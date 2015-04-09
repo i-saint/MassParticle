@@ -1,8 +1,8 @@
 #ifndef BatchRenderer_h
 #define BatchRenderer_h
 
-#include "Math.cginc"
-#include "Geometry.cginc"
+#include "Assets/BatchRenderer/Shaders/Math.cginc"
+#include "Assets/BatchRenderer/Shaders/Geometry.cginc"
 
 //// flag to always use StructuredBuffer as instance data source
 //#define ALWAYS_USE_BUFFER_DATA_SOURCE
