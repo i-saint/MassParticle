@@ -16,6 +16,7 @@ public abstract class BatchRendererBase : MonoBehaviour
     public Vector3 m_scale = Vector3.one;
     public Camera m_camera;
     public bool m_flush_on_LateUpdate = true;
+    public Vector3 m_bounds_size = Vector3.one;
 
     protected int m_instances_par_batch;
     protected int m_instance_count;
@@ -43,7 +44,9 @@ public abstract class BatchRendererBase : MonoBehaviour
             return;
         }
 
-        m_expanded_mesh.bounds = new Bounds(m_trans.position, m_trans.localScale);
+        Vector3 scale = m_trans.localScale;
+        m_expanded_mesh.bounds = new Bounds(m_trans.position,
+            new Vector3(m_bounds_size.x * scale.x, m_bounds_size.y * scale.y, m_bounds_size.y * scale.y));
         m_instance_count = Mathf.Min(m_instance_count, m_max_instances);
         m_batch_count = BatchRendererUtil.ceildiv(m_instance_count, m_instances_par_batch);
 
@@ -102,7 +105,10 @@ public abstract class BatchRendererBase : MonoBehaviour
 
     public virtual void OnDrawGizmos()
     {
+        Transform t = GetComponent<Transform>();
+        Vector3 s = t.localScale;
+
         Gizmos.color = Color.yellow;
-        Gizmos.DrawWireCube(transform.position, transform.localScale * 2.0f);
+        Gizmos.DrawWireCube(t.position, new Vector3(m_bounds_size.x * s.x, m_bounds_size.y * s.y, m_bounds_size.z * s.z));
     }
 }
