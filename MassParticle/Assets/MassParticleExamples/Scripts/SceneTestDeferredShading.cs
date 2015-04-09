@@ -3,7 +3,6 @@ using System.Collections;
 
 public class SceneTestDeferredShading : MonoBehaviour
 {
-    public GameObject cam;
     public float rotateRadius = 10.0f;
     public float cameraY = 7.5f;
     public float cameraRot = 0.0f;
@@ -36,12 +35,6 @@ public class SceneTestDeferredShading : MonoBehaviour
         if (Input.GetKey(KeyCode.LeftArrow) || Input.GetKey(KeyCode.A)) { cameraRot -= 0.01f; }
         else if (Input.GetKey(KeyCode.RightArrow) || Input.GetKey(KeyCode.D)) { cameraRot += 0.01f; }
         //cameraRot += Time.deltaTime * 0.10f;
-
-        cam.transform.position = new Vector3(
-            Mathf.Cos(cameraRot) * rotateRadius,
-            cameraY,
-            Mathf.Sin(cameraRot) * rotateRadius);
-        cam.transform.LookAt(Vector3.zero);
 
         if (Input.GetKeyUp(KeyCode.Space))
         {
