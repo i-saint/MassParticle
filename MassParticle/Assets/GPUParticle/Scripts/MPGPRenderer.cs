@@ -9,8 +9,6 @@ using UnityEditor;
 [RequireComponent(typeof(MPGPWorld))]
 public class MPGPRenderer : BatchRendererBase
 {
-    public float m_size = 0.2f;
-
     MPGPWorld m_world;
 
 #if UNITY_EDITOR
@@ -28,7 +26,6 @@ public class MPGPRenderer : BatchRendererBase
     {
         Material m = new Material(m_material);
         m.SetInt("g_batch_begin", nth * m_instances_par_batch);
-        m.SetFloat("g_size", m_size);
         m.SetBuffer("particles", m_world.GetParticleBuffer());
 
         // fix rendering order for transparent objects
@@ -63,7 +60,6 @@ public class MPGPRenderer : BatchRendererBase
             {
                 v.SetInt("g_num_max_instances", m_max_instances);
                 v.SetInt("g_num_instances", m_instance_count);
-                v.SetFloat("g_size", m_size);
             });
         }
     }

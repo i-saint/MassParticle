@@ -31,12 +31,11 @@ int ParticleTransform(inout appdata_full v)
 #ifdef MPGP_WITH_STRUCTURED_BUFFER
     Particle p = particles[iid];
 
-    v.vertex.xyz *= g_size;
-    v.vertex.xyz *= min(1.0, p.lifetime/g_fade_time);
     if(p.lifetime<=0.0) {
         v.vertex.xyz = 0.0;
         return iid;
     }
+    v.vertex.xyz *= g_size * min(1.0, p.lifetime/g_fade_time);
     #ifdef MPGP_ENABLE_SPIN
     if(g_spin != 0.0) {
         float ang = (dot(p.position.xyz, 1.0) * min(1.0, p.speed*0.02)) * g_spin;

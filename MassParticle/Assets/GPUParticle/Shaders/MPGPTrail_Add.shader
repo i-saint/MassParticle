@@ -2,6 +2,7 @@
 
 Properties {
     _BaseColor ("BaseColor", Vector) = (0.15, 0.15, 0.2, 5.0)
+    g_width ("Width", Float) = 0.2
     _FadeTime ("FadeTime", Float) = 0.1
 }
 Category {

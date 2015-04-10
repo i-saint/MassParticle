@@ -39,7 +39,7 @@ ENDCG
     Pass {
         Name "ShadowCollector"
         Tags { "LightMode" = "ShadowCollector" }
-        
+
         Fog {Mode Off}
         ZWrite On ZTest LEqual
 

@@ -11,8 +11,6 @@ using UnityEditor;
 [RequireComponent(typeof(MPWorld))]
 public class MPRenderer : BatchRendererBase
 {
-    public float m_size = 0.2f;
-
     MPWorld m_world;
     RenderTexture m_instance_texture;
     Bounds m_bounds;
@@ -35,7 +33,6 @@ public class MPRenderer : BatchRendererBase
         Material m = new Material(m_material);
         m.SetInt("g_batch_begin", nth * m_instances_par_batch);
         m.SetTexture("g_instance_data", m_instance_texture);
-        m.SetFloat("g_size", m_size);
 
         Vector4 ts = new Vector4(
             1.0f / m_instance_texture.width,
@@ -88,7 +85,6 @@ public class MPRenderer : BatchRendererBase
         {
             v.SetInt("g_num_max_instances", m_max_instances);
             v.SetInt("g_num_instances", m_instance_count);
-            v.SetFloat("g_size", m_size);
         });
     }
 

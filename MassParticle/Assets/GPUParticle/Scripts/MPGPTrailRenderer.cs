@@ -15,7 +15,6 @@ public class MPGPTrailRenderer : BatchRendererBase
 {
     public int m_max_trail_history = 8;
     public float m_samples_per_second = 8.0f;
-    public float m_width = 0.2f;
     public ComputeShader m_cs_trail;
 
     ComputeBuffer m_buf_trail_params;
@@ -51,7 +50,6 @@ public class MPGPTrailRenderer : BatchRendererBase
         Material m = new Material(m_material);
 
         m.SetInt("g_batch_begin", nth * m_instances_par_batch);
-        m.SetFloat("g_width", m_width);
         m.SetBuffer("particles", m_world.GetParticleBuffer());
         m.SetBuffer("params", m_buf_trail_params);
         m.SetBuffer("vertices", m_buf_trail_vertices);
