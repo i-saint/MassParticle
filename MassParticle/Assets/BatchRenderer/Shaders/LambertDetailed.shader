@@ -20,12 +20,12 @@ CGPROGRAM
     #define BR_WITHOUT_INSTANCE_EMISSION
     #pragma target 3.0
 #endif
-#pragma surface surf Lambert vertex:vert
+#pragma surface surf Lambert vertex:vert addshadow
 
 #define BR_SURFACE_DETAILED
 #include "Surface.cginc"
 ENDCG
 }
 
-Fallback "BatchRenderer/BatchBase"
+Fallback Off
 }

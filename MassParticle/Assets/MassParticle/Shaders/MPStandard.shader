@@ -14,30 +14,12 @@ SubShader {
     Tags { "RenderType"="Opaque" }
 
 CGPROGRAM
-#pragma surface surf Standard fullforwardshadows vertex:vert
+#pragma surface surf Standard fullforwardshadows vertex:vert addshadow 
 #pragma target 3.0
 
 #define MP_STANDARD
 #include "MPSurface.cginc"
 ENDCG
-
-    Pass {
-        Name "ShadowCaster"
-        Tags { "LightMode" = "ShadowCaster" }
-        
-        Fog {Mode Off}
-        ZWrite On ZTest LEqual Cull Off
-        Offset 1, 1
-
-CGPROGRAM
-#pragma vertex vert
-#pragma fragment frag
-#pragma multi_compile_shadowcaster
-
-#define MP_SHADOW_CASTER
-#include "MPSurface.cginc"
-ENDCG
-    }
 }
 FallBack Off
 

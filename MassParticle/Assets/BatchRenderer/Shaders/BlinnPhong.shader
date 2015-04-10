@@ -18,12 +18,12 @@ CGPROGRAM
 #else
     #pragma target 4.0
 #endif
-#pragma surface surf BlinnPhong vertex:vert
+#pragma surface surf BlinnPhong vertex:vert addshadow
 
 #define BR_SURFACE
 #include "Surface.cginc"
 ENDCG
 }
 
-Fallback "BatchRenderer/BatchBase"
+Fallback Off
 }

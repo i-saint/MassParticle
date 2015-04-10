@@ -15,32 +15,12 @@ SubShader {
 
 CGPROGRAM
 #pragma target 5.0
-#pragma surface surf Standard fullforwardshadows vertex:vert
+#pragma surface surf Standard fullforwardshadows vertex:vert addshadow
 
 #define MPGP_STANDARD
 #include "MPGPSurface.cginc"
 ENDCG
-
-    Pass {
-        Name "ShadowCaster"
-        Tags { "LightMode" = "ShadowCaster" }
-        
-        Fog {Mode Off}
-        ZWrite On ZTest LEqual Cull Off
-        Offset 1, 1
-
-CGPROGRAM
-#pragma target 5.0
-#pragma vertex vert
-#pragma fragment frag
-#pragma multi_compile_shadowcaster
-
-#define MPGP_SHADOW_CASTER
-#include "MPGPSurface.cginc"
-ENDCG
-    }
-
 }
-FallBack Off
 
+FallBack Off
 }

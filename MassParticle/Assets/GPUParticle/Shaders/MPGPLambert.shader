@@ -12,49 +12,12 @@ SubShader {
     Tags { "RenderType"="Opaque" }
 
 CGPROGRAM
-#pragma surface surf Lambert vertex:vert
+#pragma surface surf Lambert vertex:vert addshadow
 
 #define MPGP_SURFACE
 #include "MPGPSurface.cginc" 
 ENDCG
-
-
-Pass {
-    Name "ShadowCaster"
-    Tags { "LightMode" = "ShadowCaster" }
-        
-    Fog {Mode Off}
-    ZWrite On ZTest LEqual Cull Off
-    Offset 1, 1
-
-CGPROGRAM
-#pragma vertex vert
-#pragma fragment frag
-#pragma multi_compile_shadowcaster
-
-#define MPGP_SHADOW_CASTER
-#include "MPGPSurface.cginc" 
-ENDCG
-    }
-
-    Pass {
-        Name "ShadowCollector"
-        Tags { "LightMode" = "ShadowCollector" }
-        
-        Fog {Mode Off}
-        ZWrite On ZTest LEqual
-
-CGPROGRAM
-#pragma target 4.0
-#pragma vertex vert
-#pragma fragment frag
-#pragma multi_compile_shadowcollector
-
-#define MPGP_SHADOW_COLLECTOR
-#include "MPGPSurface.cginc" 
-ENDCG
-    }
 }
-FallBack Off
 
+FallBack Off
 }
