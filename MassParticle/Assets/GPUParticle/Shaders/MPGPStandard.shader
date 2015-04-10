@@ -11,7 +11,7 @@ Properties {
 }
 
 SubShader {
-    Tags { "RenderType"="Opaque" }
+    Tags { "RenderType"="Opaque" "Queue"="Geometry+1" }
 
 CGPROGRAM
 #pragma target 5.0

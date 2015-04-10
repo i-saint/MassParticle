@@ -6,8 +6,7 @@ Properties {
     _Metallic ("Metallic", Range(0,1)) = 0.0
 }
 SubShader {
-    Tags { "RenderType"="Opaque" }
-    LOD 200
+    Tags { "RenderType"="Opaque" "Queue"="Geometry+1" }
 
 CGPROGRAM
 #if defined(SHADER_API_OPENGL)

@@ -8,7 +8,7 @@ Properties {
     g_spin ("Spin", Float) = 0.0
 }
 SubShader {
-    Tags { "RenderType"="Opaque" }
+    Tags { "RenderType"="Opaque" "Queue"="Geometry+1" }
 
 CGPROGRAM
 #pragma surface surf Lambert vertex:vert addshadow

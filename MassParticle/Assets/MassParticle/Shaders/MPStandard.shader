@@ -11,7 +11,8 @@ Properties {
 }
 
 SubShader {
-    Tags { "RenderType"="Opaque" }
+    Tags { "RenderType"="Opaque" "Queue"="Geometry+1" }
+    //ZWrite Off ZTest Equal // for depth prepass
 
 CGPROGRAM
 #pragma surface surf Standard fullforwardshadows vertex:vert addshadow 

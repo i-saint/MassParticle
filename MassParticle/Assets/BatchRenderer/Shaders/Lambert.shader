@@ -5,8 +5,7 @@ Properties {
     _MainTex ("Base (RGB)", 2D) = "white" {}
 }
 SubShader {
-    Tags { "RenderType"="BatchedOpaque" }
-    LOD 200
+    Tags { "RenderType"="Opaque" "Queue"="Geometry+1" }
 
 CGPROGRAM
 #if defined(SHADER_API_OPENGL)
