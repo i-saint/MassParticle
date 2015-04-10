@@ -12,6 +12,12 @@
 #include "MPFoundation.cginc"
 
 
+#ifdef MP_DEPTH_PREPASS
+    #define MP_SHADOW_CASTER
+#endif // MP_DEPTH_PREPASS
+
+
+
 #if defined(MP_STANDARD) || defined(MP_SURFACE)
     sampler2D _MainTex;
     fixed4 _Color;

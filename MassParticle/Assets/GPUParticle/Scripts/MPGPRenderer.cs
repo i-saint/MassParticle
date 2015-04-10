@@ -22,9 +22,9 @@ public class MPGPRenderer : BatchRendererBase
 
 
 
-    public override Material CloneMaterial(int nth)
+    public override Material CloneMaterial(Material src, int nth)
     {
-        Material m = new Material(m_material);
+        Material m = new Material(src);
         m.SetInt("g_batch_begin", nth * m_instances_par_batch);
         m.SetBuffer("particles", m_world.GetParticleBuffer());
 
@@ -39,10 +39,7 @@ public class MPGPRenderer : BatchRendererBase
 
     public virtual void ReleaseGPUResources()
     {
-        if (m_materials != null)
-        {
-            m_materials.Clear();
-        }
+        ClearMaterials();
     }
 
     public virtual void ResetGPUResoures()
@@ -54,14 +51,11 @@ public class MPGPRenderer : BatchRendererBase
 
     public override void UpdateGPUResources()
     {
-        if (m_materials != null)
+        ForEachEveryMaterials((v) =>
         {
-            m_materials.ForEach((v) =>
-            {
-                v.SetInt("g_num_max_instances", m_max_instances);
-                v.SetInt("g_num_instances", m_instance_count);
-            });
-        }
+            v.SetInt("g_num_max_instances", m_max_instances);
+            v.SetInt("g_num_instances", m_instance_count);
+        });
     }
 
 

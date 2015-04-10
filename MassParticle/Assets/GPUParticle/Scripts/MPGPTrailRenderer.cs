@@ -45,9 +45,9 @@ public class MPGPTrailRenderer : BatchRendererBase
 #endif // UNITY_EDITOR
 
 
-    public override Material CloneMaterial(int nth)
+    public override Material CloneMaterial(Material src, int nth)
     {
-        Material m = new Material(m_material);
+        Material m = new Material(src);
 
         m.SetInt("g_batch_begin", nth * m_instances_par_batch);
         m.SetBuffer("particles", m_world.GetParticleBuffer());
@@ -65,10 +65,7 @@ public class MPGPTrailRenderer : BatchRendererBase
 
     public virtual void ReleaseGPUResources()
     {
-        if (m_materials != null)
-        {
-            m_materials.Clear();
-        }
+        ClearMaterials();
 
         if (m_buf_trail_vertices != null)
         {
@@ -119,14 +116,11 @@ public class MPGPTrailRenderer : BatchRendererBase
 
     public override void UpdateGPUResources()
     {
-        if (m_materials != null)
+        ForEachEveryMaterials((v) =>
         {
-            m_materials.ForEach((v) =>
-            {
-                v.SetInt("g_num_max_instances", m_max_instances);
-                v.SetInt("g_num_instances", m_instance_count);
-            });
-        }
+            v.SetInt("g_num_max_instances", m_max_instances);
+            v.SetInt("g_num_instances", m_instance_count);
+        });
     }
 
     public override void OnEnable()
