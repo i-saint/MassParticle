@@ -18,8 +18,11 @@ public class SceneTestDeferredShading : MonoBehaviour
 
     void Start ()
     {
-        world = mpWorldObj.GetComponent<MPWorld>();
-        emitter = emitterObj.GetComponent<MPEmitter>();
+        if (mpWorldObj != null)
+        {
+            world = mpWorldObj.GetComponent<MPWorld>();
+            emitter = emitterObj.GetComponent<MPEmitter>();
+        }
     }
     
     void Update ()
@@ -52,7 +55,7 @@ public class SceneTestDeferredShading : MonoBehaviour
         float y = 10.0f;
         float tmpf = 0.0f;
 
-        if (!showGUI) { return; }
+        if (!showGUI || world==null) { return; }
 
         GUI.Label(new Rect(x, y, labelWidth, lineheight), "particles: " + world.m_particle_num);
         y += lineheight + margin;
