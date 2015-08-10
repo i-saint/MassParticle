@@ -67,3 +67,4 @@ void MatrixTranspose( uint3 gid : SV_GroupID,
     uint2 XY = dtid.yx - gtid.yx + gtid.xy;
     kip_rw[XY.y * consts[0].height + XY.x] = transpose_shared_data[gtid.x * TRANSPOSE_BLOCK_SIZE + gtid.y];
 }
+

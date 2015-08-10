@@ -5,7 +5,7 @@ using System.Collections.Generic;
 
 public struct MPGPParticle
 {
-    public const int size = 44;
+    public const int size = 48;
 
     public Vector3 position;
     public Vector3 velocity;
@@ -14,6 +14,7 @@ public struct MPGPParticle
     public float density;
     public int hit_objid;
     public uint id;
+    public float pad0;
 };
 
 public struct MPGPSortData
@@ -120,13 +121,15 @@ public struct MPGPWorldIData
 
 public struct MPGPWorldData
 {
-    public const int size = 224;
+    public const int size = 296;
 
     public float timestep;
     public float particle_size;
     public float particle_lifetime;
-    public float wall_stiffness;
     public float pressure_stiffness;
+    public float wall_stiffness;
+    public float gbuffer_stiffness;
+    public float gbuffer_thickness;
     public float damping;
     public float advection;
     public int num_max_particles;
@@ -150,6 +153,7 @@ public struct MPGPWorldData
     public Vector3 rcp_world_cellsize;
     public Vector2 rt_size;
     public Matrix4x4 view_proj;
+    public Matrix4x4 inv_view_proj;
     public float rcp_particle_size2;
     public Vector3 coord_scaler;
 

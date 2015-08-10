@@ -1,6 +1,9 @@
-﻿Shader "GPUParticle/Standard" {
+﻿Shader "GPUParticle/Transparent" {
 
 Properties {
+    _SrcBlend("SrcBlend", Int) = 1
+    _DstBlend("DstBlend", Int) = 1
+
     _MainTex ("Albedo", 2D) = "white" {}
     _Color("Albedo Color", Color) = (0.8, 0.8, 0.8, 1.0)
     _Emission("Emission Color", Color) = (0, 0, 0, 0)
@@ -17,15 +20,19 @@ Properties {
 }
 
 SubShader {
-    Tags { "RenderType"="Opaque" "Queue"="Geometry+1" }
+    Tags { "RenderType"="Transparent" "Queue"="Transparent" }
+    Blend[_SrcBlend][_DstBlend]
 
+    Pass {
 CGPROGRAM
 #pragma target 5.0
-#pragma surface surf Standard fullforwardshadows vertex:vert addshadow
+#pragma vertex vert
+#pragma fragment frag 
 
-#define MPGP_STANDARD
+#define MPGP_TRANSPARENT
 #include "MPGPSurface.cginc"
 ENDCG
+    }
 }
 
 

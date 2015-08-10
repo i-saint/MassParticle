@@ -17,8 +17,10 @@ struct WorldData
     float timestep;
     float particle_size;
     float particle_lifetime;
-    float wall_stiffness;
     float pressure_stiffness;
+    float wall_stiffness;
+    float gbuffer_stiffness;
+    float gbuffer_thickness;
     float damping;
     float advection;
     int num_max_particles;
@@ -36,6 +38,7 @@ struct WorldData
     float3 rcp_world_cellsize;
     float2 rt_size;
     float4x4 view_proj;
+    float4x4 inv_view_proj;
     float rcp_particle_size2;
     float3 coord_scaler;
 };
@@ -61,6 +64,7 @@ struct Particle
     float density;
     int hit_objid;
     uint id;
+    float pad0;
 };
 
 struct Cell

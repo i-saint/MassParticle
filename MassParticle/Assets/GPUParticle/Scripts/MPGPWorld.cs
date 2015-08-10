@@ -58,10 +58,13 @@ public class MPGPWorld : MonoBehaviour
     public int m_world_div_y = 1;
     public int m_world_div_z = 256;
     public float m_lifetime = 20.0f;
+    public float m_timescale = 0.6f;
     public float m_damping = 0.6f;
     public float m_advection = 0.5f;
     public float m_pressure_stiffness = 500.0f;
     public float m_wall_stiffness = 1000.0f;
+    public float m_gbuffer_stiffness = 1000.0f;
+    public float m_gbuffer_thickness = 0.1f;
     public Vector3 m_coord_scaler = Vector3.one;
 
     public float m_sph_smoothlen = 0.2f;
@@ -284,7 +287,7 @@ public class MPGPWorld : MonoBehaviour
         m_world_data[0].num_max_particles = m_max_particles;
         m_world_data[0].SetWorldSize(transform.position, transform.localScale,
             (uint)m_world_div_x, (uint)m_world_div_y, (uint)m_world_div_z);
-        m_world_data[0].timestep = Time.deltaTime * 0.6f;
+        m_world_data[0].timestep = Time.deltaTime * m_timescale;
         m_world_data[0].particle_size = m_particle_radius;
         m_world_data[0].particle_lifetime = m_lifetime;
         m_world_data[0].num_sphere_colliders = m_sphere_colliders.Count;
@@ -294,9 +297,10 @@ public class MPGPWorld : MonoBehaviour
         m_world_data[0].damping = m_damping;
         m_world_data[0].advection = m_advection;
         m_world_data[0].coord_scaler = m_coord_scaler;
-        m_world_data[0].pressure_stiffness = m_pressure_stiffness;
         m_world_data[0].wall_stiffness = m_wall_stiffness;
-
+        m_world_data[0].gbuffer_stiffness = m_gbuffer_stiffness;
+        m_world_data[0].gbuffer_thickness = m_gbuffer_thickness;
+        m_world_data[0].pressure_stiffness = m_pressure_stiffness;
         m_sph_params[0].smooth_len = m_sph_smoothlen;
         m_sph_params[0].particle_mass = m_sph_particleMass;
         m_sph_params[0].pressure_stiffness = m_sph_pressureStiffness;
@@ -363,7 +367,14 @@ public class MPGPWorld : MonoBehaviour
                 cs.SetBuffer(kernel, "sort_keys", m_buf_sort_data[0]);
                 cs.SetBuffer(kernel, "cells_rw", m_buf_cells);
                 cs.Dispatch(kernel, m_max_particles / BLOCK_SIZE, 1, 1);
-                BatchRendererUtil.Swap(ref m_buf_particles[0], ref m_buf_particles[1]);
+            }
+            // copy back
+            {
+                ComputeShader cs = m_cs_hashgrid;
+                int kernel = 3;
+                cs.SetBuffer(kernel, "particles", m_buf_particles[1]);
+                cs.SetBuffer(kernel, "particles_rw", m_buf_particles[0]);
+                cs.Dispatch(kernel, m_max_particles / BLOCK_SIZE, 1, 1);
             }
         }
 
@@ -444,18 +455,7 @@ public class MPGPWorld : MonoBehaviour
             // do nothing
         }
 
-        //// gbuffer collision
-        //if (m_process_gbuffer_collision)
-        //{
-        //    ComputeShader cs = m_cs_core;
-        //    int kernel = kProcessGBufferCollision;
-        //    cs.SetTexture(kernel, "gbuffer_normal", rtNormalBufferCopy);
-        //    cs.SetTexture(kernel, "gbuffer_position", rtPositionBufferCopy);
-        //    cs.SetBuffer(kernel, "world_data", m_buf_world_data);
-        //    cs.SetBuffer(kernel, "particles", m_buf_particles[0]);
-        //    cs.SetBuffer(kernel, "pimd", m_buf_imd);
-        //    cs.Dispatch(kernel, num_active_blocks, 1, 1);
-        //}
+        // gbuffer collision
 
         // colliders
         if (m_process_colliders)
@@ -498,7 +498,7 @@ public class MPGPWorld : MonoBehaviour
 
     void LateUpdate()
     {
-        --s_update_count;
+        s_update_count = 0;
     }
 
 
