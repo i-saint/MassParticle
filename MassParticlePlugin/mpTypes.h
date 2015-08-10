@@ -132,8 +132,10 @@ struct mpParticle
     };
     int userdata;
 
-    mpParticle& operator=(const mpParticle &v)
-    {
+	mpParticle() {}
+	mpParticle(const mpParticle &v) { *this = v; }
+	mpParticle& operator=(const mpParticle &v)
+	{
         simd128 *dst = (simd128*)this;
         simd128 *src = (simd128*)&v;
         dst[0] = src[0];

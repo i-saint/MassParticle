@@ -111,18 +111,9 @@ DistanceData DistancePointCapsule(vec3f ppos, uniform const Capsule &shape)
     vec3f pos2 = shape.pos2;
     vec3f d = pos2-pos1;
 
-    float t = dot(ppos-pos1, pos2-pos1) / dot(d,d);
-    vec3f diff;
-    if(t<=0.0f) {
-        diff = ppos-pos1;
-    }
-    else if(t>=1.0f) {
-        diff = ppos-pos2;
-    }
-    else {
-        vec3f nearest = pos1 + (pos2-pos1)*t;
-        diff = ppos-nearest;
-    }
+    float t = clamp(dot(ppos-pos1, pos2-pos1) / dot(d,d), 0.0f, 1.0f);
+    vec3f nearest = pos1 + (pos2-pos1)*t;
+    vec3f diff = ppos-nearest;
     float distance = length(diff)-shape.radius;
     vec3f dir = normalize(diff);
 

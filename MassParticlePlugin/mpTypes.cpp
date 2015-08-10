@@ -278,6 +278,7 @@ void mpWorld::removeCollider(mpColliderProperties &props)
             [&](const mpBoxCollider &c, int i){ return c.props.owner_id < i; });
         if (i != m_box_colliders.end()) {
             i->props.hit_handler = nullptr;
+            i->props.force_handler = nullptr;
             return;
         }
     }
@@ -286,6 +287,7 @@ void mpWorld::removeCollider(mpColliderProperties &props)
             [&](const mpSphereCollider &c, int i){ return c.props.owner_id < i; });
         if (i != m_sphere_colliders.end()) {
             i->props.hit_handler = nullptr;
+            i->props.force_handler = nullptr;
             return;
         }
     }
@@ -294,6 +296,7 @@ void mpWorld::removeCollider(mpColliderProperties &props)
             [&](const mpCapsuleCollider &c, int i){ return c.props.owner_id < i; });
         if (i != m_capsule_colliders.end()) {
             i->props.hit_handler = nullptr;
+            i->props.force_handler = nullptr;
             return;
         }
     }
@@ -302,6 +305,7 @@ void mpWorld::removeCollider(mpColliderProperties &props)
             [&](const mpPlaneCollider &c, int i){ return c.props.owner_id < i; });
         if (i != m_plane_colliders.end()) {
             i->props.hit_handler = nullptr;
+            i->props.force_handler = nullptr;
             return;
         }
     }
@@ -884,6 +888,7 @@ void mpWorld::update(float dt)
 void mpWorld::callHandlers()
 {
     int num_colliders = 0;
+    // search max id and allocate properties
     if (!m_plane_colliders.empty()) { num_colliders = std::max(num_colliders, m_plane_colliders.back().props.owner_id + 1); }
     if (!m_sphere_colliders.empty()) { num_colliders = std::max(num_colliders, m_sphere_colliders.back().props.owner_id + 1); }
     if (!m_capsule_colliders.empty()) { num_colliders = std::max(num_colliders, m_capsule_colliders.back().props.owner_id + 1); }
