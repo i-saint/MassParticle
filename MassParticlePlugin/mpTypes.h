@@ -298,7 +298,7 @@ class mpRenderer
 {
 public:
     virtual ~mpRenderer() {}
-    virtual void updateDataTexture(void *tex, const void *data, size_t data_size) = 0;
+    virtual void updateDataTexture(void *tex, int width, int height, const void *data, size_t data_size) = 0;
 };
 mpRenderer* mpCreateRendererD3D9(void *dev);
 mpRenderer* mpCreateRendererD3D11(void *dev);
@@ -354,7 +354,7 @@ public:
 
     void generatePointMesh(int mi, mpMeshData *mds);
     void generateCubeMesh(int mi, mpMeshData *mds);
-    int updateDataTexture(void *tex);
+    int updateDataTexture(void *tex, int width, int height);
 #ifdef mpWithCppScript
     int updateDataBuffer(UnityEngine::ComputeBuffer buf);
 #endif // mpWithCppScript

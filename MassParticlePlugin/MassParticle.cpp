@@ -28,10 +28,10 @@ float mpGenRand1()
 }
 
 
-extern "C" EXPORT_API void mpUpdateDataTexture(int context, void *tex)
+extern "C" EXPORT_API void mpUpdateDataTexture(int context, void *tex, int width, int height)
 {
     if (context == 0) return;
-    g_worlds[context]->updateDataTexture(tex);
+    g_worlds[context]->updateDataTexture(tex, width, height);
 }
 
 #ifdef mpWithCppScript

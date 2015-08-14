@@ -33,7 +33,7 @@ enum mpForceDirection
     mpFD_VectorField, //
 };
 
-extern "C" EXPORT_API void			mpUpdateDataTexture(int context, void *tex);
+extern "C" EXPORT_API void			mpUpdateDataTexture(int context, void *tex, int width, int height);
 #ifdef mpWithCppScript
 extern "C" EXPORT_API void			mpUpdateDataBuffer(int context, UnityEngine::ComputeBuffer buf);
 #endif // mpWithCppScript

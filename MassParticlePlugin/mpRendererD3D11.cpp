@@ -15,31 +15,13 @@
 #define mpSafeRelease(obj) if(obj) { obj->Release(); obj=nullptr; }
 
 
-struct mpVertex
-{
-    vec3 Pos;
-    vec3 Normal;
-};
-
-struct mpCBCData
-{
-    mat4 ViewProjection;
-    vec4 CameraPos;
-    vec4 LightPos;
-    vec4 LightColor;
-    vec4 MeshColor;
-    float ParticleSize;
-    float MeshShininess;
-    float padding[2];
-};
-
 
 class mpRendererD3D11 : public mpRenderer
 {
 public:
     mpRendererD3D11(void *dev);
     virtual ~mpRendererD3D11();
-    virtual void updateDataTexture(void *tex, const void *data, size_t data_size);
+    virtual void updateDataTexture(void *tex, int width, int height, const void *data, size_t data_size);
 
 private:
     bool initializeResources();
@@ -71,18 +53,18 @@ mpRendererD3D11::~mpRendererD3D11()
 }
 
 
-void mpRendererD3D11::updateDataTexture(void *texptr, const void *data, size_t data_size)
+void mpRendererD3D11::updateDataTexture(void *texptr, int width, int height, const void *data, size_t data_size)
 {
     const size_t num_texels = data_size / 16;
 
     D3D11_BOX box;
     box.left = 0;
-    box.right = mpDataTextureWidth;
+    box.right = width;
     box.top = 0;
-    box.bottom = ceildiv((UINT)num_texels, (UINT)mpDataTextureWidth);
+    box.bottom = ceildiv((UINT)num_texels, (UINT)width);
     box.front = 0;
     box.back = 1;
     ID3D11Texture2D *tex = (ID3D11Texture2D*)texptr;
-    m_pImmediateContext->UpdateSubresource(tex, 0, &box, data, mpDataTextureWidth * 16, 0);
+    m_pImmediateContext->UpdateSubresource(tex, 0, &box, data, width * 16, 0);
 }
 #endif // SUPPORT_D3D11

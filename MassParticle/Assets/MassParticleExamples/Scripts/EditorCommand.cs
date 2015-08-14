@@ -103,24 +103,5 @@ public class EditorCommand
         mesh.uv = uv;
         mesh.triangles = indices;
     }
-
-
-    [MenuItem("Assets/MassParticle/Create")]
-    public static void CreateAsset ()
-    {
-        //ScriptableObjectUtility.CreateAsset<Hoge>();
-
-        int max_cubes = 1024*256;
-        int max_meshes = max_cubes/MPWorld.CubeBatchSize + 1;
-
-        for (int i = 0; i < max_meshes; ++i )
-        {
-            Mesh mesh = new Mesh();
-            BuildCubeMesh(mesh, i);
-            AssetDatabase.CreateAsset(mesh, "Assets/cubes"+i+".asset");
-            AssetDatabase.SaveAssets();
-        }
-        AssetDatabase.Refresh();
-    }
 }
 #endif
