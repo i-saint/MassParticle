@@ -1,5 +1,5 @@
-#ifndef BRGeometry_h
-#define BRGeometry_h
+#ifndef IstGeometry_h
+#define IstGeometry_h
 
 struct Plane
 {
@@ -116,21 +116,30 @@ DistanceData DistancePointBox(float3 ppos, Box shape)
     return ret;
 }
 
-float DistancePointPlane(Plane plane, float3 pos)
+float DistancePointPlane(float3 pos, Plane plane)
 {
     return dot(pos, plane.normal) + plane.distance;
 }
 
-float3 IntersectionRayPlane(Plane plane, Ray ray)
+float3 ProjectToPlane(float3 pos, Plane plane)
+{
+    float d = DistancePointPlane(pos, plane);
+    return pos - d*plane.normal;
+}
+
+float3 IntersectionRayPlane(Ray ray, Plane plane)
 {
     float t = (-dot(ray.origin, plane.normal) - plane.distance) / dot(plane.normal, ray.direction);
     return ray.origin + ray.direction * t;
 }
 
-float3 ProjectToPlane(Plane plane, float3 pos)
+float ComputeDepth(float4 clippos)
 {
-    float d = DistancePointPlane(plane, pos);
-    return pos - d*plane.normal;
+#if defined(SHADER_TARGET_GLSL) || defined(SHADER_API_GLES) || defined(SHADER_API_GLES3)
+    return (clippos.z / clippos.w) * 0.5 + 0.5;
+#else
+    return clippos.z / clippos.w;
+#endif
 }
 
-#endif // BRGeometry_h
+#endif // IstGeometry_h

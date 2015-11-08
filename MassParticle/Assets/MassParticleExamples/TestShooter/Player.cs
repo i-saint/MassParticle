@@ -1,9 +1,9 @@
-﻿using UnityEngine;
-using System.Collections;
+﻿using System.Collections;
+using UnityEngine;
+using Ist;
 
 public class MPGPPlayer : MonoBehaviour
 {
-
     Transform trans;
     Rigidbody rigid;
     Vector4 glowColor = new Vector4(0.1f, 0.075f, 0.2f, 0.0f);

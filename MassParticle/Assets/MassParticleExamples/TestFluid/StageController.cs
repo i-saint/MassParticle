@@ -1,6 +1,7 @@
-﻿using UnityEngine;
+﻿using System.Collections.Generic;
 using System.Collections;
-using System.Collections.Generic;
+using UnityEngine;
+using Ist;
 
 public class StageController : MonoBehaviour
 {

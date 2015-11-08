@@ -1,6 +1,7 @@
-﻿using UnityEngine;
-using System;
+﻿using System;
 using System.Collections;
+using UnityEngine;
+using Ist;
 
 public class Scanner : MonoBehaviour
 {

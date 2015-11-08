@@ -1,29 +1,30 @@
-﻿using UnityEngine;
-using System.Collections;
+﻿using System.Collections;
+using UnityEngine;
+using Ist;
 
-public class Enemy : MonoBehaviour {
+public class Enemy : MonoBehaviour
+{
+    Rigidbody rigid;
+    Destroyable stat;
 
-	Rigidbody rigid;
-	Destroyable stat;
+    // Use this for initialization
+    void Start () {
+        rigid = GetComponent<Rigidbody> ();
+        stat = GetComponent<Destroyable> ();
+        
+        rigid.maxAngularVelocity = 20.0f;
+    }
+    
+    // Update is called once per frame
+    void Update () {
+    }
 
-	// Use this for initialization
-	void Start () {
-		rigid = GetComponent<Rigidbody> ();
-		stat = GetComponent<Destroyable> ();
-		
-		rigid.maxAngularVelocity = 20.0f;
-	}
-	
-	// Update is called once per frame
-	void Update () {
-	}
-
-	void OnTriggerEnter(Collider col)
-	{
-		PlayerBullet bul = col.GetComponent<PlayerBullet>();
-		if(bul) {
-			stat.Damage(bul.power);
-			Destroy (col.gameObject);
-		}
-	}
+    void OnTriggerEnter(Collider col)
+    {
+        PlayerBullet bul = col.GetComponent<PlayerBullet>();
+        if(bul) {
+            stat.Damage(bul.power);
+            Destroy (col.gameObject);
+        }
+    }
 }

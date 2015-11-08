@@ -16,18 +16,17 @@ void ApplyBillboardTransform(float2 id, inout float4 vertex, inout float3 normal
     float3 camera_pos = _WorldSpaceCameraPos.xyz;
     float3 pos = GetInstanceTranslation(instance_id);
     float3 look = normalize(pos-camera_pos);
-    float3 axis = cross(look, float3(0.0, 1.0, 0.0));
-    float3 up = mul(axis_rotation_matrix33(axis, 90.0), look);
+    float3 up = float3(0.0, 1.0, 0.0);
 
     vertex.xyz *= GetBaseScale();
-#ifndef BR_WITHOUT_INSTANCE_SCALE
-    if(GetFlag_Scale()) {
+#if ENABLE_INSTANCE_SCALE
+    {
         vertex.xyz *= GetInstanceScale(instance_id);
     }
 #endif
     vertex.xyz = mul(look_matrix33(look, up), vertex.xyz);
-#ifndef BR_WITHOUT_INSTANCE_ROTATION
-    if(GetFlag_Rotation()) {
+#if ENABLE_INSTANCE_ROTATION
+    {
         float3x3 rot = quaternion_to_matrix33(GetInstanceRotation(instance_id));
         vertex.xyz = mul(rot, vertex.xyz);
         normal = mul(rot, normal);
@@ -36,14 +35,14 @@ void ApplyBillboardTransform(float2 id, inout float4 vertex, inout float3 normal
     vertex.xyz += pos;
     vertex = mul(UNITY_MATRIX_VP, vertex);
 
-#ifndef BR_WITHOUT_INSTANCE_UVOFFSET
-    if(GetFlag_UVOffset()) {
+#if ENABLE_INSTANCE_UVOFFSET
+    {
         float4 u = GetInstanceUVOffset(instance_id);
         texcoord = texcoord*u.xy + u.zw;
     }
 #endif
-#ifndef BR_WITHOUT_INSTANCE_COLOR
-    if(GetFlag_Color()) {
+#if ENABLE_INSTANCE_COLOR
+    {
         color *= GetInstanceColor(instance_id);
     }
 #endif
@@ -62,7 +61,7 @@ bool ApplyViewPlaneProjection(inout float4 vertex, float3 pos)
     float3 camera_pos = _WorldSpaceCameraPos.xyz;
     float3 look = normalize(camera_pos-pos);
     Plane view_plane = {look, 1.0};
-    pos = camera_pos + ProjectToPlane(view_plane, pos-camera_pos);
+    pos = camera_pos + ProjectToPlane(pos-camera_pos, view_plane);
     vertex.y *= -aspect;
     vertex.xy += vp.xy / vp.w;
     vertex.zw = float2(0.0, 1.0);
@@ -79,13 +78,13 @@ void ApplyViewPlaneBillboardTransform(float2 id, inout float4 vertex, inout floa
 
     float3 pos = GetInstanceTranslation(instance_id);
     vertex.xyz *= GetBaseScale();
-#ifndef BR_WITHOUT_INSTANCE_SCALE
-    if(GetFlag_Scale()) {
+#if ENABLE_INSTANCE_SCALE
+    {
         vertex.xyz *= GetInstanceScale(instance_id);
     }
 #endif
-#ifndef BR_WITHOUT_INSTANCE_ROTATION
-    if(GetFlag_Rotation()) {
+#if ENABLE_INSTANCE_ROTATION
+    {
         float3x3 rot = quaternion_to_matrix33(GetInstanceRotation(instance_id));
         vertex.xyz = mul(rot, vertex.xyz);
         normal = mul(rot, normal);
@@ -95,14 +94,14 @@ void ApplyViewPlaneBillboardTransform(float2 id, inout float4 vertex, inout floa
         return;
     }
 
-#ifndef BR_WITHOUT_INSTANCE_UVOFFSET
-    if(GetFlag_UVOffset()) {
+#if ENABLE_INSTANCE_UVOFFSET
+    {
         float4 u = GetInstanceUVOffset(instance_id);
         texcoord = texcoord*u.xy + u.zw;
     }
 #endif
-#ifndef BR_WITHOUT_INSTANCE_COLOR
-    if(GetFlag_Color()) {
+#if ENABLE_INSTANCE_COLOR
+    {
         color *= GetInstanceColor(instance_id);
     }
 #endif

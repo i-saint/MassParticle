@@ -2,8 +2,9 @@
 using System.IO;
 using UnityEngine;
 using UnityEditor;
- 
- 
+using Ist;
+
+
 public static class ScriptableObjectUtility
 {
     /// <summary>
