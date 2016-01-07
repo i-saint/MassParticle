@@ -23,3 +23,5 @@ Library/
 Temp/
 Hidden/
 obj/
+
+*.abc
