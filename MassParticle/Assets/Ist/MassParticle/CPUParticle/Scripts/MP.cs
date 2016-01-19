@@ -207,7 +207,7 @@ namespace Ist
         [DllImport("MassParticle")]
         public static extern void mpClearCollidersAndForces(int context);
         [DllImport("MassParticle")]
-        public static extern MPKernelParams mpGetKernelParams(int context);
+        public static extern void mpGetKernelParams(int context, ref MPKernelParams p);
         [DllImport("MassParticle")]
         public static extern void mpSetKernelParams(int context, ref MPKernelParams p);
 

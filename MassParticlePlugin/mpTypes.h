@@ -80,13 +80,23 @@ inline IntType ceildiv(IntType a, IntType b)
     return a / b + (a%b == 0 ? 0 : 1);
 }
 
-
-enum mpSolverType
+inline int msb(int a)
 {
-    mpSolver_Impulse,
-    mpSolver_SPH,
-    mpSolver_SPHEst,
-};
+#ifdef _MSC_VER
+    ULONG r;
+    _BitScanReverse(&r, (ULONG)a);
+    return (int)r;
+#else  // _MSC_VER
+    return a == 0 ? 0 : 31 - __builtin_clz(a);
+#endif // _MSC_VER
+}
+
+// -1.0f-1.0f
+float mpGenRand();
+
+// 0.0f-1.0f
+float mpGenRand1();
+
 
 struct mpKernelParams : ispc::KernelParams
 {
@@ -100,14 +110,6 @@ struct mpTempParams
     vec3 world_bounds_bl;
     vec3 world_bounds_ur;
     ivec3 world_div_bits;
-};
-
-struct mpMeshData
-{
-    int *indices;
-    vec3 *vertices;
-    vec3 *normals;
-    vec2 *texcoords;
 };
 
 
@@ -132,10 +134,10 @@ struct mpParticle
     };
     int userdata;
 
-	mpParticle() {}
-	mpParticle(const mpParticle &v) { *this = v; }
-	mpParticle& operator=(const mpParticle &v)
-	{
+    mpParticle() {}
+    mpParticle(const mpParticle &v) { *this = v; }
+    mpParticle& operator=(const mpParticle &v)
+    {
         simd128 *dst = (simd128*)this;
         simd128 *src = (simd128*)&v;
         dst[0] = src[0];
@@ -183,25 +185,8 @@ struct mpSpawnParams
     mpHitHandler handler;
 };
 
-inline void* mpAlignedAlloc(size_t size, size_t align)
-{
-#ifdef _MSC_VER
-    return _aligned_malloc(size, align);
-#elif defined(__APPLE__)
-    return malloc(size);
-#else  // _MSC_VER
-    return memalign(align, size);
-#endif // _MSC_VER
-}
-
-inline void mpAlignedFree(void *p)
-{
-#ifdef _MSC_VER
-    _aligned_free(p);
-#else  // _MSC_VER
-    free(p);
-#endif // _MSC_VER
-}
+void* mpAlignedAlloc(size_t size, size_t align);
+void mpAlignedFree(void *p);
 
 
 template<typename T, int Align=32>
@@ -274,22 +259,7 @@ struct mpSoAData
     mpFloatArray affection;
     mpIntArray hit;
 
-    void resize(size_t n)
-    {
-        pos_x.resize(n);
-        pos_y.resize(n);
-        pos_z.resize(n);
-        vel_x.resize(n);
-        vel_y.resize(n);
-        vel_z.resize(n);
-        acl_x.resize(n);
-        acl_y.resize(n);
-        acl_z.resize(n);
-        speed.resize(n);
-        density.resize(n);
-        affection.resize(n);
-        hit.resize(n);
-    }
+    void resize(size_t n);
 };
 
 class mpWorld;
@@ -309,103 +279,6 @@ const int mpDataTextureHeight = 256;
 const int mpTexelsEachParticle = 3;
 const int mpParticlesEachLine = mpDataTextureWidth / mpTexelsEachParticle;
 
-class mpWorld
-{
-public:
-
-    mpWorld();
-    ~mpWorld();
-    void beginUpdate(float dt);
-    void endUpdate();
-    void update(float dt);
-    void callHandlers();
-
-    void addParticles(mpParticle *p, size_t num);
-    void addPlaneColliders(mpPlaneCollider *col, size_t num);
-    void addSphereColliders(mpSphereCollider *col, size_t num);
-    void addCapsuleColliders(mpCapsuleCollider *col, size_t num);
-    void addBoxColliders(mpBoxCollider *col, size_t num);
-    void removeCollider(mpColliderProperties &props);
-    void addForces(mpForce *force, size_t num);
-    void scanSphere(mpHitHandler handler, const vec3 &pos, float radius);
-    void scanAABB(mpHitHandler handler, const vec3 &center, const vec3 &extent);
-    void scanSphereParallel(mpHitHandler handler, const vec3 &pos, float radius);
-    void scanAABBParallel(mpHitHandler handler, const vec3 &center, const vec3 &extent);
-    void scanAll(mpHitHandler handler);
-    void scanAllParallel(mpHitHandler handler);
-    void moveAll(const vec3 &move);
-    void clearParticles();
-    void clearCollidersAndForces();
-
-    const mpKernelParams& getKernelParams() const { return m_kparams;  }
-    mpTempParams& getTempParams() { return m_tparams; }
-    void setKernelParams(const mpKernelParams &v) { m_kparams = v; }
-    const mpCellCont& getCells() { return m_cells; }
-
-    int			getNumParticles() const	{ return m_num_particles; }
-    mpParticle*	getParticles()			{ return m_particles.empty() ? nullptr : &m_particles[0]; }
-    int			getNumParticlesGPU() const	{ return m_num_particles_gpu; }
-    mpParticle*	getParticlesGPU()			{ return m_particles_gpu.empty() ? nullptr : &m_particles_gpu[0]; }
-
-    mpParticleIM& getIntermediateData(int i) { return m_imd[i]; }
-    mpParticleIM& getIntermediateData() { return m_imd[m_current]; }
-
-    std::mutex& getMutex() { return m_mutex;  }
-
-    void generatePointMesh(int mi, mpMeshData *mds);
-    void generateCubeMesh(int mi, mpMeshData *mds);
-    int updateDataTexture(void *tex, int width, int height);
-#ifdef mpWithCppScript
-    int updateDataBuffer(UnityEngine::ComputeBuffer buf);
-#endif // mpWithCppScript
-
-private:
-    mpParticleCont          m_particles;
-    mpParticleIMCont        m_imd;
-    mpSoAData               m_soa;
-    mpCellCont              m_cells;
-    u32                     m_id_seed;
-    int                     m_num_particles;
-
-    mpColliderPropertiesCont m_collider_properties;
-    mpPlaneColliderCont     m_plane_colliders;
-    mpSphereColliderCont    m_sphere_colliders;
-    mpCapsuleColliderCont   m_capsule_colliders;
-    mpBoxColliderCont       m_box_colliders;
-    mpForceCont             m_forces;
-    bool                    m_has_hithandler;
-    bool                    m_has_forcehandler;
-
-    tbb::task_group         m_taskgroup;
-    std::mutex              m_mutex;
-    mpKernelParams          m_kparams;
-    mpTempParams            m_tparams;
-
-    mpPForceCont            m_pforce;
-    mpPForceConbinable      m_pcombinable;
-
-    int                     m_num_particles_gpu;
-    int                     m_num_particles_gpu_prev;
-    mpParticleCont          m_particles_gpu;
-
-    int                     m_current;
-
-#ifdef mpWithCppScript
-    cpsArray                m_mono_array;
-    uint32_t                m_mono_gchandle;
-#endif // mpWithCppScript
-};
-
-inline int mpMSB(int a)
-{
-#ifdef _MSC_VER
-    ULONG r;
-    _BitScanReverse(&r, (ULONG)a);
-    return (int)r;
-#else  // _MSC_VER
-    return a==0 ? 0 : 31 - __builtin_clz(a);
-#endif // _MSC_VER
-}
 
 
 #endif // _SPH_types_h_

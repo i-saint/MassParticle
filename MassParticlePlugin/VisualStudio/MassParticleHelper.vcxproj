@@ -178,6 +178,10 @@
       <AdditionalLibraryDirectories>external\tbb\lib\ia32\vc12</AdditionalLibraryDirectories>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
+    <PostBuildEvent>
+      <Command>xcopy /Yq $(TargetPath) $(SolutionDir)Bin\x86\
+xcopy /Yq $(TargetPath) $(SolutionDir)..\..\MassParticle\Assets\Ist\Plugins\x86\</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -199,6 +203,10 @@
       <AdditionalLibraryDirectories>external\tbb\lib\ia32\vc12</AdditionalLibraryDirectories>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
+    <PostBuildEvent>
+      <Command>xcopy /Yq $(TargetPath) $(SolutionDir)Bin\x86_64\
+xcopy /Yq $(TargetPath) $(SolutionDir)..\..\MassParticle\Assets\Ist\Plugins\x86_64\</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -223,6 +231,10 @@
       <AdditionalLibraryDirectories>external\tbb\lib\ia32\vc12</AdditionalLibraryDirectories>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
+    <PostBuildEvent>
+      <Command>xcopy /Yq $(TargetPath) $(SolutionDir)Bin\x86\
+xcopy /Yq $(TargetPath) $(SolutionDir)..\..\MassParticle\Assets\Ist\Plugins\x86\</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -247,6 +259,10 @@
       <AdditionalLibraryDirectories>external\tbb\lib\ia32\vc12</AdditionalLibraryDirectories>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
+    <PostBuildEvent>
+      <Command>xcopy /Yq $(TargetPath) $(SolutionDir)Bin\x86_64\
+xcopy /Yq $(TargetPath) $(SolutionDir)..\..\MassParticle\Assets\Ist\Plugins\x86_64\</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Master|Win32'">
     <ClCompile>
@@ -318,6 +334,10 @@
       <AdditionalLibraryDirectories>external\tbb\lib\ia32\vc12</AdditionalLibraryDirectories>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
+    <PostBuildEvent>
+      <Command>xcopy /Yq $(TargetPath) $(SolutionDir)Bin\x86\
+xcopy /Yq $(TargetPath) $(SolutionDir)..\..\MassParticle\Assets\Ist\Plugins\x86\</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Master|x64'">
     <ClCompile>
@@ -341,6 +361,10 @@
       <AdditionalLibraryDirectories>external\tbb\lib\ia32\vc12</AdditionalLibraryDirectories>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
+    <PostBuildEvent>
+      <Command>xcopy /Yq $(TargetPath) $(SolutionDir)Bin\x86_64\
+xcopy /Yq $(TargetPath) $(SolutionDir)..\..\MassParticle\Assets\Ist\Plugins\x86_64\</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\MassParticleHelper.cpp" />

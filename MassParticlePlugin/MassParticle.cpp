@@ -5,59 +5,24 @@
 #include <math.h>
 #include <stdio.h>
 #include <tbb/tbb.h>
-#include <random>
-#include "MassParticle.h"
 #include "mpTypes.h"
+#include "mpWorld.h"
+#include "MassParticle.h"
 
 extern mpRenderer *g_mpRenderer;
 std::vector<mpWorld*> g_worlds;
 
 
-std::mt19937 s_rand;
-
-float mpGenRand()
-{
-    static std::uniform_real_distribution<float> s_dist(-1.0f, 1.0f);
-    return s_dist(s_rand);
-}
-
-float mpGenRand1()
-{
-    static std::uniform_real_distribution<float> s_dist(0.0f, 1.0f);
-    return s_dist(s_rand);
-}
-
-
-extern "C" EXPORT_API void mpUpdateDataTexture(int context, void *tex, int width, int height)
+mpCLinkage mpAPI void mpUpdateDataTexture(int context, void *tex, int width, int height)
 {
     if (context == 0) return;
     g_worlds[context]->updateDataTexture(tex, width, height);
 }
 
-#ifdef mpWithCppScript
-extern "C" EXPORT_API void mpUpdateDataBuffer(int context, UnityEngine::ComputeBuffer buf)
+
+
+mpCLinkage mpAPI int mpCreateContext()
 {
-    g_worlds[context]->updateDataBuffer(buf);
-}
-struct mpUpdateDataBufferHelper
-{
-    mpUpdateDataBufferHelper()
-    {
-        cpsAddMethod("MPAPI::mpUpdateDataBuffer", &mpUpdateDataBuffer);
-    }
-} g_mpUpdateDataBufferHelper;
-
-#endif // mpWithCppScript
-
-
-
-
-extern "C" EXPORT_API int mpCreateContext()
-{
-#ifdef mpWithCppScript
-    cpsClearCache();
-#endif // mpWithCppScript
-
     mpWorld *p = new mpWorld();
 
     if (g_worlds.empty()) {
@@ -72,77 +37,82 @@ extern "C" EXPORT_API int mpCreateContext()
     g_worlds.push_back(p);
     return (int)g_worlds.size()-1;
 }
-extern "C" EXPORT_API void mpDestroyContext(int context)
+mpCLinkage mpAPI void mpDestroyContext(int context)
 {
     delete g_worlds[context];
     g_worlds[context] = nullptr;
 }
 
 
-extern "C" EXPORT_API void mpBeginUpdate(int context, float dt)
-{
-    g_worlds[context]->beginUpdate(dt);
-}
-extern "C" EXPORT_API void mpEndUpdate(int context)
-{
-    g_worlds[context]->endUpdate();
-}
-extern "C" EXPORT_API void mpUpdate(int context, float dt)
+mpCLinkage mpAPI void mpUpdate(int context, float dt)
 {
     g_worlds[context]->update(dt);
 }
-extern "C" EXPORT_API void mpCallHandlers(int context)
+mpCLinkage mpAPI void mpBeginUpdate(int context, float dt)
+{
+    g_worlds[context]->beginUpdate(dt);
+}
+mpCLinkage mpAPI void mpEndUpdate(int context)
+{
+    g_worlds[context]->endUpdate();
+}
+mpCLinkage mpAPI void mpCallHandlers(int context)
 {
     g_worlds[context]->callHandlers();
 }
 
 
-extern "C" EXPORT_API void mpClearParticles(int context)
+mpCLinkage mpAPI void mpClearParticles(int context)
 {
     g_worlds[context]->clearParticles();
 }
 
-extern "C" EXPORT_API void mpClearCollidersAndForces(int context)
+mpCLinkage mpAPI void mpClearCollidersAndForces(int context)
 {
     g_worlds[context]->clearCollidersAndForces();
 }
 
-extern "C" EXPORT_API ispc::KernelParams mpGetKernelParams(int context)
+mpCLinkage mpAPI void mpGetKernelParams(int context, mpKernelParams *params)
 {
-    return g_worlds[context]->getKernelParams();
+    *params = g_worlds[context]->getKernelParams();
 }
 
-extern "C" EXPORT_API void mpSetKernelParams(int context, ispc::KernelParams *params)
+mpCLinkage mpAPI void mpSetKernelParams(int context, const mpKernelParams *params)
 {
-    g_worlds[context]->setKernelParams(*(mpKernelParams*)params);
+    g_worlds[context]->setKernelParams(*params);
 }
 
 
-extern "C" EXPORT_API int mpGetNumParticles(int context)
+mpCLinkage mpAPI int mpGetNumParticles(int context)
 {
     if (context == 0) return 0;
     return g_worlds[context]->getNumParticles();
 }
-extern "C" EXPORT_API mpParticleIM*	mpGetIntermediateData(int context, int nth)
+
+mpCLinkage mpAPI void mpForceSetNumParticles(int context, int num)
+{
+    g_worlds[context]->forceSetNumParticles(num);
+}
+mpCLinkage mpAPI mpParticleIM*	mpGetIntermediateData(int context, int nth)
 {
     return nth < 0 ?
         &g_worlds[context]->getIntermediateData() :
         &g_worlds[context]->getIntermediateData(nth);
 }
 
-extern "C" EXPORT_API mpParticle* mpGetParticles(int context)
+mpCLinkage mpAPI mpParticle* mpGetParticles(int context)
 {
     return g_worlds[context]->getParticles();
 }
 
-extern "C" EXPORT_API void mpCopyParticles(int context, mpParticle *dst)
+mpCLinkage mpAPI void mpCopyParticles(int context, mpParticle *dst)
 {
     memcpy(dst, g_worlds[context]->getParticles(), sizeof(mpParticle)*mpGetNumParticles(context));
 }
 
-extern "C" EXPORT_API void mpWriteParticles(int context, const mpParticle *from)
+mpCLinkage mpAPI void mpWriteParticles(int context, const mpParticle *src)
 {
-    memcpy(g_worlds[context]->getParticles(), from, sizeof(mpParticle)*mpGetNumParticles(context));
+    memcpy(g_worlds[context]->getParticles(), src, sizeof(mpParticle)*mpGetNumParticles(context));
 }
 
 
@@ -172,7 +142,7 @@ inline void mpApplySpawnParams(mpParticleCont &particles, const mpSpawnParams *p
     }
 }
 
-extern "C" EXPORT_API void mpScatterParticlesSphere(int context, vec3 *center, float radius, int32_t num, const mpSpawnParams *params)
+mpCLinkage mpAPI void mpScatterParticlesSphere(int context, vec3 *center, float radius, int32_t num, const mpSpawnParams *params)
 {
     if (num <= 0) { return; }
 
@@ -187,7 +157,7 @@ extern "C" EXPORT_API void mpScatterParticlesSphere(int context, vec3 *center, f
     g_worlds[context]->addParticles(&particles[0], particles.size());
 }
 
-extern "C" EXPORT_API void mpScatterParticlesBox(int context, vec3 *center, vec3 *size, int32_t num, const mpSpawnParams *params)
+mpCLinkage mpAPI void mpScatterParticlesBox(int context, vec3 *center, vec3 *size, int32_t num, const mpSpawnParams *params)
 {
     if (num <= 0) { return; }
 
@@ -201,7 +171,7 @@ extern "C" EXPORT_API void mpScatterParticlesBox(int context, vec3 *center, vec3
 }
 
 
-extern "C" EXPORT_API void mpScatterParticlesSphereTransform(int context, mat4 *transform, int32_t num, const mpSpawnParams *params)
+mpCLinkage mpAPI void mpScatterParticlesSphereTransform(int context, mat4 *transform, int32_t num, const mpSpawnParams *params)
 {
     if (num <= 0) { return; }
 
@@ -218,7 +188,7 @@ extern "C" EXPORT_API void mpScatterParticlesSphereTransform(int context, mat4 *
     g_worlds[context]->addParticles(&particles[0], particles.size());
 }
 
-extern "C" EXPORT_API void mpScatterParticlesBoxTransform(int context, mat4 *transform, int32_t num, const mpSpawnParams *params)
+mpCLinkage mpAPI void mpScatterParticlesBoxTransform(int context, mat4 *transform, int32_t num, const mpSpawnParams *params)
 {
     if (num <= 0) { return; }
 
@@ -315,7 +285,7 @@ inline void mpBuildCapsuleCollider(int context, mpCapsuleCollider &o, vec3 pos1,
 }
 
 
-extern "C" EXPORT_API void mpAddBoxCollider(int context, mpColliderProperties *props, mat4 *transform, vec3 *size, vec3 *center)
+mpCLinkage mpAPI void mpAddBoxCollider(int context, mpColliderProperties *props, mat4 *transform, vec3 *size, vec3 *center)
 {
     mpBoxCollider col;
     col.props = *props;
@@ -323,12 +293,12 @@ extern "C" EXPORT_API void mpAddBoxCollider(int context, mpColliderProperties *p
     g_worlds[context]->addBoxColliders(&col, 1);
 }
 
-extern "C" EXPORT_API void mpRemoveCollider(int context, mpColliderProperties *props)
+mpCLinkage mpAPI void mpRemoveCollider(int context, mpColliderProperties *props)
 {
     g_worlds[context]->removeCollider(*props);
 }
 
-extern "C" EXPORT_API void mpAddSphereCollider(int context, mpColliderProperties *props, vec3 *center, float radius)
+mpCLinkage mpAPI void mpAddSphereCollider(int context, mpColliderProperties *props, vec3 *center, float radius)
 {
     mpSphereCollider col;
     col.props = *props;
@@ -336,7 +306,7 @@ extern "C" EXPORT_API void mpAddSphereCollider(int context, mpColliderProperties
     g_worlds[context]->addSphereColliders(&col, 1);
 }
 
-extern "C" EXPORT_API void mpAddCapsuleCollider(int context, mpColliderProperties *props, vec3 *pos1, vec3 *pos2, float radius)
+mpCLinkage mpAPI void mpAddCapsuleCollider(int context, mpColliderProperties *props, vec3 *pos1, vec3 *pos2, float radius)
 {
     mpCapsuleCollider col;
     col.props = *props;
@@ -344,14 +314,14 @@ extern "C" EXPORT_API void mpAddCapsuleCollider(int context, mpColliderPropertie
     g_worlds[context]->addCapsuleColliders(&col, 1);
 }
 
-extern "C" EXPORT_API void mpAddForce(int context, mpForceProperties *props, mat4 *_trans)
+mpCLinkage mpAPI void mpAddForce(int context, mpForceProperties *props, mat4 *_trans)
 {
     mat4 &trans = *_trans;
     mpForce force;
     force.props = *props;
 
     switch (force.props.shape_type) {
-    case mpFS_Sphere:
+    case mpForceShape_Sphere:
         {
             mpSphereCollider col;
             vec3 pos = (vec3&)trans[3];
@@ -363,7 +333,7 @@ extern "C" EXPORT_API void mpAddForce(int context, mpForceProperties *props, mat
         }
         break;
 
-    case mpFS_Capsule:
+    case mpForceShape_Capsule:
         {
             mpCapsuleCollider col;
             vec3 pos = (vec3&)trans[3];
@@ -375,7 +345,7 @@ extern "C" EXPORT_API void mpAddForce(int context, mpForceProperties *props, mat
         }
         break;
 
-    case mpFS_Box:
+    case mpForceShape_Box:
         {
             mpBoxCollider col;
             mpBuildBoxCollider(context, col, trans, vec3(), vec3(1.0f, 1.0f, 1.0f));
@@ -391,34 +361,34 @@ extern "C" EXPORT_API void mpAddForce(int context, mpForceProperties *props, mat
     g_worlds[context]->addForces(&force, 1);
 }
 
-extern "C" EXPORT_API void mpScanSphere(int context, mpHitHandler handler, vec3 *center, float radius)
+mpCLinkage mpAPI void mpScanSphere(int context, mpHitHandler handler, vec3 *center, float radius)
 {
     return g_worlds[context]->scanSphere(handler, *center, radius);
 }
-extern "C" EXPORT_API void mpScanAABB(int context, mpHitHandler handler, vec3 *center, vec3 *extent)
+mpCLinkage mpAPI void mpScanAABB(int context, mpHitHandler handler, vec3 *center, vec3 *extent)
 {
     return g_worlds[context]->scanAABB(handler, *center, *extent);
 }
-extern "C" EXPORT_API void mpScanSphereParallel(int context, mpHitHandler handler, vec3 *center, float radius)
+mpCLinkage mpAPI void mpScanSphereParallel(int context, mpHitHandler handler, vec3 *center, float radius)
 {
     return g_worlds[context]->scanSphereParallel(handler, *center, radius);
 }
-extern "C" EXPORT_API void mpScanAABBParallel(int context, mpHitHandler handler, vec3 *center, vec3 *extent)
+mpCLinkage mpAPI void mpScanAABBParallel(int context, mpHitHandler handler, vec3 *center, vec3 *extent)
 {
     return g_worlds[context]->scanAABBParallel(handler, *center, *extent);
 }
 
-extern "C" EXPORT_API void mpScanAll(int context, mpHitHandler handler)
+mpCLinkage mpAPI void mpScanAll(int context, mpHitHandler handler)
 {
     return g_worlds[context]->scanAll(handler);
 }
 
-extern "C" EXPORT_API void mpScanAllParallel(int context, mpHitHandler handler)
+mpCLinkage mpAPI void mpScanAllParallel(int context, mpHitHandler handler)
 {
     return g_worlds[context]->scanAllParallel(handler);
 }
 
-extern "C" EXPORT_API void mpMoveAll(int context, vec3 *move_amount)
+mpCLinkage mpAPI void mpMoveAll(int context, vec3 *move_amount)
 {
     g_worlds[context]->moveAll(*move_amount);
 }

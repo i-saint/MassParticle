@@ -216,7 +216,8 @@ namespace Ist
 
             m_particle_num = MPAPI.mpGetNumParticles(GetContext());
 
-            MPKernelParams p = MPAPI.mpGetKernelParams(GetContext());
+            MPKernelParams p = default(MPKernelParams);
+            MPAPI.mpGetKernelParams(GetContext(), ref p);
             p.world_center = transform.position;
             p.world_size = transform.localScale;
             p.world_div_x = m_world_div_x;
