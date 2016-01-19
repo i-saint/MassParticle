@@ -1,10 +1,5 @@
-// Example low level rendering Unity plugin
-
-
+#include "pch.h"
 #include "UnityPluginInterface.h"
-#include <math.h>
-#include <stdio.h>
-#include <tbb/tbb.h>
 #include "mpTypes.h"
 #include "mpWorld.h"
 #include "MassParticle.h"

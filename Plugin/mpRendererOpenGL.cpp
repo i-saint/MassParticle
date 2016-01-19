@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "UnityPluginInterface.h"
 
 #if SUPPORT_OPENGL

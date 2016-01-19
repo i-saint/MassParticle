@@ -1,10 +1,10 @@
+#include "pch.h"
 #include "UnityPluginInterface.h"
 
 #if SUPPORT_D3D9
 
 #include <windows.h>
 #include <d3d9.h>
-#include <map>
 #include "mpTypes.h"
 #include "mpCore_ispc.h"
 #include "MassParticle.h"

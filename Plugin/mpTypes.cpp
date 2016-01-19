@@ -1,6 +1,4 @@
-//#include "stdafx.h"
-#include <algorithm>
-#include <random>
+#include "pch.h"
 #include "mpTypes.h"
 #include "MassParticle.h"
 

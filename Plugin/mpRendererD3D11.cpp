@@ -1,3 +1,4 @@
+#include "pch.h"
 #include "UnityPluginInterface.h"
 
 #if SUPPORT_D3D11
