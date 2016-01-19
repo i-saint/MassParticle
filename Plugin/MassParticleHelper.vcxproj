@@ -180,7 +180,7 @@
     </Link>
     <PostBuildEvent>
       <Command>xcopy /Yq $(TargetPath) $(SolutionDir)Bin\x86\
-xcopy /Yq $(TargetPath) $(SolutionDir)..\..\MassParticle\Assets\Ist\Plugins\x86\</Command>
+xcopy /Yq $(TargetPath) $(SolutionDir)..\MassParticle\Assets\Ist\Plugins\x86\</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -205,7 +205,7 @@ xcopy /Yq $(TargetPath) $(SolutionDir)..\..\MassParticle\Assets\Ist\Plugins\x86\
     </Link>
     <PostBuildEvent>
       <Command>xcopy /Yq $(TargetPath) $(SolutionDir)Bin\x86_64\
-xcopy /Yq $(TargetPath) $(SolutionDir)..\..\MassParticle\Assets\Ist\Plugins\x86_64\</Command>
+xcopy /Yq $(TargetPath) $(SolutionDir)..\MassParticle\Assets\Ist\Plugins\x86_64\</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -233,7 +233,7 @@ xcopy /Yq $(TargetPath) $(SolutionDir)..\..\MassParticle\Assets\Ist\Plugins\x86_
     </Link>
     <PostBuildEvent>
       <Command>xcopy /Yq $(TargetPath) $(SolutionDir)Bin\x86\
-xcopy /Yq $(TargetPath) $(SolutionDir)..\..\MassParticle\Assets\Ist\Plugins\x86\</Command>
+xcopy /Yq $(TargetPath) $(SolutionDir)..\MassParticle\Assets\Ist\Plugins\x86\</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -261,7 +261,7 @@ xcopy /Yq $(TargetPath) $(SolutionDir)..\..\MassParticle\Assets\Ist\Plugins\x86\
     </Link>
     <PostBuildEvent>
       <Command>xcopy /Yq $(TargetPath) $(SolutionDir)Bin\x86_64\
-xcopy /Yq $(TargetPath) $(SolutionDir)..\..\MassParticle\Assets\Ist\Plugins\x86_64\</Command>
+xcopy /Yq $(TargetPath) $(SolutionDir)..\MassParticle\Assets\Ist\Plugins\x86_64\</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Master|Win32'">
@@ -336,7 +336,7 @@ xcopy /Yq $(TargetPath) $(SolutionDir)..\..\MassParticle\Assets\Ist\Plugins\x86_
     </Link>
     <PostBuildEvent>
       <Command>xcopy /Yq $(TargetPath) $(SolutionDir)Bin\x86\
-xcopy /Yq $(TargetPath) $(SolutionDir)..\..\MassParticle\Assets\Ist\Plugins\x86\</Command>
+xcopy /Yq $(TargetPath) $(SolutionDir)..\MassParticle\Assets\Ist\Plugins\x86\</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Master|x64'">
@@ -363,11 +363,11 @@ xcopy /Yq $(TargetPath) $(SolutionDir)..\..\MassParticle\Assets\Ist\Plugins\x86\
     </Link>
     <PostBuildEvent>
       <Command>xcopy /Yq $(TargetPath) $(SolutionDir)Bin\x86_64\
-xcopy /Yq $(TargetPath) $(SolutionDir)..\..\MassParticle\Assets\Ist\Plugins\x86_64\</Command>
+xcopy /Yq $(TargetPath) $(SolutionDir)..\MassParticle\Assets\Ist\Plugins\x86_64\</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\MassParticleHelper.cpp" />
+    <ClCompile Include="MassParticleHelper.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -107,13 +107,13 @@
     <OutDir>$(SolutionDir)_out\$(ProjectName)_$(Platform)_$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)_tmp\$(ProjectName)_$(Platform)_$(Configuration)\</IntDir>
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>../external/UnityCppScript;../external/glm;../external/tbb/include;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
-    <LibraryPath>../external/UnityCppScript;../external\tbb\lib\ia32\vc12;$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);</LibraryPath>
+    <IncludePath>external\glm;external\tbb\include;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
+    <LibraryPath>external\tbb\lib\ia32\vc12;$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>../external/UnityCppScript;../external/glm;../external/tbb/include;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
-    <LibraryPath>../external/UnityCppScript;../external\tbb\lib\intel64\vc12;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);</LibraryPath>
+    <IncludePath>external\glm;external\tbb\include;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
+    <LibraryPath>external\tbb\lib\intel64\vc12;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64)</LibraryPath>
     <OutDir>$(SolutionDir)_out\$(ProjectName)_$(Platform)_$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)_tmp\$(ProjectName)_$(Platform)_$(Configuration)\</IntDir>
   </PropertyGroup>
@@ -121,13 +121,13 @@
     <OutDir>$(SolutionDir)_out\$(ProjectName)_$(Platform)_$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)_tmp\$(ProjectName)_$(Platform)_$(Configuration)\</IntDir>
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>../external/UnityCppScript;../external/glm;../external/tbb/include;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
-    <LibraryPath>../external/UnityCppScript;../external\tbb\lib\ia32\vc12;$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);</LibraryPath>
+    <IncludePath>external\glm;external\tbb\include;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
+    <LibraryPath>external\tbb\lib\ia32\vc12;$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>../external/UnityCppScript;../external/glm;../external/tbb/include;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
-    <LibraryPath>../external/UnityCppScript;../external\tbb\lib\intel64\vc12;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);</LibraryPath>
+    <IncludePath>external\glm;external\tbb\include;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
+    <LibraryPath>external\tbb\lib\intel64\vc12;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64)</LibraryPath>
     <OutDir>$(SolutionDir)_out\$(ProjectName)_$(Platform)_$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)_tmp\$(ProjectName)_$(Platform)_$(Configuration)\</IntDir>
   </PropertyGroup>
@@ -147,13 +147,13 @@
     <OutDir>$(SolutionDir)_out\$(ProjectName)_$(Platform)_$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)_tmp\$(ProjectName)_$(Platform)_$(Configuration)\</IntDir>
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>../external/UnityCppScript;../external/glm;../external/tbb/include;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
-    <LibraryPath>../external/UnityCppScript;../external\tbb\lib\ia32\vc12;$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);</LibraryPath>
+    <IncludePath>external\glm;external\tbb\include;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
+    <LibraryPath>external\tbb\lib\ia32\vc12;$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Master|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>../external/UnityCppScript;../external/glm;../external/tbb/include;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
-    <LibraryPath>../external/UnityCppScript;../external\tbb\lib\intel64\vc12;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);</LibraryPath>
+    <IncludePath>external\glm;external\tbb\include;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
+    <LibraryPath>external\tbb\lib\intel64\vc12;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64)</LibraryPath>
     <OutDir>$(SolutionDir)_out\$(ProjectName)_$(Platform)_$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)_tmp\$(ProjectName)_$(Platform)_$(Configuration)\</IntDir>
   </PropertyGroup>
@@ -181,7 +181,7 @@
     </Link>
     <PostBuildEvent>
       <Command>xcopy /Yq $(TargetPath) $(SolutionDir)Bin\x86\
-xcopy /Yq $(TargetPath) $(SolutionDir)..\..\MassParticle\Assets\Ist\Plugins\x86\</Command>
+xcopy /Yq $(TargetPath) $(SolutionDir)..\MassParticle\Assets\Ist\Plugins\x86\</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -207,7 +207,7 @@ xcopy /Yq $(TargetPath) $(SolutionDir)..\..\MassParticle\Assets\Ist\Plugins\x86\
     </Link>
     <PostBuildEvent>
       <Command>xcopy /Yq $(TargetPath) $(SolutionDir)Bin\x86_64\
-xcopy /Yq $(TargetPath) $(SolutionDir)..\..\MassParticle\Assets\Ist\Plugins\x86_64\</Command>
+xcopy /Yq $(TargetPath) $(SolutionDir)..\MassParticle\Assets\Ist\Plugins\x86_64\</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -236,7 +236,7 @@ xcopy /Yq $(TargetPath) $(SolutionDir)..\..\MassParticle\Assets\Ist\Plugins\x86_
     </Link>
     <PostBuildEvent>
       <Command>xcopy /Yq $(TargetPath) $(SolutionDir)Bin\x86\
-xcopy /Yq $(TargetPath) $(SolutionDir)..\..\MassParticle\Assets\Ist\Plugins\x86\</Command>
+xcopy /Yq $(TargetPath) $(SolutionDir)..\MassParticle\Assets\Ist\Plugins\x86\</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -265,7 +265,7 @@ xcopy /Yq $(TargetPath) $(SolutionDir)..\..\MassParticle\Assets\Ist\Plugins\x86\
     </Link>
     <PostBuildEvent>
       <Command>xcopy /Yq $(TargetPath) $(SolutionDir)Bin\x86_64\
-xcopy /Yq $(TargetPath) $(SolutionDir)..\..\MassParticle\Assets\Ist\Plugins\x86_64\</Command>
+xcopy /Yq $(TargetPath) $(SolutionDir)..\MassParticle\Assets\Ist\Plugins\x86_64\</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Master|Win32'">
@@ -341,7 +341,7 @@ xcopy /Yq $(TargetPath) $(SolutionDir)..\..\MassParticle\Assets\Ist\Plugins\x86_
     </Link>
     <PostBuildEvent>
       <Command>xcopy /Yq $(TargetPath) $(SolutionDir)Bin\x86\
-xcopy /Yq $(TargetPath) $(SolutionDir)..\..\MassParticle\Assets\Ist\Plugins\x86\</Command>
+xcopy /Yq $(TargetPath) $(SolutionDir)..\MassParticle\Assets\Ist\Plugins\x86\</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Master|x64'">
@@ -369,39 +369,39 @@ xcopy /Yq $(TargetPath) $(SolutionDir)..\..\MassParticle\Assets\Ist\Plugins\x86\
     </Link>
     <PostBuildEvent>
       <Command>xcopy /Yq $(TargetPath) $(SolutionDir)Bin\x86_64\
-xcopy /Yq $(TargetPath) $(SolutionDir)..\..\MassParticle\Assets\Ist\Plugins\x86_64\</Command>
+xcopy /Yq $(TargetPath) $(SolutionDir)..\MassParticle\Assets\Ist\Plugins\x86_64\</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\mpRendererD3D11.cpp" />
-    <ClCompile Include="..\mpRendererD3D9.cpp" />
-    <ClCompile Include="..\mpRendererOpenGL.cpp" />
-    <ClCompile Include="..\mpTypes.cpp" />
-    <ClCompile Include="..\MassParticle.cpp" />
-    <ClCompile Include="..\mpWorld.cpp" />
-    <ClCompile Include="..\tasksys.cpp" />
-    <ClCompile Include="..\UnityPluginInterface.cpp" />
+    <ClCompile Include="mpRendererD3D11.cpp" />
+    <ClCompile Include="mpRendererD3D9.cpp" />
+    <ClCompile Include="mpRendererOpenGL.cpp" />
+    <ClCompile Include="mpTypes.cpp" />
+    <ClCompile Include="MassParticle.cpp" />
+    <ClCompile Include="mpWorld.cpp" />
+    <ClCompile Include="tasksys.cpp" />
+    <ClCompile Include="UnityPluginInterface.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\ispc_vectormath.h" />
-    <ClInclude Include="..\MassParticle.h" />
-    <ClInclude Include="..\mpWorld.h" />
-    <ClInclude Include="..\SoA.h" />
-    <ClInclude Include="..\mpCollision.h" />
-    <ClInclude Include="..\mpTypes.h" />
-    <ClInclude Include="..\UnityPluginInterface.h" />
+    <ClInclude Include="ispc_vectormath.h" />
+    <ClInclude Include="MassParticle.h" />
+    <ClInclude Include="mpWorld.h" />
+    <ClInclude Include="SoA.h" />
+    <ClInclude Include="mpCollision.h" />
+    <ClInclude Include="mpTypes.h" />
+    <ClInclude Include="UnityPluginInterface.h" />
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="..\mpCore.ispc">
+    <CustomBuild Include="mpCore.ispc">
       <FileType>Document</FileType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">ispc %(FullPath) -o $(TargetDir)%(Filename).obj -h $(TargetDir)%(Filename)_ispc.h --target=sse2,sse4,avx --arch=x86 --opt=fast-masked-vload --opt=fast-math --opt=force-aligned-memory</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">ispc %(FullPath) -o $(TargetDir)%(Filename).obj -h $(TargetDir)%(Filename)_ispc.h --target=sse2,sse4,avx --arch=x86-64 --opt=fast-masked-vload --opt=fast-math --opt=force-aligned-memory</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">external\ispc %(FullPath) -o $(TargetDir)%(Filename).obj -h $(TargetDir)%(Filename)_ispc.h --target=sse2,sse4,avx --arch=x86 --opt=fast-masked-vload --opt=fast-math --opt=force-aligned-memory</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">external\ispc %(FullPath) -o $(TargetDir)%(Filename).obj -h $(TargetDir)%(Filename)_ispc.h --target=sse2,sse4,avx --arch=x86-64 --opt=fast-masked-vload --opt=fast-math --opt=force-aligned-memory</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(TargetDir)%(Filename).obj;$(TargetDir)%(Filename)_sse2.obj;$(TargetDir)%(Filename)_sse4.obj;$(TargetDir)%(Filename)_avx.obj</Outputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(TargetDir)%(Filename).obj;$(TargetDir)%(Filename)_sse2.obj;$(TargetDir)%(Filename)_sse4.obj;$(TargetDir)%(Filename)_avx.obj</Outputs>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ispc %(FullPath) -o $(TargetDir)%(Filename).obj -h $(TargetDir)%(Filename)_ispc.h --target=sse2,sse4,avx --arch=x86 --opt=fast-masked-vload --opt=fast-math --opt=force-aligned-memory</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">ispc %(FullPath) -o $(TargetDir)%(Filename).obj -h $(TargetDir)%(Filename)_ispc.h --target=sse2,sse4,avx --arch=x86-64 --opt=fast-masked-vload --opt=fast-math --opt=force-aligned-memory</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Master|Win32'">ispc %(FullPath) -o $(TargetDir)%(Filename).obj -h $(TargetDir)%(Filename)_ispc.h --target=sse2,sse4,avx --arch=x86 --opt=fast-masked-vload --opt=fast-math --opt=force-aligned-memory</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Master|x64'">ispc %(FullPath) -o $(TargetDir)%(Filename).obj -h $(TargetDir)%(Filename)_ispc.h --target=sse2,sse4,avx --arch=x86-64 --opt=fast-masked-vload --opt=fast-math --opt=force-aligned-memory</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">external\ispc %(FullPath) -o $(TargetDir)%(Filename).obj -h $(TargetDir)%(Filename)_ispc.h --target=sse2,sse4,avx --arch=x86 --opt=fast-masked-vload --opt=fast-math --opt=force-aligned-memory</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">external\ispc %(FullPath) -o $(TargetDir)%(Filename).obj -h $(TargetDir)%(Filename)_ispc.h --target=sse2,sse4,avx --arch=x86-64 --opt=fast-masked-vload --opt=fast-math --opt=force-aligned-memory</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Master|Win32'">external\ispc %(FullPath) -o $(TargetDir)%(Filename).obj -h $(TargetDir)%(Filename)_ispc.h --target=sse2,sse4,avx --arch=x86 --opt=fast-masked-vload --opt=fast-math --opt=force-aligned-memory</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Master|x64'">external\ispc %(FullPath) -o $(TargetDir)%(Filename).obj -h $(TargetDir)%(Filename)_ispc.h --target=sse2,sse4,avx --arch=x86-64 --opt=fast-masked-vload --opt=fast-math --opt=force-aligned-memory</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(TargetDir)%(Filename).obj;$(TargetDir)%(Filename)_sse2.obj;$(TargetDir)%(Filename)_sse4.obj;$(TargetDir)%(Filename)_avx.obj</Outputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(TargetDir)%(Filename).obj;$(TargetDir)%(Filename)_sse2.obj;$(TargetDir)%(Filename)_sse4.obj;$(TargetDir)%(Filename)_avx.obj</Outputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Master|Win32'">$(TargetDir)%(Filename).obj;$(TargetDir)%(Filename)_sse2.obj;$(TargetDir)%(Filename)_sse4.obj;$(TargetDir)%(Filename)_avx.obj</Outputs>
