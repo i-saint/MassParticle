@@ -9,6 +9,7 @@
 *.suo
 *.sdf
 *.opensdf
+*.opendb
 *.user
 *.log
 *.tlog
@@ -16,6 +17,7 @@
 *.sln
 *.csproj
 
+Plugin/Bin
 _out/
 _tmp/
 Externals/

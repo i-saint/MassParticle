@@ -9,7 +9,7 @@
 #include <d3d11.h>
 #include <d3dcompiler.h>
 #include <cstdio>
-#include "mpTypes.h"
+#include "mpFoundation.h"
 #include "mpCore_ispc.h"
 #include "MassParticle.h"
 
