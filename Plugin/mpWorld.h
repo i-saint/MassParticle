@@ -35,14 +35,14 @@ public:
     void setKernelParams(const mpKernelParams &v) { m_kparams = v; }
     const mpCellCont& getCells() { return m_cells; }
 
-    int         getNumParticles() const { return m_num_particles; }
+    int         getNumParticles() const     { return m_num_particles; }
     void        forceSetNumParticles(int v) { m_num_particles = v; }
-    mpParticle* getParticles() { return m_particles.empty() ? nullptr : &m_particles[0]; }
-    int         getNumParticlesGPU() const { return m_num_particles_gpu; }
-    mpParticle* getParticlesGPU() { return m_particles_gpu.empty() ? nullptr : &m_particles_gpu[0]; }
+    mpParticle* getParticles()              { return m_particles.empty() ? nullptr : &m_particles[0]; }
+    int         getNumParticlesGPU() const  { return m_num_particles_gpu; }
+    mpParticle* getParticlesGPU()           { return m_particles_gpu.empty() ? nullptr : &m_particles_gpu[0]; }
 
-    mpParticleIM& getIntermediateData(int i) { return m_imd[i]; }
-    mpParticleIM& getIntermediateData() { return m_imd[m_current]; }
+    mpParticleIM& getIntermediateData(int i){ return m_imd[i]; }
+    mpParticleIM& getIntermediateData()     { return m_imd[m_current]; }
 
     std::mutex& getMutex() { return m_mutex; }
 

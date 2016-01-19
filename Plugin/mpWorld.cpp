@@ -188,7 +188,7 @@ mpWorld::mpWorld()
 
     m_particles.resize(m_kparams.max_particles);
     for (size_t i = 0; i < m_particles.size(); ++i) {
-        m_particles[i].hash = 0x80000000;
+        m_particles[i].hash = 0x80000000; // set dead flag
     }
     clearParticles();
 }

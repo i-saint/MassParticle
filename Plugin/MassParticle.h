@@ -10,25 +10,56 @@
 #endif // mpImpl
 
 
+
+enum mpSolverType
+{
+    mpSolverType_Impulse,
+    mpSolverType_SPH,
+    mpSolverType_SPHEst,
+};
+
+enum mpForceShape
+{
+    mpForceShape_AffectAll,
+    mpForceShape_Sphere,
+    mpForceShape_Capsule,
+    mpForceShape_Box,
+};
+
+enum mpForceType
+{
+    mpForceType_Directional,
+    mpForceType_Radial,
+    mpForceType_RadialCapsule,
+    mpForceType_Vortex,
+    mpForceType_Spline,
+    mpForceType_VectorField,
+};
+
 #ifdef mpImpl
     typedef vec3    mpV3;
     typedef ivec3   mpV3i;
     typedef mat4    mpM44;
 #else
     #include <cstdint>
-    template<class T> struct mpV3T { T x, y, z; };
+    template<class T> struct mpV3T
+    {
+        T x, y, z;
+        mpV3T() : x(), y(), z() {}
+        mpV3T(T x_, T y_, T z_) : x(x_), y(y_), z(z_) {}
+    };
     typedef mpV3T<float> mpV3;
     typedef mpV3T<int> mpV3i;
     typedef mpV3 mpV3;
     struct mpM44 { float v[16]; };
-    enum mpSolverType;
 
-    struct mpKernelParams {
+    struct mpKernelParams
+    {
         mpV3 world_center;
         mpV3 world_extent;
         mpV3i world_div;
-        mpV3 active_region_center;
-        mpV3 active_region_extent;
+        mpV3 active_region_center;  // if particle is outside of this region, it will die immediately.
+        mpV3 active_region_extent;  // if both of this is not assigned, it will be treated as world_center & world_extent.
         mpV3 coord_scaler;
         mpSolverType solver_type;
         int32_t enable_interaction;
@@ -44,10 +75,34 @@
         float SPHRestDensity;
         float SPHParticleMass;
         float SPHViscosity;
-        float RcpParticleSize2;
-        float SPHDensityCoef;
-        float SPHGradPressureCoef;
-        float SPHLapViscosityCoef;
+        float reserved[4];
+
+        mpKernelParams()
+        {
+            world_center = mpV3(0.0f, 0.0f, 0.0f);
+            world_extent = mpV3(10.24f, 10.24f, 10.24f);
+            world_div    = mpV3i(128, 128, 128);
+            coord_scaler = mpV3(1.0f, 1.0f, 1.0f);
+
+            solver_type = mpSolverType_Impulse;
+            enable_interaction = 1;
+            enable_colliders = 1;
+            enable_forces = 1;
+            id_as_float = 0;
+
+            timestep = 1.0f / 60.0f;
+            damping = 0.6f;
+            advection = 0.5f;
+            pressure_stiffness = 500.0f;
+
+            max_particles = 100000;
+            particle_size = 0.08f;
+
+            SPHRestDensity = 1000.0f;
+            SPHParticleMass = 0.002f;
+            SPHViscosity = 0.1f;
+        }
+
     };
 
     struct mpParticle
@@ -63,6 +118,8 @@
         uint16_t hit;
         uint16_t hit_prev;
         int userdata;
+
+        void kill() { hash |= 0x80000000; }
     };
 
     struct mpParticleIM
@@ -96,16 +153,18 @@
         mpHitHandler handler;
     };
 
-    struct mpColliderProperties {
+    struct mpColliderProperties
+    {
         int32_t owner_id;
         float stiffness;
         mpHitHandler hit_handler;
         mpForceHandler force_handler;
     };
 
-    struct mpForceProperties {
-        int32_t shape_type;
-        int32_t dir_type;
+    struct mpForceProperties
+    {
+        mpForceShape shape;
+        mpForceType type;
         float strength_near;
         float strength_far;
         float range_inner;
@@ -121,31 +180,6 @@
 
 #endif
 
-
-enum mpSolverType
-{
-    mpSolverType_Impulse,
-    mpSolverType_SPH,
-    mpSolverType_SPHEst,
-};
-
-enum mpForceShape
-{
-    mpForceShape_AffectAll,
-    mpForceShape_Sphere,
-    mpForceShape_Capsule,
-    mpForceShape_Box,
-};
-
-enum mpForceType
-{
-    mpForceType_Directional,
-    mpForceType_Radial,
-    mpForceType_RadialCapsule,
-    mpForceType_Vortex,      // todo:
-    mpForceType_Spline,      // 
-    mpForceType_VectorField, //
-};
 
 mpCLinkage mpAPI void           mpUpdateDataTexture(int context, void *tex, int width, int height);
 
