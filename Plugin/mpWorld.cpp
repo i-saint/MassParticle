@@ -184,19 +184,59 @@ mpWorld::mpWorld()
     , m_num_particles_gpu(0)
     , m_num_particles_gpu_prev(0)
 {
-    m_sphere_colliders.reserve(64);
-
-    m_particles.resize(m_kparams.max_particles);
-    for (size_t i = 0; i < m_particles.size(); ++i) {
-        m_particles[i].hash = 0x80000000; // set dead flag
-    }
-    clearParticles();
 }
 
 mpWorld::~mpWorld()
 {
     endUpdate();
 }
+
+const mpKernelParams& mpWorld::getKernelParams() const  { return m_kparams; }
+
+void mpWorld::setKernelParams(const mpKernelParams &v)
+{
+    m_kparams = v;
+
+    if (m_kparams.max_particles != (int)m_particles.size()) {
+        mpParticle blank;
+        blank.lifetime = 0.0f;
+
+        m_particles.resize(m_kparams.max_particles, blank);
+        m_num_particles = std::min<int>(m_num_particles, (int)m_kparams.max_particles);
+    }
+}
+
+mpTempParams& mpWorld::getTempParams()  { return m_tparams; }
+const mpCellCont& mpWorld::getCells()   { return m_cells; }
+
+void mpWorld::forceSetNumParticles(int v)
+{
+    v = std::min<int>(v, (int)m_kparams.max_particles);
+
+    if (v > m_num_particles) {
+        for (int i = m_num_particles; i < v; ++i) {
+            //m_particles[i].lifetime = 1.0f;
+        }
+    }
+    else if (v < m_num_particles) {
+        for (int i = v; i < m_num_particles; ++i) {
+            m_particles[i].lifetime = 0.0f;
+        }
+    }
+
+    m_num_particles = std::min<int>(v, (int)m_kparams.max_particles);
+}
+
+int         mpWorld::getNumParticles() const { return m_num_particles; }
+mpParticle* mpWorld::getParticles() { return m_particles.empty() ? nullptr : &m_particles[0]; }
+int         mpWorld::getNumParticlesGPU() const { return m_num_particles_gpu; }
+mpParticle* mpWorld::getParticlesGPU() { return m_particles_gpu.empty() ? nullptr : &m_particles_gpu[0]; }
+
+mpParticleIM& mpWorld::getIntermediateData(int i) { return m_imd[i]; }
+mpParticleIM& mpWorld::getIntermediateData() { return m_imd[m_current]; }
+
+std::mutex& mpWorld::getMutex() { return m_mutex; }
+
 
 void mpWorld::addParticles(mpParticle *p, size_t num)
 {
@@ -542,7 +582,6 @@ void mpWorld::clearParticles()
     m_num_particles = 0;
     for (u32 i = 0; i < m_particles.size(); ++i) {
         m_particles[i].lifetime = 0.0f;
-        m_particles[i].hash = 0x80000000;
     }
 }
 
@@ -558,17 +597,6 @@ void mpWorld::clearCollidersAndForces()
     m_has_forcehandler = false;
 }
 
-
-
-void mpWorld::beginUpdate(float dt)
-{
-    m_taskgroup.run([=]() { update(dt); });
-}
-
-void mpWorld::endUpdate()
-{
-    m_taskgroup.wait();
-}
 
 void mpWorld::update(float dt)
 {
@@ -698,14 +726,8 @@ void mpWorld::update(float dt)
             }
         }
     });
-
-    {
-        if ((m_particles[0].hash & 0x80000000) != 0) {
-            m_num_particles = 0;
-        }
-        else if ((m_particles[kp.max_particles - 1].hash & 0x80000000) == 0) {
-            m_num_particles = kp.max_particles;
-        }
+    if ((m_particles[0].hash & 0x80000000) != 0) {
+        m_num_particles = 0;
     }
 
     {
@@ -851,6 +873,17 @@ void mpWorld::update(float dt)
         }
     }
 }
+
+void mpWorld::beginUpdate(float dt)
+{
+    m_taskgroup.run([=]() { update(dt); });
+}
+
+void mpWorld::endUpdate()
+{
+    m_taskgroup.wait();
+}
+
 
 void mpWorld::callHandlers()
 {

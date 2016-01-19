@@ -20,31 +20,34 @@ public:
     void addBoxColliders(mpBoxCollider *col, size_t num);
     void removeCollider(mpColliderProperties &props);
     void addForces(mpForce *force, size_t num);
+
     void scanSphere(mpHitHandler handler, const vec3 &pos, float radius);
     void scanAABB(mpHitHandler handler, const vec3 &center, const vec3 &extent);
     void scanSphereParallel(mpHitHandler handler, const vec3 &pos, float radius);
     void scanAABBParallel(mpHitHandler handler, const vec3 &center, const vec3 &extent);
     void scanAll(mpHitHandler handler);
     void scanAllParallel(mpHitHandler handler);
+
     void moveAll(const vec3 &move);
+
     void clearParticles();
     void clearCollidersAndForces();
 
-    const mpKernelParams& getKernelParams() const { return m_kparams; }
-    mpTempParams& getTempParams() { return m_tparams; }
-    void setKernelParams(const mpKernelParams &v) { m_kparams = v; }
-    const mpCellCont& getCells() { return m_cells; }
+    const mpKernelParams&   getKernelParams() const;
+    void                    setKernelParams(const mpKernelParams &v);
+    mpTempParams&           getTempParams();
+    const mpCellCont&       getCells();
 
-    int         getNumParticles() const     { return m_num_particles; }
-    void        forceSetNumParticles(int v) { m_num_particles = v; }
-    mpParticle* getParticles()              { return m_particles.empty() ? nullptr : &m_particles[0]; }
-    int         getNumParticlesGPU() const  { return m_num_particles_gpu; }
-    mpParticle* getParticlesGPU()           { return m_particles_gpu.empty() ? nullptr : &m_particles_gpu[0]; }
+    void        forceSetNumParticles(int v);
+    int         getNumParticles() const;
+    mpParticle* getParticles();
+    int         getNumParticlesGPU() const;
+    mpParticle* getParticlesGPU();
 
-    mpParticleIM& getIntermediateData(int i){ return m_imd[i]; }
-    mpParticleIM& getIntermediateData()     { return m_imd[m_current]; }
+    mpParticleIM& getIntermediateData(int i);
+    mpParticleIM& getIntermediateData();
 
-    std::mutex& getMutex() { return m_mutex; }
+    std::mutex& getMutex();
 
     int updateDataTexture(void *tex, int width, int height);
 

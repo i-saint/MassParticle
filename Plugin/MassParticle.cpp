@@ -100,16 +100,6 @@ mpCLinkage mpAPI mpParticle* mpGetParticles(int context)
     return g_worlds[context]->getParticles();
 }
 
-mpCLinkage mpAPI void mpCopyParticles(int context, mpParticle *dst)
-{
-    memcpy(dst, g_worlds[context]->getParticles(), sizeof(mpParticle)*mpGetNumParticles(context));
-}
-
-mpCLinkage mpAPI void mpWriteParticles(int context, const mpParticle *src)
-{
-    memcpy(g_worlds[context]->getParticles(), src, sizeof(mpParticle)*mpGetNumParticles(context));
-}
-
 
 inline void mpApplySpawnParams(mpParticleCont &particles, const mpSpawnParams *params)
 {

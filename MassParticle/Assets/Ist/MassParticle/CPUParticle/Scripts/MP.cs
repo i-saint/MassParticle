@@ -186,19 +186,17 @@ namespace Ist
         public static extern void mpGenerateCubeMesh(int context, int i, ref MPMeshData md);
         [DllImport("MassParticle")]
         public static extern int mpUpdateDataTexture(int context, IntPtr tex, int width, int height);
-        [MethodImplAttribute(MethodImplOptions.InternalCall)]
-        public static extern int mpUpdateDataBuffer(int context, ComputeBuffer buf);
 
         [DllImport("MassParticle")]
         public static extern int mpCreateContext();
         [DllImport("MassParticle")]
         public static extern void mpDestroyContext(int context);
         [DllImport("MassParticle")]
+        public static extern void mpUpdate(int context, float dt);
+        [DllImport("MassParticle")]
         public static extern void mpBeginUpdate(int context, float dt);
         [DllImport("MassParticle")]
         public static extern void mpEndUpdate(int context);
-        [DllImport("MassParticle")]
-        public static extern void mpUpdate(int context, float dt);
         [DllImport("MassParticle")]
         public static extern void mpCallHandlers(int context);
 
@@ -207,6 +205,7 @@ namespace Ist
         [DllImport("MassParticle")]
         public static extern void mpClearCollidersAndForces(int context);
         [DllImport("MassParticle")]
+
         public static extern void mpGetKernelParams(int context, ref MPKernelParams p);
         [DllImport("MassParticle")]
         public static extern void mpSetKernelParams(int context, ref MPKernelParams p);
@@ -217,10 +216,6 @@ namespace Ist
         unsafe public static extern MPParticleIM* mpGetIntermediateData(int context, int i = -1);
         [DllImport("MassParticle")]
         unsafe public static extern MPParticle* mpGetParticles(int context);
-        [DllImport("MassParticle")]
-        unsafe public static extern void mpCopyParticles(int context, MPParticle* dst);
-        [DllImport("MassParticle")]
-        unsafe public static extern void mpWriteParticles(int context, MPParticle* from);
         [DllImport("MassParticle")]
         public static extern void mpScatterParticlesSphere(int context, ref Vector3 center, float radius, int num, ref MPSpawnParams sp);
         [DllImport("MassParticle")]

@@ -118,8 +118,6 @@ enum mpForceType
         uint16_t hit;
         uint16_t hit_prev;
         int userdata;
-
-        void kill() { hash |= 0x80000000; }
     };
 
     struct mpParticleIM
@@ -200,9 +198,7 @@ mpCLinkage mpAPI int            mpGetNumParticles(int context);
 mpCLinkage mpAPI void           mpForceSetNumParticles(int context, int num);
 mpCLinkage mpAPI mpParticleIM*  mpGetIntermediateData(int context, int nth=-1);
 mpCLinkage mpAPI mpParticle*    mpGetParticles(int context);
-mpCLinkage mpAPI void           mpCopyParticles(int context, mpParticle *dst);
-mpCLinkage mpAPI void           mpWriteParticles(int context, const mpParticle *src);
-mpCLinkage mpAPI void           mpPutParticles(int context, mpParticle *particles, int num_particles);
+mpCLinkage mpAPI void           mpAddParticles(int context, mpParticle *particles, int num_particles);
 mpCLinkage mpAPI void           mpScatterParticlesSphere(int context, mpV3 *center, float radius, int num, const mpSpawnParams *params);
 mpCLinkage mpAPI void           mpScatterParticlesBox(int context, mpV3 *center, mpV3 *size, int num, const mpSpawnParams *params);
 mpCLinkage mpAPI void           mpScatterParticlesSphereTransform(int context, mpM44 *transform, int num, const mpSpawnParams *params);
