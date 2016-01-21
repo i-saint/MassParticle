@@ -62,6 +62,12 @@ inline IntType ceildiv(IntType a, IntType b)
     return a / b + (a%b == 0 ? 0 : 1);
 }
 
+template<class Scalar>
+inline Scalar clamp(Scalar v, Scalar min, Scalar max)
+{
+    return std::min<Scalar>(std::max<Scalar>(v, min), max);
+}
+
 inline int msb(int a)
 {
 #ifdef _MSC_VER

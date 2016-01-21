@@ -11,11 +11,6 @@ mpRenderer *g_mpRenderer;
 
 const i32 SOA_BOCK_SIZE = 8;
 
-template<class T>
-T clamp(T v, T minv, T maxv)
-{
-    return std::min<T>(std::max<T>(v, minv), maxv);
-}
 
 i32 soa_blocks(i32 i)
 {
@@ -612,9 +607,9 @@ void mpWorld::update(float dt)
         kp.particle_size = std::max<float>(kp.particle_size, 0.00001f);
         kp.max_particles = std::max<int>(kp.max_particles, 128);
         m_num_particles = std::min<int>(m_num_particles, kp.max_particles);
-        kp.world_div.x = std::max<int>(kp.world_div.x, 1);
-        kp.world_div.y = std::max<int>(kp.world_div.y, 1);
-        kp.world_div.z = std::max<int>(kp.world_div.z, 1);
+        kp.world_div.x = clamp<int>(1 << msb(kp.world_div.x), 1, 1024);
+        kp.world_div.y = clamp<int>(1 << msb(kp.world_div.y), 1, 1024);
+        kp.world_div.z = clamp<int>(1 << msb(kp.world_div.z), 1, 1024);
         tp.world_div_bits.x = msb(kp.world_div.x);
         tp.world_div_bits.y = msb(kp.world_div.y);
         tp.world_div_bits.z = msb(kp.world_div.z);
