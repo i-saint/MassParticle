@@ -84,16 +84,6 @@ namespace Ist
         }
 
 
-
-        MPWorld()
-        {
-#if UNITY_EDITOR_WIN || UNITY_STANDALONE_WIN
-            MPAPI.mphInitialize();
-#endif
-        }
-
-
-
         void Awake()
         {
             m_context = MPAPI.mpCreateContext();

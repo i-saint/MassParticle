@@ -176,10 +176,6 @@ namespace Ist
 
     public class MPAPI
     {
-
-        [DllImport("MassParticleHelper")]
-        public static extern void mphInitialize();
-
         [DllImport("MassParticle")]
         public static extern void mpGeneratePointMesh(int context, int i, ref MPMeshData md);
         [DllImport("MassParticle")]
