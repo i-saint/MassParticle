@@ -383,7 +383,6 @@ xcopy /Yq $(TargetPath) $(SolutionDir)..\MassParticle\Assets\Ist\Plugins\x86_64\
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Concurrency.cpp" />
     <ClCompile Include="mpFoundation.cpp" />
     <ClCompile Include="mpRendererD3D11.cpp" />
     <ClCompile Include="mpRendererD3D9.cpp" />

@@ -5,6 +5,8 @@
 #include <tbb/tbb.h>
 #include <tbb/combinable.h>
 
+namespace ist {
+
 template<class IndexType, class Body>
 inline void parallel_for(IndexType first, IndexType last, const Body& body)
 {
@@ -53,10 +55,15 @@ inline void parallel_invoke(const B0& b0, const B1& b1, const B2& b2, const B3& 
 using tbb::task_group;
 using tbb::combinable;
 
+} // namespace ist
+
 #else
 #include <vector>
 #include <mutex>
 #include <ppl.h>
+#include <windows.h>
+
+namespace ist {
 
 template<class IndexType, class Body>
 inline void parallel_for(IndexType first, IndexType last, const Body& body)
@@ -129,17 +136,28 @@ private:
 class tls
 {
 public:
-    tls();
-    ~tls();
-    void set_value(void *value);
-    void* get_value() const;
-
-private:
 #if _WIN32
-    typedef unsigned long tls_key_t;
+    typedef DWORD tls_key_t;
+#if WindowsStoreApp
+    tls() { m_key = ::FlsAlloc(nullptr); }
+    ~tls() { ::FlsFree(m_key); }
+    void set_value(void *value) { ::FlsSetValue(m_key, value); }
+    void* get_value() { return (void *)::FlsGetValue(m_key); }
+#else
+    tls() { m_key = ::TlsAlloc(); }
+    ~tls() { ::TlsFree(m_key); }
+    void set_value(void *value) { ::TlsSetValue(m_key, value); }
+    void* get_value() const { return (void *)::TlsGetValue(m_key); }
+#endif
 #else
     typedef pthread_key_t tls_key_t;
+    tls() { pthread_key_create(&m_key, nullptr); }
+    ~tls() { pthread_key_delete(m_key); }
+    void set_value(void *value) { pthread_setspecific(m_key, value); }
+    void* get_value() const { return pthread_getspecific(m_key); }
 #endif
+
+private:
     tls_key_t m_key;
 };
 
@@ -186,6 +204,7 @@ private:
     std::vector<T*> m_locals;
 };
 
+} // namespace ist
 
 #endif // WithTBB
 

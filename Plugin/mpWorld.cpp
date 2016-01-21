@@ -423,7 +423,7 @@ inline void ScanCellsParallel(mpWorld &w, const ivec3 &imin, const ivec3 &imax, 
     int lz = imax.z - imin.z;
     int ly = imax.y - imin.y;
     if (ly > 4) {
-        parallel_for(imin.y, imax.y, [&](int iy) {
+        ist::parallel_for(imin.y, imax.y, [&](int iy) {
             for (int iz = imin.z; iz < imax.z; ++iz) {
                 for (int ix = imin.x; ix < imax.x; ++ix) {
                     u32 ci = ix | (iz << bits.x) | (iy << (bits.x + bits.z));
@@ -434,7 +434,7 @@ inline void ScanCellsParallel(mpWorld &w, const ivec3 &imin, const ivec3 &imax, 
     }
     else if (lz > 4) {
         for (int iy = imin.y; iy < imax.y; ++iy) {
-            parallel_for(imin.z, imax.z, [&](int iz) {
+            ist::parallel_for(imin.z, imax.z, [&](int iz) {
                 for (int ix = imin.x; ix < imax.x; ++ix) {
                     u32 ci = ix | (iz << bits.x) | (iy << (bits.x + bits.z));
                     f(cells[ci], ivec3(ix, iy, iz));
@@ -558,7 +558,7 @@ void mpWorld::scanAll(mpHitHandler handler)
 
 void mpWorld::scanAllParallel(mpHitHandler handler)
 {
-    parallel_for(0, m_num_particles, g_particles_par_task,
+    ist::parallel_for(0, m_num_particles, g_particles_par_task,
         [&](int i) {
             handler(&m_particles[i]);
         });
@@ -566,7 +566,7 @@ void mpWorld::scanAllParallel(mpHitHandler handler)
 
 void mpWorld::moveAll(const vec3 &move)
 {
-    parallel_for(0, m_num_particles, g_particles_par_task,
+    ist::parallel_for(0, m_num_particles, g_particles_par_task,
         [&](int i) {
             (vec3&)m_particles[i].position += move;
         });
@@ -669,13 +669,13 @@ void mpWorld::update(float dt)
     };
 
     // clear grid
-    parallel_for(0, cell_num, g_cells_par_task,
+    ist::parallel_for(0, cell_num, g_cells_par_task,
         [&](int i) {
             ce[i].begin = ce[i].end = 0;
         });
 
     // gen hash
-    parallel_for(0, m_num_particles, g_particles_par_task,
+    ist::parallel_for(0, m_num_particles, g_particles_par_task,
         [&](int i) {
             vec3 rel = glm::abs((vec3&)m_particles[i].position - (vec3&)kp.active_region_center);
             if (rel.x > kp.active_region_extent.x ||
@@ -689,11 +689,11 @@ void mpWorld::update(float dt)
         });
 
     // sort by hash
-    parallel_sort(&m_particles[0], &m_particles[0] + m_num_particles,
+    ist::parallel_sort(&m_particles[0], &m_particles[0] + m_num_particles,
         [&](const mpParticle &a, const mpParticle &b) { return a.hash < b.hash; });
 
     // count num particles
-    parallel_for(0, m_num_particles, g_particles_par_task,
+    ist::parallel_for(0, m_num_particles, g_particles_par_task,
         [&](int i) {
             const u32 G_ID = i;
             u32 G_ID_PREV = G_ID - 1;
@@ -729,7 +729,7 @@ void mpWorld::update(float dt)
     }
 
     // AoS -> SoA
-    parallel_for(0, cell_num, g_cells_par_task,
+    ist::parallel_for(0, cell_num, g_cells_par_task,
         [&](int i) {
             i32 n = ce[i].end - ce[i].begin;
             if (n == 0) { return; }
@@ -738,7 +738,7 @@ void mpWorld::update(float dt)
 
     if (m_kparams.solver_type == mpSolverType_Impulse) {
         // impulse
-        parallel_for(0, cell_num, g_cells_par_task,
+        ist::parallel_for(0, cell_num, g_cells_par_task,
             [&](int i) {
                 i32 n = ce[i].end - ce[i].begin;
                 if (n == 0) { return; }
@@ -754,7 +754,7 @@ void mpWorld::update(float dt)
                     ispc::ProcessColliders(kcontext, idx);
                 }
             });
-        parallel_for(0, cell_num, g_cells_par_task,
+        ist::parallel_for(0, cell_num, g_cells_par_task,
             [&](int i) {
                 i32 n = ce[i].end - ce[i].begin;
                 if (n == 0) { return; }
@@ -765,7 +765,7 @@ void mpWorld::update(float dt)
     }
     else if (m_kparams.solver_type == mpSolverType_SPH || m_kparams.solver_type == mpSolverType_SPHEst) {
         if (kp.enable_interaction && m_kparams.solver_type == mpSolverType_SPH) {
-            parallel_for(0, cell_num, g_cells_par_task,
+            ist::parallel_for(0, cell_num, g_cells_par_task,
                 [&](int i) {
                     i32 n = ce[i].end - ce[i].begin;
                     if (n == 0) { return; }
@@ -773,7 +773,7 @@ void mpWorld::update(float dt)
                     mpGenIndex(*this, i, idx);
                     ispc::sphUpdateDensity(kcontext, idx);
                 });
-            parallel_for(0, cell_num, g_cells_par_task,
+            ist::parallel_for(0, cell_num, g_cells_par_task,
                 [&](int i) {
                     i32 n = ce[i].end - ce[i].begin;
                     if (n == 0) { return; }
@@ -783,7 +783,7 @@ void mpWorld::update(float dt)
                 });
         }
         else if (kp.enable_interaction && m_kparams.solver_type == mpSolverType_SPHEst) {
-            parallel_for(0, cell_num, g_cells_par_task,
+            ist::parallel_for(0, cell_num, g_cells_par_task,
                 [&](int i) {
                 i32 n = ce[i].end - ce[i].begin;
                     if (n == 0) { return; }
@@ -791,7 +791,7 @@ void mpWorld::update(float dt)
                     mpGenIndex(*this, i, idx);
                     ispc::sphUpdateDensityEst1(kcontext, idx);
                 });
-            parallel_for(0, cell_num, g_cells_par_task,
+            ist::parallel_for(0, cell_num, g_cells_par_task,
                 [&](int i) {
                     i32 n = ce[i].end - ce[i].begin;
                     if (n == 0) { return; }
@@ -799,7 +799,7 @@ void mpWorld::update(float dt)
                     mpGenIndex(*this, i, idx);
                     ispc::sphUpdateDensityEst2(kcontext, idx);
                 });
-            parallel_for(0, cell_num, g_cells_par_task,
+            ist::parallel_for(0, cell_num, g_cells_par_task,
                 [&](int i) {
                     i32 n = ce[i].end - ce[i].begin;
                     if (n == 0) { return; }
@@ -809,7 +809,7 @@ void mpWorld::update(float dt)
                 });
         }
 
-        parallel_for(0, cell_num, g_cells_par_task,
+        ist::parallel_for(0, cell_num, g_cells_par_task,
             [&](int i) {
                 i32 n = ce[i].end - ce[i].begin;
                 if (n == 0) { return; }
@@ -826,7 +826,7 @@ void mpWorld::update(float dt)
     }
 
     // SoA -> AoS
-    parallel_for(0, cell_num, g_cells_par_task,
+    ist::parallel_for(0, cell_num, g_cells_par_task,
         [&](int i) {
             i32 n = ce[i].end - ce[i].begin;
             if (n == 0) { return; }
@@ -870,7 +870,7 @@ void mpWorld::callHandlers()
     for (auto &c : m_capsule_colliders) { m_collider_properties[c.props.owner_id] = &c.props; }
     for (auto &c : m_box_colliders) { m_collider_properties[c.props.owner_id] = &c.props; }
 
-    parallel_invoke(
+    ist::parallel_invoke(
         [&]() {
             for (auto p : m_collider_properties) {
                 if (p && p->hit_handler != nullptr) {
@@ -903,7 +903,7 @@ void mpWorld::callHandlers()
 
         m_pforce.resize(num_colliders);
         memset((void*)&m_pforce[0], 0, sizeof(mpParticleForce)*m_pforce.size());
-        parallel_for_blocked(0, m_num_particles, g_particles_par_task,
+        ist::parallel_for_blocked(0, m_num_particles, g_particles_par_task,
             [&](int begin, int end) {
                 mpPForceCont &pf = m_pcombinable.local();
                 pf.resize(num_colliders);

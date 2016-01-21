@@ -53,7 +53,7 @@ public:
     int updateDataTexture(void *tex, int width, int height);
 
 private:
-    typedef combinable<mpPForceCont> mpPForceConbinable;
+    typedef ist::combinable<mpPForceCont> mpPForceConbinable;
 
     mpParticleCont          m_particles;
     mpParticleIMCont        m_imd;
@@ -71,7 +71,7 @@ private:
     bool                    m_has_hithandler;
     bool                    m_has_forcehandler;
 
-    task_group              m_taskgroup;
+    ist::task_group         m_taskgroup;
     std::mutex              m_mutex;
     mpKernelParams          m_kparams;
     mpTempParams            m_tparams;
