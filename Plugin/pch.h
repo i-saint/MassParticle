@@ -16,10 +16,14 @@
 #include <glm/gtx/simd_vec4.hpp>
 #include <glm/gtx/simd_mat4.hpp>
 
-#include <tbb/tbb.h>
-#include <tbb/combinable.h>
+#if defined(_WIN32) && !defined(WithTBB)
+    #include <Windows.h>
+    #include <ppl.h>
+#else
+    #include <tbb/tbb.h>
+    #include <tbb/combinable.h>
+#endif
 
-// tbb.h includes windows.h
 #ifdef max
     #undef max
     #undef min

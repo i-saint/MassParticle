@@ -65,8 +65,8 @@ inline IntType ceildiv(IntType a, IntType b)
 inline int msb(int a)
 {
 #ifdef _MSC_VER
-    ULONG r;
-    _BitScanReverse(&r, (ULONG)a);
+    unsigned long r;
+    _BitScanReverse(&r, (unsigned long)a);
     return (int)r;
 #else  // _MSC_VER
     return a == 0 ? 0 : 31 - __builtin_clz(a);
@@ -205,7 +205,6 @@ typedef std::vector<int, mpAlignedAllocator<int> >                              
 typedef std::vector<mpParticle, mpAlignedAllocator<mpParticle> >                mpParticleCont;
 typedef std::vector<mpParticleIM, mpAlignedAllocator<mpParticleIM> >            mpParticleIMCont;
 typedef std::vector<mpParticleForce, mpAlignedAllocator<mpParticleForce> >      mpPForceCont;
-typedef tbb::combinable<mpPForceCont>                                           mpPForceConbinable;
 typedef std::vector<mpCell, mpAlignedAllocator<mpCell> >                            mpCellCont;
 typedef std::vector<mpColliderProperties*, mpAlignedAllocator<mpPlaneCollider> >    mpColliderPropertiesCont;
 typedef std::vector<mpPlaneCollider, mpAlignedAllocator<mpPlaneCollider> >      mpPlaneColliderCont;
