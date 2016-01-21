@@ -595,7 +595,7 @@ void mpWorld::update(float dt)
 
     mpKernelParams &kp = m_kparams;
     mpTempParams &tp = m_tparams;
-    int cell_num = kp.world_div.x*kp.world_div.y*kp.world_div.z;
+    int cell_num = 0;
 
     {
         vec3 &wpos = (vec3&)kp.world_center;
@@ -613,6 +613,7 @@ void mpWorld::update(float dt)
         tp.world_div_bits.x = msb(kp.world_div.x);
         tp.world_div_bits.y = msb(kp.world_div.y);
         tp.world_div_bits.z = msb(kp.world_div.z);
+        cell_num = kp.world_div.x * kp.world_div.y * kp.world_div.z;
         cellsize = (wsize*2.0f / vec3((float)kp.world_div.x, (float)kp.world_div.y, (float)kp.world_div.z));
         cellsize_r = vec3(1.0f, 1.0f, 1.0f) / cellsize;
         bl = wpos - wsize;
