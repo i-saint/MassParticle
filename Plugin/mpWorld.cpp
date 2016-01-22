@@ -633,7 +633,10 @@ void mpWorld::update(float dt)
         m_particles_gpu.reserve(reserve_size);
         m_particles_gpu.resize(kp.max_particles);
 
-        int num_soa_data_blocks = cell_num + std::max<int>((kp.max_particles - cell_num) / 8, 0);
+        int num_soa_data_blocks = std::min<int>(cell_num, kp.max_particles);
+        if (kp.max_particles > cell_num) {
+            num_soa_data_blocks = cell_num + ((kp.max_particles - cell_num + 1) / 8);
+        }
         m_soa.resize(num_soa_data_blocks * 8);
     }
 
