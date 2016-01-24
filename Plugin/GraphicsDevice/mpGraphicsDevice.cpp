@@ -69,6 +69,7 @@ void mpUnitySetGraphicsDevice(void* device, int deviceType, int eventType)
     }
 }
 
+#ifndef mpStaticLink
 mpCLinkage mpAPI void UnitySetGraphicsDevice(void* device, int deviceType, int eventType)
 {
     mpUnitySetGraphicsDevice(device, deviceType, eventType);
@@ -77,3 +78,4 @@ mpCLinkage mpAPI void UnitySetGraphicsDevice(void* device, int deviceType, int e
 mpCLinkage mpAPI void UnityRenderEvent(int eventID)
 {
 }
+#endif // mpStaticLink
