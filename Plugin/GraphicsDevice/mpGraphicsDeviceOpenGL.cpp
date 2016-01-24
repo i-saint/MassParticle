@@ -3,6 +3,7 @@
 #if mpSupportOpenGL
 #if _WIN32
     #include <gl/GL.h>
+    #pragma comment(lib, "opengl32.lib")
 #else
     #include <OpenGL/gl.h>
     #include <OpenGL/glext.h>

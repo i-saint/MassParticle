@@ -88,7 +88,31 @@ float mpGenRand1();
 
 struct mpKernelParams : ispc::KernelParams
 {
-    mpKernelParams();
+    mpKernelParams()
+    {
+        (vec3&)world_center = vec3(0.0f, 0.0f, 0.0f);
+        (vec3&)world_extent = vec3(10.24f, 10.24f, 10.24f);
+        (ivec3&)world_div = ivec3(128, 128, 128);
+        (vec3&)coord_scaler = vec3(1.0f, 1.0f, 1.0f);
+
+        solver_type = 0; // mpSolverType_Impulse
+        enable_interaction = 1;
+        enable_colliders = 1;
+        enable_forces = 1;
+        id_as_float = 0;
+
+        timestep = 1.0f / 60.0f;
+        damping = 0.6f;
+        advection = 0.5f;
+        pressure_stiffness = 500.0f;
+
+        max_particles = 100000;
+        particle_size = 0.08f;
+
+        SPHRestDensity = 1000.0f;
+        SPHParticleMass = 0.002f;
+        SPHViscosity = 0.1f;
+    }
 };
 
 struct mpTempParams

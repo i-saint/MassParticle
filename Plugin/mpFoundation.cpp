@@ -39,30 +39,6 @@ void mpAlignedFree(void *p)
 }
 
 
-mpKernelParams::mpKernelParams()
-{
-    (vec3&)world_center = vec3(0.0f, 0.0f, 0.0f);
-    (vec3&)world_extent = vec3(10.24f, 10.24f, 10.24f);
-    (vec3&)coord_scaler = vec3(1.0f, 1.0f, 1.0f);
-
-    enable_interaction = 1;
-    enable_colliders = 1;
-    enable_forces = 1;
-
-    solver_type = mpSolverType_Impulse;
-    timestep = 0.01f;
-    damping = 0.6f;
-    advection = 0.5f;
-
-    pressure_stiffness = 500.0f;
-    max_particles = 100000;
-    particle_size = 0.08f;
-
-    SPHRestDensity = 1000.0f;
-    SPHParticleMass = 0.002f;
-    SPHViscosity = 0.1f;
-}
-
 void mpSoAData::resize(size_t n)
 {
     pos_x.resize(n);
