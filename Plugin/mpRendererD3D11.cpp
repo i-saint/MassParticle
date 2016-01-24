@@ -1,17 +1,11 @@
 #include "pch.h"
-#include "UnityPluginInterface.h"
 
-#if SUPPORT_D3D11
+#if mpSupportD3D11
 #pragma warning( disable : 4996 ) // _s じゃない CRT 関数使うと出るやつ
 #pragma warning( disable : 4005 ) // DirectX のマクロの redefinition
 
-#include <windows.h>
 #include <d3d11.h>
-#include <d3dcompiler.h>
-#include <cstdio>
 #include "mpFoundation.h"
-#include "mpCore_ispc.h"
-#include "MassParticle.h"
 
 #define mpSafeRelease(obj) if(obj) { obj->Release(); obj=nullptr; }
 
@@ -68,4 +62,4 @@ void mpRendererD3D11::updateDataTexture(void *texptr, int width, int height, con
     ID3D11Texture2D *tex = (ID3D11Texture2D*)texptr;
     m_pImmediateContext->UpdateSubresource(tex, 0, &box, data, width * 16, 0);
 }
-#endif // SUPPORT_D3D11
+#endif // mpSupportD3D11

@@ -2,8 +2,9 @@
 #include "mpFoundation.h"
 #include "MassParticle.h"
 
-
-std::mt19937 g_rand;
+namespace {
+    std::mt19937 g_rand;
+}
 
 float mpGenRand()
 {

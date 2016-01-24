@@ -6,9 +6,6 @@
 
 
 
-mpRenderer *g_mpRenderer;
-
-
 const i32 SOA_BOCK_SIZE = 8;
 
 
@@ -950,10 +947,12 @@ inline vec2 mpComputeDataTextureCoord(int nth)
 int mpWorld::updateDataTexture(void *tex, int width, int height)
 {
     std::unique_lock<std::mutex> lock(m_mutex);
-    if (g_mpRenderer && !m_particles_gpu.empty()) {
+
+    mpRenderer *renderer = mpGetRenderer();
+    if (renderer && !m_particles_gpu.empty()) {
         int num_needs_copy = std::max<int>(m_num_particles_gpu, m_num_particles_gpu_prev);
         m_num_particles_gpu_prev = m_num_particles_gpu;
-        g_mpRenderer->updateDataTexture(tex, width, height, &m_particles_gpu[0], sizeof(mpParticle)*m_kparams.max_particles);
+        renderer->updateDataTexture(tex, width, height, &m_particles_gpu[0], sizeof(mpParticle)*m_kparams.max_particles);
     }
     return m_num_particles_gpu;
 }

@@ -1,19 +1,15 @@
 #include "pch.h"
-#include "UnityPluginInterface.h"
 
-#if SUPPORT_OPENGL
-#if UNITY_WIN
-#include <windows.h>
-#include <gl/GL.h>
+#if mpSupportOpenGL
+#if _WIN32
+    #include <gl/GL.h>
 #else
-#include <OpenGL/gl.h>
-#include <OpenGL/glext.h>
+    #include <OpenGL/gl.h>
+    #include <OpenGL/glext.h>
 #endif
 
-#include <cstdio>
 #include "mpFoundation.h"
-#include "mpCore_ispc.h"
-#include "MassParticle.h"
+
 
 class mpRendererOpenGL : public mpRenderer
 {
@@ -49,4 +45,4 @@ void mpRendererOpenGL::updateDataTexture(void *tex, int width, int height, const
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-#endif // SUPPORT_OPENGL
+#endif // mpSupportOpenGL

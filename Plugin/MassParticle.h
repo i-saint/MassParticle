@@ -3,10 +3,19 @@
 
 #define mpCLinkage extern "C"
 #ifdef mpImpl
-    #define mpAPI __declspec(dllexport)
+    #ifndef mpStaticLink
+        #define mpAPI __declspec(dllexport)
+    #else
+        #define mpAPI 
+    #endif
 #else  // mpImpl
-    #define mpAPI __declspec(dllimport)
-    #pragma comment(lib, "MassParticle.lib")
+    #ifndef mpStaticLink
+        #define mpAPI __declspec(dllimport)
+        #pragma comment(lib, "MassParticle.lib")
+    #else
+        #define mpAPI 
+        #pragma comment(lib, "MassParticle_s.lib")
+    #endif
 #endif // mpImpl
 
 
@@ -219,5 +228,7 @@ mpCLinkage mpAPI void           mpScanAllParallel(int context, mpHitHandler hand
 
 mpCLinkage mpAPI void           mpMoveAll(int context, mpV3 *move_amount);
 
+// for static link usage. initialize graphics device manually.
+void mpUnitySetGraphicsDevice(void* device, int deviceType, int eventType);
 
 #endif // MassParticle_h

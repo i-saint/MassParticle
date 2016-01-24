@@ -1,11 +1,11 @@
 #include "pch.h"
-#include "UnityPluginInterface.h"
 #include "mpFoundation.h"
 #include "mpWorld.h"
 #include "MassParticle.h"
 
-extern mpRenderer *g_mpRenderer;
-std::vector<mpWorld*> g_worlds;
+namespace {
+    std::vector<mpWorld*> g_worlds;
+}
 
 
 mpCLinkage mpAPI void mpUpdateDataTexture(int context, void *tex, int width, int height)

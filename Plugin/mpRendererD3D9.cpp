@@ -1,13 +1,9 @@
 #include "pch.h"
-#include "UnityPluginInterface.h"
 
-#if SUPPORT_D3D9
+#if mpSupportD3D9
 
-#include <windows.h>
 #include <d3d9.h>
 #include "mpFoundation.h"
-#include "mpCore_ispc.h"
-#include "MassParticle.h"
 
 #define mpSafeRelease(obj) if(obj) { obj->Release(); obj=nullptr; }
 
@@ -104,4 +100,4 @@ void mpRendererD3D9::updateDataTexture(void *texptr, int width, int height, cons
     }
     surf_dst->Release();
 }
-#endif // SUPPORT_D3D9
+#endif // mpSupportD3D9

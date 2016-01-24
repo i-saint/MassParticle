@@ -257,9 +257,7 @@ public:
     virtual ~mpRenderer() {}
     virtual void updateDataTexture(void *tex, int width, int height, const void *data, size_t data_size) = 0;
 };
-mpRenderer* mpCreateRendererD3D9(void *dev);
-mpRenderer* mpCreateRendererD3D11(void *dev);
-mpRenderer* mpCreateRendererOpenGL(void *dev);
+mpRenderer* mpGetRenderer();
 
 const int mpDataTextureWidth = 3072;
 const int mpDataTextureHeight = 256;
