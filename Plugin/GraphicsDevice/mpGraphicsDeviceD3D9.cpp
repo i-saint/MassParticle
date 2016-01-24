@@ -4,15 +4,16 @@
 
 #include <d3d9.h>
 #include "mpFoundation.h"
+#include "mpGraphicsDevice.h"
 
 #define mpSafeRelease(obj) if(obj) { obj->Release(); obj=nullptr; }
 
 
-class mpRendererD3D9 : public mpRenderer
+class mpGraphicsDeviceD3D9 : public mpGraphicsDevice
 {
 public:
-    mpRendererD3D9(void *dev);
-    virtual ~mpRendererD3D9();
+    mpGraphicsDeviceD3D9(void *dev);
+    virtual ~mpGraphicsDeviceD3D9();
     virtual void updateDataTexture(void *tex, int width, int height, const void *data, size_t data_size);
 
 private:
@@ -23,18 +24,18 @@ private:
     std::map<uint64_t, IDirect3DSurface9*> m_staging_textures;
 };
 
-mpRenderer* mpCreateRendererD3D9(void *device)
+mpGraphicsDevice* mpCreateGraphicsDeviceD3D9(void *device)
 {
-    return new mpRendererD3D9(device);
+    return new mpGraphicsDeviceD3D9(device);
 }
 
 
-mpRendererD3D9::mpRendererD3D9(void *dev)
+mpGraphicsDeviceD3D9::mpGraphicsDeviceD3D9(void *dev)
 : m_device((IDirect3DDevice9*)dev)
 {
 }
 
-mpRendererD3D9::~mpRendererD3D9()
+mpGraphicsDeviceD3D9::~mpGraphicsDeviceD3D9()
 {
     for (auto& pair : m_staging_textures)
     {
@@ -43,7 +44,7 @@ mpRendererD3D9::~mpRendererD3D9()
     m_staging_textures.clear();
 }
 
-IDirect3DSurface9* mpRendererD3D9::findOrCreateStagingTexture(int width, int height)
+IDirect3DSurface9* mpGraphicsDeviceD3D9::findOrCreateStagingTexture(int width, int height)
 {
     D3DFORMAT internal_format = D3DFMT_A32B32G32R32F;
 
@@ -65,7 +66,7 @@ IDirect3DSurface9* mpRendererD3D9::findOrCreateStagingTexture(int width, int hei
     return ret;
 }
 
-void mpRendererD3D9::updateDataTexture(void *texptr, int width, int height, const void *data, size_t data_size)
+void mpGraphicsDeviceD3D9::updateDataTexture(void *texptr, int width, int height, const void *data, size_t data_size)
 {
     int psize = 16;
 

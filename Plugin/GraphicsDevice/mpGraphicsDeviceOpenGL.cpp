@@ -7,34 +7,34 @@
     #include <OpenGL/gl.h>
     #include <OpenGL/glext.h>
 #endif
-
 #include "mpFoundation.h"
+#include "mpGraphicsDevice.h"
 
 
-class mpRendererOpenGL : public mpRenderer
+class mpGraphicsDeviceOpenGL : public mpGraphicsDevice
 {
 public:
-    mpRendererOpenGL();
-    ~mpRendererOpenGL();
+    mpGraphicsDeviceOpenGL();
+    ~mpGraphicsDeviceOpenGL();
     virtual void updateDataTexture(void *tex, int width, int height, const void *data, size_t data_size);
 
 private:
 };
 
-mpRenderer* mpCreateRendererOpenGL(void *device)
+mpGraphicsDevice* mpCreateGraphicsDeviceOpenGL(void *device)
 {
-    return new mpRendererOpenGL();
+    return new mpGraphicsDeviceOpenGL();
 }
 
-mpRendererOpenGL::mpRendererOpenGL()
-{
-}
-
-mpRendererOpenGL::~mpRendererOpenGL()
+mpGraphicsDeviceOpenGL::mpGraphicsDeviceOpenGL()
 {
 }
 
-void mpRendererOpenGL::updateDataTexture(void *tex, int width, int height, const void *data, size_t data_size)
+mpGraphicsDeviceOpenGL::~mpGraphicsDeviceOpenGL()
+{
+}
+
+void mpGraphicsDeviceOpenGL::updateDataTexture(void *tex, int width, int height, const void *data, size_t data_size)
 {
     const size_t num_texels = data_size / 16;
     ivec2 pos = ivec2(0, 0);

@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "mpFoundation.h"
+#include "mpGraphicsDevice.h"
 #include "mpCore_ispc.h"
 #include "mpWorld.h"
 #include "MassParticle.h"
@@ -935,6 +936,7 @@ void mpWorld::callHandlers()
 }
 
 
+
 inline vec2 mpComputeDataTextureCoord(int nth)
 {
     static const float xd = 1.0f / mpDataTextureWidth;
@@ -948,7 +950,7 @@ int mpWorld::updateDataTexture(void *tex, int width, int height)
 {
     std::unique_lock<std::mutex> lock(m_mutex);
 
-    mpRenderer *renderer = mpGetRenderer();
+    mpGraphicsDevice *renderer = mpGetGraphicsDevice();
     if (renderer && !m_particles_gpu.empty()) {
         int num_needs_copy = std::max<int>(m_num_particles_gpu, m_num_particles_gpu_prev);
         m_num_particles_gpu_prev = m_num_particles_gpu;

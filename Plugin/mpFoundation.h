@@ -251,19 +251,4 @@ struct mpSoAData
 
 class mpWorld;
 
-class mpRenderer
-{
-public:
-    virtual ~mpRenderer() {}
-    virtual void updateDataTexture(void *tex, int width, int height, const void *data, size_t data_size) = 0;
-};
-mpRenderer* mpGetRenderer();
-
-const int mpDataTextureWidth = 3072;
-const int mpDataTextureHeight = 256;
-const int mpTexelsEachParticle = 3;
-const int mpParticlesEachLine = mpDataTextureWidth / mpTexelsEachParticle;
-
-
-
 #endif // mpFoundation_h

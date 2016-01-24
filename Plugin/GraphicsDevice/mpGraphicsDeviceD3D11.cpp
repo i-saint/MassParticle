@@ -6,16 +6,17 @@
 
 #include <d3d11.h>
 #include "mpFoundation.h"
+#include "mpGraphicsDevice.h"
 
 #define mpSafeRelease(obj) if(obj) { obj->Release(); obj=nullptr; }
 
 
 
-class mpRendererD3D11 : public mpRenderer
+class mpGraphicsDeviceD3D11 : public mpGraphicsDevice
 {
 public:
-    mpRendererD3D11(void *dev);
-    virtual ~mpRendererD3D11();
+    mpGraphicsDeviceD3D11(void *dev);
+    virtual ~mpGraphicsDeviceD3D11();
     virtual void updateDataTexture(void *tex, int width, int height, const void *data, size_t data_size);
 
 private:
@@ -28,13 +29,13 @@ private:
     ID3D11DeviceContext *m_pImmediateContext;
 };
 
-mpRenderer* mpCreateRendererD3D11(void *device)
+mpGraphicsDevice* mpCreateGraphicsDeviceD3D11(void *device)
 {
-    return new mpRendererD3D11(device);
+    return new mpGraphicsDeviceD3D11(device);
 }
 
 
-mpRendererD3D11::mpRendererD3D11(void *_dev)
+mpGraphicsDeviceD3D11::mpGraphicsDeviceD3D11(void *_dev)
 : m_pDevice(nullptr)
 , m_pImmediateContext(nullptr)
 {
@@ -42,13 +43,13 @@ mpRendererD3D11::mpRendererD3D11(void *_dev)
     m_pDevice->GetImmediateContext(&m_pImmediateContext);
 }
 
-mpRendererD3D11::~mpRendererD3D11()
+mpGraphicsDeviceD3D11::~mpGraphicsDeviceD3D11()
 {
     mpSafeRelease(m_pImmediateContext);
 }
 
 
-void mpRendererD3D11::updateDataTexture(void *texptr, int width, int height, const void *data, size_t data_size)
+void mpGraphicsDeviceD3D11::updateDataTexture(void *texptr, int width, int height, const void *data, size_t data_size)
 {
     const size_t num_texels = data_size / 16;
 

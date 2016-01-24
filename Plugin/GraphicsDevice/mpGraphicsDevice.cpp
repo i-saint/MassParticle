@@ -1,6 +1,6 @@
-
 #include "pch.h"
 #include "mpFoundation.h"
+#include "mpGraphicsDevice.h"
 #include "MassParticle.h"
 
 
@@ -31,14 +31,14 @@ enum GfxDeviceEventType {
 
 
 namespace {
-    mpRenderer *g_mpRenderer;
+    mpGraphicsDevice *g_device;
 }
 
-mpRenderer* mpGetRenderer() { return g_mpRenderer; }
+mpGraphicsDevice* mpGetGraphicsDevice() { return g_device; }
 
-mpRenderer* mpCreateRendererD3D9(void *dev);
-mpRenderer* mpCreateRendererD3D11(void *dev);
-mpRenderer* mpCreateRendererOpenGL(void *dev);
+mpGraphicsDevice* mpCreateGraphicsDeviceD3D9(void *dev);
+mpGraphicsDevice* mpCreateGraphicsDeviceD3D11(void *dev);
+mpGraphicsDevice* mpCreateGraphicsDeviceOpenGL(void *dev);
 
 void mpUnitySetGraphicsDevice(void* device, int deviceType, int eventType)
 {
@@ -46,26 +46,26 @@ void mpUnitySetGraphicsDevice(void* device, int deviceType, int eventType)
 #ifdef mpSupportD3D9
         if (deviceType == kGfxRendererD3D9)
         {
-            g_mpRenderer = mpCreateRendererD3D9(device);
+            g_device = mpCreateGraphicsDeviceD3D9(device);
         }
 #endif
 #if mpSupportD3D11
         if (deviceType == kGfxRendererD3D11)
         {
-            g_mpRenderer = mpCreateRendererD3D11(device);
+            g_device = mpCreateGraphicsDeviceD3D11(device);
         }
 #endif
 #if mpSupportOpenGL
         if (deviceType == kGfxRendererOpenGL)
         {
-            g_mpRenderer = mpCreateRendererOpenGL(device);
+            g_device = mpCreateGraphicsDeviceOpenGL(device);
         }
 #endif
     }
 
     if (eventType == kGfxDeviceEventShutdown) {
-        delete g_mpRenderer;
-        g_mpRenderer = nullptr;
+        delete g_device;
+        g_device = nullptr;
     }
 }
 
