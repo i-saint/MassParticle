@@ -2,6 +2,7 @@
 *.pch
 *.lib
 *.exe
+*.dll
 *.exp
 *.ilk
 *.ipch
