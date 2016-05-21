@@ -1,7 +1,6 @@
 #include "pch.h"
 
-#if mpSupportD3D9
-
+#ifdef _WIN32
 #include <d3d9.h>
 #include "mpFoundation.h"
 #include "mpGraphicsDevice.h"
@@ -101,4 +100,5 @@ void mpGraphicsDeviceD3D9::updateDataTexture(void *texptr, int width, int height
     }
     surf_dst->Release();
 }
-#endif // mpSupportD3D9
+#endif // _WIN32
+

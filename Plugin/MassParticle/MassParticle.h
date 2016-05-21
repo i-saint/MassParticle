@@ -1,6 +1,4 @@
-#ifndef MassParticle_h
-#define MassParticle_h
-
+#pragma once
 #define mpCLinkage extern "C"
 #ifdef mpImpl
     #ifndef mpStaticLink
@@ -187,48 +185,49 @@ enum mpForceType
 
 #endif
 
+extern "C" {
 
-mpCLinkage mpAPI void           mpUpdateDataTexture(int context, void *tex, int width, int height);
+mpAPI void           mpUpdateDataTexture(int context, void *tex, int width, int height);
 
-mpCLinkage mpAPI int            mpCreateContext();
-mpCLinkage mpAPI void           mpDestroyContext(int context);
-mpCLinkage mpAPI void           mpUpdate(int context, float dt);
-mpCLinkage mpAPI void           mpBeginUpdate(int context, float dt);   // async version
-mpCLinkage mpAPI void           mpEndUpdate(int context);               // 
-mpCLinkage mpAPI void           mpCallHandlers(int context);
+mpAPI int            mpCreateContext();
+mpAPI void           mpDestroyContext(int context);
+mpAPI void           mpUpdate(int context, float dt);
+mpAPI void           mpBeginUpdate(int context, float dt);   // async version
+mpAPI void           mpEndUpdate(int context);               // 
+mpAPI void           mpCallHandlers(int context);
 
-mpCLinkage mpAPI void           mpClearParticles(int context);
-mpCLinkage mpAPI void           mpClearCollidersAndForces(int context);
+mpAPI void           mpClearParticles(int context);
+mpAPI void           mpClearCollidersAndForces(int context);
 
-mpCLinkage mpAPI void           mpGetKernelParams(int context, mpKernelParams *params);
-mpCLinkage mpAPI void           mpSetKernelParams(int context, const mpKernelParams *params);
+mpAPI void           mpGetKernelParams(int context, mpKernelParams *params);
+mpAPI void           mpSetKernelParams(int context, const mpKernelParams *params);
 
-mpCLinkage mpAPI int            mpGetNumParticles(int context);
-mpCLinkage mpAPI void           mpForceSetNumParticles(int context, int num);
-mpCLinkage mpAPI mpParticleIM*  mpGetIntermediateData(int context, int nth=-1);
-mpCLinkage mpAPI mpParticle*    mpGetParticles(int context);
-mpCLinkage mpAPI void           mpAddParticles(int context, mpParticle *particles, int num_particles);
-mpCLinkage mpAPI void           mpScatterParticlesSphere(int context, mpV3 *center, float radius, int num, const mpSpawnParams *params);
-mpCLinkage mpAPI void           mpScatterParticlesBox(int context, mpV3 *center, mpV3 *size, int num, const mpSpawnParams *params);
-mpCLinkage mpAPI void           mpScatterParticlesSphereTransform(int context, mpM44 *transform, int num, const mpSpawnParams *params);
-mpCLinkage mpAPI void           mpScatterParticlesBoxTransform(int context, mpM44 *transform, int num, const mpSpawnParams *params);
+mpAPI int            mpGetNumParticles(int context);
+mpAPI void           mpForceSetNumParticles(int context, int num);
+mpAPI mpParticleIM*  mpGetIntermediateData(int context, int nth=-1);
+mpAPI mpParticle*    mpGetParticles(int context);
+mpAPI void           mpAddParticles(int context, mpParticle *particles, int num_particles);
+mpAPI void           mpScatterParticlesSphere(int context, mpV3 *center, float radius, int num, const mpSpawnParams *params);
+mpAPI void           mpScatterParticlesBox(int context, mpV3 *center, mpV3 *size, int num, const mpSpawnParams *params);
+mpAPI void           mpScatterParticlesSphereTransform(int context, mpM44 *transform, int num, const mpSpawnParams *params);
+mpAPI void           mpScatterParticlesBoxTransform(int context, mpM44 *transform, int num, const mpSpawnParams *params);
 
-mpCLinkage mpAPI void           mpAddSphereCollider(int context, mpColliderProperties *props, mpV3 *center, float radius);
-mpCLinkage mpAPI void           mpAddCapsuleCollider(int context, mpColliderProperties *props, mpV3 *pos1, mpV3 *pos2, float radius);
-mpCLinkage mpAPI void           mpAddBoxCollider(int context, mpColliderProperties *props, mpM44 *transform, mpV3 *center, mpV3 *size);
-mpCLinkage mpAPI void           mpRemoveCollider(int context, mpColliderProperties *props);
-mpCLinkage mpAPI void           mpAddForce(int context, mpForceProperties *p, mpM44 *trans);
+mpAPI void           mpAddSphereCollider(int context, mpColliderProperties *props, mpV3 *center, float radius);
+mpAPI void           mpAddCapsuleCollider(int context, mpColliderProperties *props, mpV3 *pos1, mpV3 *pos2, float radius);
+mpAPI void           mpAddBoxCollider(int context, mpColliderProperties *props, mpM44 *transform, mpV3 *center, mpV3 *size);
+mpAPI void           mpRemoveCollider(int context, mpColliderProperties *props);
+mpAPI void           mpAddForce(int context, mpForceProperties *p, mpM44 *trans);
 
-mpCLinkage mpAPI void           mpScanSphere(int context, mpHitHandler handler, mpV3 *center, float radius);
-mpCLinkage mpAPI void           mpScanAABB(int context, mpHitHandler handler, mpV3 *center, mpV3 *extent);
-mpCLinkage mpAPI void           mpScanSphereParallel(int context, mpHitHandler handler, mpV3 *center, float radius);
-mpCLinkage mpAPI void           mpScanAABBParallel(int context, mpHitHandler handler, mpV3 *center, mpV3 *extent);
-mpCLinkage mpAPI void           mpScanAll(int context, mpHitHandler handler);
-mpCLinkage mpAPI void           mpScanAllParallel(int context, mpHitHandler handler);
+mpAPI void           mpScanSphere(int context, mpHitHandler handler, mpV3 *center, float radius);
+mpAPI void           mpScanAABB(int context, mpHitHandler handler, mpV3 *center, mpV3 *extent);
+mpAPI void           mpScanSphereParallel(int context, mpHitHandler handler, mpV3 *center, float radius);
+mpAPI void           mpScanAABBParallel(int context, mpHitHandler handler, mpV3 *center, mpV3 *extent);
+mpAPI void           mpScanAll(int context, mpHitHandler handler);
+mpAPI void           mpScanAllParallel(int context, mpHitHandler handler);
 
-mpCLinkage mpAPI void           mpMoveAll(int context, mpV3 *move_amount);
+mpAPI void           mpMoveAll(int context, mpV3 *move_amount);
+
+} // extern "C"
 
 // for static link usage. initialize graphics device manually.
 void mpUnitySetGraphicsDevice(void* device, int deviceType, int eventType);
-
-#endif // MassParticle_h

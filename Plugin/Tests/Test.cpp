@@ -1,4 +1,4 @@
-#include "../MassParticle.h"
+#include "../MassParticle/MassParticle.h"
 
 
 int main(int argc, char *argv[])

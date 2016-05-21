@@ -1,0 +1,71 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="GraphicsDevice\mpGraphicsDeviceD3D11.cpp">
+      <Filter>GraphicsDevice</Filter>
+    </ClCompile>
+    <ClCompile Include="GraphicsDevice\mpGraphicsDeviceOpenGL.cpp">
+      <Filter>GraphicsDevice</Filter>
+    </ClCompile>
+    <ClCompile Include="GraphicsDevice\mpGraphicsDevice.cpp">
+      <Filter>GraphicsDevice</Filter>
+    </ClCompile>
+    <ClCompile Include="GraphicsDevice\mpGraphicsDeviceD3D9.cpp">
+      <Filter>GraphicsDevice</Filter>
+    </ClCompile>
+    <ClCompile Include="MassParticle\MassParticle.cpp">
+      <Filter>MassParticle</Filter>
+    </ClCompile>
+    <ClCompile Include="MassParticle\mpFoundation.cpp">
+      <Filter>MassParticle</Filter>
+    </ClCompile>
+    <ClCompile Include="MassParticle\mpWorld.cpp">
+      <Filter>MassParticle</Filter>
+    </ClCompile>
+    <ClCompile Include="MassParticle\pch.cpp">
+      <Filter>MassParticle</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="MassParticle\GraphicsDevice\mpGraphicsDevice.h">
+      <Filter>GraphicsDevice</Filter>
+    </ClInclude>
+    <ClInclude Include="MassParticle\Concurrency.h">
+      <Filter>MassParticle</Filter>
+    </ClInclude>
+    <ClInclude Include="MassParticle\ispc_vectormath.h">
+      <Filter>MassParticle</Filter>
+    </ClInclude>
+    <ClInclude Include="MassParticle\MassParticle.h">
+      <Filter>MassParticle</Filter>
+    </ClInclude>
+    <ClInclude Include="MassParticle\mpCollision.h">
+      <Filter>MassParticle</Filter>
+    </ClInclude>
+    <ClInclude Include="MassParticle\mpFoundation.h">
+      <Filter>MassParticle</Filter>
+    </ClInclude>
+    <ClInclude Include="MassParticle\mpWorld.h">
+      <Filter>MassParticle</Filter>
+    </ClInclude>
+    <ClInclude Include="MassParticle\pch.h">
+      <Filter>MassParticle</Filter>
+    </ClInclude>
+    <ClInclude Include="MassParticle\SoA.h">
+      <Filter>MassParticle</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="GraphicsDevice">
+      <UniqueIdentifier>{2530ac3c-41e6-4442-bbf0-7abce15d88f0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="MassParticle">
+      <UniqueIdentifier>{9e015085-17bd-45a5-bd81-94d07bf4e373}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="MassParticle\mpCore.ispc">
+      <Filter>MassParticle</Filter>
+    </CustomBuild>
+  </ItemGroup>
+</Project>

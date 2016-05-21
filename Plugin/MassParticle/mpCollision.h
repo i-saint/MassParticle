@@ -1,6 +1,4 @@
-#ifndef mpCollision_h
-#define mpCollision_h
-
+#pragma once
 #include "ispc_vectormath.h"
 typedef int id_type;
 typedef unsigned int uint;
@@ -159,5 +157,3 @@ struct KernelParams
     float SPHGradPressureCoef;
     float SPHLapViscosityCoef;
 };
-
-#endif // mpCollision_h

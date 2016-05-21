@@ -1,6 +1,6 @@
 #include "pch.h"
 
-#if mpSupportD3D11
+#ifdef _WIN32
 #pragma warning( disable : 4996 ) // _s じゃない CRT 関数使うと出るやつ
 #pragma warning( disable : 4005 ) // DirectX のマクロの redefinition
 
@@ -63,4 +63,4 @@ void mpGraphicsDeviceD3D11::updateDataTexture(void *texptr, int width, int heigh
     ID3D11Texture2D *tex = (ID3D11Texture2D*)texptr;
     m_pImmediateContext->UpdateSubresource(tex, 0, &box, data, width * 16, 0);
 }
-#endif // mpSupportD3D11
+#endif // _WIN32

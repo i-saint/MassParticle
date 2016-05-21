@@ -1,6 +1,5 @@
 #include "pch.h"
 
-#if mpSupportOpenGL
 #if _WIN32
     #include <gl/GL.h>
     #pragma comment(lib, "opengl32.lib")
@@ -45,5 +44,3 @@ void mpGraphicsDeviceOpenGL::updateDataTexture(void *tex, int width, int height,
     glTexSubImage2D(GL_TEXTURE_2D, 0, pos.x, pos.y, size.x, size.y, GL_RGBA, GL_FLOAT, data);
     glBindTexture(GL_TEXTURE_2D, 0);
 }
-
-#endif // mpSupportOpenGL

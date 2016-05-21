@@ -7,8 +7,9 @@ namespace {
     std::vector<mpWorld*> g_worlds;
 }
 
+extern "C" {
 
-mpCLinkage mpAPI void mpUpdateDataTexture(int context, void *tex, int width, int height)
+mpAPI void mpUpdateDataTexture(int context, void *tex, int width, int height)
 {
     if (context == 0) return;
     g_worlds[context]->updateDataTexture(tex, width, height);
@@ -16,7 +17,7 @@ mpCLinkage mpAPI void mpUpdateDataTexture(int context, void *tex, int width, int
 
 
 
-mpCLinkage mpAPI int mpCreateContext()
+mpAPI int mpCreateContext()
 {
     mpWorld *p = new mpWorld();
 
@@ -32,70 +33,70 @@ mpCLinkage mpAPI int mpCreateContext()
     g_worlds.push_back(p);
     return (int)g_worlds.size()-1;
 }
-mpCLinkage mpAPI void mpDestroyContext(int context)
+mpAPI void mpDestroyContext(int context)
 {
     delete g_worlds[context];
     g_worlds[context] = nullptr;
 }
 
 
-mpCLinkage mpAPI void mpUpdate(int context, float dt)
+mpAPI void mpUpdate(int context, float dt)
 {
     g_worlds[context]->update(dt);
 }
-mpCLinkage mpAPI void mpBeginUpdate(int context, float dt)
+mpAPI void mpBeginUpdate(int context, float dt)
 {
     g_worlds[context]->beginUpdate(dt);
 }
-mpCLinkage mpAPI void mpEndUpdate(int context)
+mpAPI void mpEndUpdate(int context)
 {
     g_worlds[context]->endUpdate();
 }
-mpCLinkage mpAPI void mpCallHandlers(int context)
+mpAPI void mpCallHandlers(int context)
 {
     g_worlds[context]->callHandlers();
 }
 
 
-mpCLinkage mpAPI void mpClearParticles(int context)
+mpAPI void mpClearParticles(int context)
 {
     g_worlds[context]->clearParticles();
 }
 
-mpCLinkage mpAPI void mpClearCollidersAndForces(int context)
+mpAPI void mpClearCollidersAndForces(int context)
 {
     g_worlds[context]->clearCollidersAndForces();
 }
 
-mpCLinkage mpAPI void mpGetKernelParams(int context, mpKernelParams *params)
+mpAPI void mpGetKernelParams(int context, mpKernelParams *params)
 {
     *params = g_worlds[context]->getKernelParams();
 }
 
-mpCLinkage mpAPI void mpSetKernelParams(int context, const mpKernelParams *params)
+mpAPI void mpSetKernelParams(int context, const mpKernelParams *params)
 {
     g_worlds[context]->setKernelParams(*params);
 }
 
 
-mpCLinkage mpAPI int mpGetNumParticles(int context)
+mpAPI int mpGetNumParticles(int context)
 {
     if (context == 0) return 0;
     return g_worlds[context]->getNumParticles();
 }
 
-mpCLinkage mpAPI void mpForceSetNumParticles(int context, int num)
+mpAPI void mpForceSetNumParticles(int context, int num)
 {
     g_worlds[context]->forceSetNumParticles(num);
 }
-mpCLinkage mpAPI mpParticleIM*	mpGetIntermediateData(int context, int nth)
+mpAPI mpParticleIM*	mpGetIntermediateData(int context, int nth)
 {
     return nth < 0 ?
         &g_worlds[context]->getIntermediateData() :
         &g_worlds[context]->getIntermediateData(nth);
 }
 
-mpCLinkage mpAPI mpParticle* mpGetParticles(int context)
+mpAPI mpParticle* mpGetParticles(int context)
 {
     return g_worlds[context]->getParticles();
 }
@@ -127,7 +128,7 @@ inline void mpApplySpawnParams(mpParticleCont &particles, const mpSpawnParams *p
     }
 }
 
-mpCLinkage mpAPI void mpScatterParticlesSphere(int context, vec3 *center, float radius, int32_t num, const mpSpawnParams *params)
+mpAPI void mpScatterParticlesSphere(int context, vec3 *center, float radius, int32_t num, const mpSpawnParams *params)
 {
     if (num <= 0) { return; }
 
@@ -142,7 +143,7 @@ mpCLinkage mpAPI void mpScatterParticlesSphere(int context, vec3 *center, float 
     g_worlds[context]->addParticles(&particles[0], particles.size());
 }
 
-mpCLinkage mpAPI void mpScatterParticlesBox(int context, vec3 *center, vec3 *size, int32_t num, const mpSpawnParams *params)
+mpAPI void mpScatterParticlesBox(int context, vec3 *center, vec3 *size, int32_t num, const mpSpawnParams *params)
 {
     if (num <= 0) { return; }
 
@@ -156,7 +157,7 @@ mpCLinkage mpAPI void mpScatterParticlesBox(int context, vec3 *center, vec3 *siz
 }
 
 
-mpCLinkage mpAPI void mpScatterParticlesSphereTransform(int context, mat4 *transform, int32_t num, const mpSpawnParams *params)
+mpAPI void mpScatterParticlesSphereTransform(int context, mat4 *transform, int32_t num, const mpSpawnParams *params)
 {
     if (num <= 0) { return; }
 
@@ -173,7 +174,7 @@ mpCLinkage mpAPI void mpScatterParticlesSphereTransform(int context, mat4 *trans
     g_worlds[context]->addParticles(&particles[0], particles.size());
 }
 
-mpCLinkage mpAPI void mpScatterParticlesBoxTransform(int context, mat4 *transform, int32_t num, const mpSpawnParams *params)
+mpAPI void mpScatterParticlesBoxTransform(int context, mat4 *transform, int32_t num, const mpSpawnParams *params)
 {
     if (num <= 0) { return; }
 
@@ -270,7 +271,7 @@ inline void mpBuildCapsuleCollider(int context, mpCapsuleCollider &o, vec3 pos1,
 }
 
 
-mpCLinkage mpAPI void mpAddBoxCollider(int context, mpColliderProperties *props, mat4 *transform, vec3 *size, vec3 *center)
+mpAPI void mpAddBoxCollider(int context, mpColliderProperties *props, mat4 *transform, vec3 *size, vec3 *center)
 {
     mpBoxCollider col;
     col.props = *props;
@@ -278,12 +279,12 @@ mpCLinkage mpAPI void mpAddBoxCollider(int context, mpColliderProperties *props,
     g_worlds[context]->addBoxColliders(&col, 1);
 }
 
-mpCLinkage mpAPI void mpRemoveCollider(int context, mpColliderProperties *props)
+mpAPI void mpRemoveCollider(int context, mpColliderProperties *props)
 {
     g_worlds[context]->removeCollider(*props);
 }
 
-mpCLinkage mpAPI void mpAddSphereCollider(int context, mpColliderProperties *props, vec3 *center, float radius)
+mpAPI void mpAddSphereCollider(int context, mpColliderProperties *props, vec3 *center, float radius)
 {
     mpSphereCollider col;
     col.props = *props;
@@ -291,7 +292,7 @@ mpCLinkage mpAPI void mpAddSphereCollider(int context, mpColliderProperties *pro
     g_worlds[context]->addSphereColliders(&col, 1);
 }
 
-mpCLinkage mpAPI void mpAddCapsuleCollider(int context, mpColliderProperties *props, vec3 *pos1, vec3 *pos2, float radius)
+mpAPI void mpAddCapsuleCollider(int context, mpColliderProperties *props, vec3 *pos1, vec3 *pos2, float radius)
 {
     mpCapsuleCollider col;
     col.props = *props;
@@ -299,7 +300,7 @@ mpCLinkage mpAPI void mpAddCapsuleCollider(int context, mpColliderProperties *pr
     g_worlds[context]->addCapsuleColliders(&col, 1);
 }
 
-mpCLinkage mpAPI void mpAddForce(int context, mpForceProperties *props, mat4 *_trans)
+mpAPI void mpAddForce(int context, mpForceProperties *props, mat4 *_trans)
 {
     mat4 &trans = *_trans;
     mpForce force;
@@ -346,34 +347,36 @@ mpCLinkage mpAPI void mpAddForce(int context, mpForceProperties *props, mat4 *_t
     g_worlds[context]->addForces(&force, 1);
 }
 
-mpCLinkage mpAPI void mpScanSphere(int context, mpHitHandler handler, vec3 *center, float radius)
+mpAPI void mpScanSphere(int context, mpHitHandler handler, vec3 *center, float radius)
 {
     return g_worlds[context]->scanSphere(handler, *center, radius);
 }
-mpCLinkage mpAPI void mpScanAABB(int context, mpHitHandler handler, vec3 *center, vec3 *extent)
+mpAPI void mpScanAABB(int context, mpHitHandler handler, vec3 *center, vec3 *extent)
 {
     return g_worlds[context]->scanAABB(handler, *center, *extent);
 }
-mpCLinkage mpAPI void mpScanSphereParallel(int context, mpHitHandler handler, vec3 *center, float radius)
+mpAPI void mpScanSphereParallel(int context, mpHitHandler handler, vec3 *center, float radius)
 {
     return g_worlds[context]->scanSphereParallel(handler, *center, radius);
 }
-mpCLinkage mpAPI void mpScanAABBParallel(int context, mpHitHandler handler, vec3 *center, vec3 *extent)
+mpAPI void mpScanAABBParallel(int context, mpHitHandler handler, vec3 *center, vec3 *extent)
 {
     return g_worlds[context]->scanAABBParallel(handler, *center, *extent);
 }
 
-mpCLinkage mpAPI void mpScanAll(int context, mpHitHandler handler)
+mpAPI void mpScanAll(int context, mpHitHandler handler)
 {
     return g_worlds[context]->scanAll(handler);
 }
 
-mpCLinkage mpAPI void mpScanAllParallel(int context, mpHitHandler handler)
+mpAPI void mpScanAllParallel(int context, mpHitHandler handler)
 {
     return g_worlds[context]->scanAllParallel(handler);
 }
 
-mpCLinkage mpAPI void mpMoveAll(int context, vec3 *move_amount)
+mpAPI void mpMoveAll(int context, vec3 *move_amount)
 {
     g_worlds[context]->moveAll(*move_amount);
 }
+
+} // extern "C"

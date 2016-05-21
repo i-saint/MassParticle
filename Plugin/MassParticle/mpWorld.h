@@ -1,6 +1,4 @@
-#ifndef mpWorld_h
-#define mpWorld_h
-
+#pragma once
 #include "Concurrency.h"
 
 class mpWorld
@@ -85,5 +83,3 @@ private:
 
     int                     m_current;
 };
-
-#endif // mpWorld_h

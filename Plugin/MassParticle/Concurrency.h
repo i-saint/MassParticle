@@ -1,12 +1,10 @@
-#ifndef Concurrency_h
-#define Concurrency_h
-
+#pragma once
 #include <vector>
 #include <mutex>
-#ifdef WithTBB
+#ifdef mpWithTBB
     #include <tbb/tbb.h>
     #include <tbb/combinable.h>
-#else
+#elif _WIN32
     #include <ppl.h>
 #endif
 #ifdef _WIN32
@@ -117,7 +115,7 @@ using tbb::task_group;
 using tbb::combinable;
 
 
-#else
+#elif _WIN32
 
 template<class IndexType, class Body>
 inline void parallel_for(IndexType first, IndexType last, const Body& body)
@@ -167,5 +165,3 @@ public:
 #endif // WithTBB
 
 } // namespace ist
-
-#endif // Concurrency_h

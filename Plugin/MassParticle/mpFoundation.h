@@ -1,6 +1,4 @@
-#ifndef mpFoundation_h
-#define mpFoundation_h
-
+#pragma once
 #include "mpCore_ispc.h"
 #include "SoA.h"
 
@@ -274,5 +272,3 @@ struct mpSoAData
 };
 
 class mpWorld;
-
-#endif // mpFoundation_h
