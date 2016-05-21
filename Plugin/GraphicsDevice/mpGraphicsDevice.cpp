@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "mpFoundation.h"
 #include "mpGraphicsDevice.h"
-#include "MassParticle.h"
 
 
 // Graphics device identifiers in Unity
@@ -68,14 +67,3 @@ void mpUnitySetGraphicsDevice(void* device, int deviceType, int eventType)
         g_device = nullptr;
     }
 }
-
-#ifndef mpStaticLink
-mpCLinkage mpAPI void UnitySetGraphicsDevice(void* device, int deviceType, int eventType)
-{
-    mpUnitySetGraphicsDevice(device, deviceType, eventType);
-}
-
-mpCLinkage mpAPI void UnityRenderEvent(int eventID)
-{
-}
-#endif // mpStaticLink

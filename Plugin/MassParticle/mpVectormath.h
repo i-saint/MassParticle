@@ -1,8 +1,4 @@
-#ifndef _ispc_vectormath_h_
-#define _ispc_vectormath_h_
-
-//typedef float<3> vec3f;
-//typedef int<3> vec3i;
+#pragma once
 
 struct vec2f { float x, y; };
 struct vec2i { int   x, y; };
@@ -347,5 +343,3 @@ static inline vec3f iq_rand(vec3f p)
     p = v3f(dot(p, v3f(127.1, 311.7, 311.7)), dot(p, v3f(269.5, 183.3, 183.3)), dot(p, v3f(269.5, 183.3, 183.3)));
     return frac(sin(p)*43758.5453);
 }
-
-#endif // _ispc_vectormath_h_

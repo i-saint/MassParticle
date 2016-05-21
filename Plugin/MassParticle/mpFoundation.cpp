@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "mpFoundation.h"
-#include "MassParticle.h"
 
 namespace {
     std::mt19937 g_rand;

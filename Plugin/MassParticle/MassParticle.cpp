@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "mpFoundation.h"
+#include "mpInternal.h"
 #include "mpWorld.h"
 #include "MassParticle.h"
 
@@ -8,6 +8,18 @@ namespace {
 }
 
 extern "C" {
+
+#ifndef mpStaticLink
+mpAPI void UnitySetGraphicsDevice(void* device, int deviceType, int eventType)
+{
+    mpUnitySetGraphicsDevice(device, deviceType, eventType);
+}
+
+mpAPI void UnityRenderEvent(int eventID)
+{
+}
+#endif // mpStaticLink
+
 
 mpAPI void mpUpdateDataTexture(int context, void *tex, int width, int height)
 {
@@ -306,8 +318,8 @@ mpAPI void mpAddForce(int context, mpForceProperties *props, mat4 *_trans)
     mpForce force;
     force.props = *props;
 
-    switch (force.props.shape_type) {
-    case mpForceShape_Sphere:
+    switch ((mpForceShape)force.props.shape_type) {
+    case mpForceShape::Sphere:
         {
             mpSphereCollider col;
             vec3 pos = (vec3&)trans[3];
@@ -319,7 +331,7 @@ mpAPI void mpAddForce(int context, mpForceProperties *props, mat4 *_trans)
         }
         break;
 
-    case mpForceShape_Capsule:
+    case mpForceShape::Capsule:
         {
             mpCapsuleCollider col;
             vec3 pos = (vec3&)trans[3];
@@ -331,7 +343,7 @@ mpAPI void mpAddForce(int context, mpForceProperties *props, mat4 *_trans)
         }
         break;
 
-    case mpForceShape_Box:
+    case mpForceShape::Box:
         {
             mpBoxCollider col;
             mpBuildBoxCollider(context, col, trans, vec3(), vec3(1.0f, 1.0f, 1.0f));

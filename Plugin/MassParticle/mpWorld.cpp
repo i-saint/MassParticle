@@ -1,9 +1,8 @@
 #include "pch.h"
-#include "mpFoundation.h"
+#include "mpInternal.h"
 #include "mpGraphicsDevice.h"
 #include "mpCore_ispc.h"
 #include "mpWorld.h"
-#include "MassParticle.h"
 
 
 
@@ -733,7 +732,9 @@ void mpWorld::update(float dt)
             mpSoAnize(ce[i], m_particles, m_soa);
         });
 
-    if (m_kparams.solver_type == mpSolverType_Impulse) {
+
+    mpSolverType solver_type = (mpSolverType)m_kparams.solver_type;
+    if (solver_type == mpSolverType::Impulse) {
         // impulse
         ist::parallel_for(0, cell_num, g_cells_par_task,
             [&](int i) {
@@ -760,8 +761,8 @@ void mpWorld::update(float dt)
                 ispc::Integrate(kcontext, idx);
             });
     }
-    else if (m_kparams.solver_type == mpSolverType_SPH || m_kparams.solver_type == mpSolverType_SPHEst) {
-        if (kp.enable_interaction && m_kparams.solver_type == mpSolverType_SPH) {
+    else if (solver_type == mpSolverType::SPH || solver_type == mpSolverType::SPHEst) {
+        if (kp.enable_interaction && solver_type == mpSolverType::SPH) {
             ist::parallel_for(0, cell_num, g_cells_par_task,
                 [&](int i) {
                     i32 n = ce[i].end - ce[i].begin;
@@ -779,7 +780,7 @@ void mpWorld::update(float dt)
                     ispc::sphUpdateForce(kcontext, idx);
                 });
         }
-        else if (kp.enable_interaction && m_kparams.solver_type == mpSolverType_SPHEst) {
+        else if (kp.enable_interaction && solver_type == mpSolverType::SPHEst) {
             ist::parallel_for(0, cell_num, g_cells_par_task,
                 [&](int i) {
                 i32 n = ce[i].end - ce[i].begin;

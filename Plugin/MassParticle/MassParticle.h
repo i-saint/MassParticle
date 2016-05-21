@@ -1,5 +1,4 @@
 #pragma once
-#define mpCLinkage extern "C"
 #ifdef mpImpl
     #ifndef mpStaticLink
         #define mpAPI __declspec(dllexport)
@@ -18,29 +17,29 @@
 
 
 
-enum mpSolverType
+enum class mpSolverType
 {
-    mpSolverType_Impulse,
-    mpSolverType_SPH,
-    mpSolverType_SPHEst,
+    Impulse,
+    SPH,
+    SPHEst,
 };
 
-enum mpForceShape
+enum class mpForceShape
 {
-    mpForceShape_AffectAll,
-    mpForceShape_Sphere,
-    mpForceShape_Capsule,
-    mpForceShape_Box,
+    AffectAll,
+    Sphere,
+    Capsule,
+    Box,
 };
 
-enum mpForceType
+enum class mpForceType
 {
-    mpForceType_Directional,
-    mpForceType_Radial,
-    mpForceType_RadialCapsule,
-    mpForceType_Vortex,
-    mpForceType_Spline,
-    mpForceType_VectorField,
+    Directional,
+    Radial,
+    RadialCapsule,
+    Vortex,
+    Spline,
+    VectorField,
 };
 
 #ifdef mpImpl
@@ -91,7 +90,7 @@ enum mpForceType
             world_div    = mpV3i(128, 128, 128);
             coord_scaler = mpV3(1.0f, 1.0f, 1.0f);
 
-            solver_type = mpSolverType_Impulse;
+            solver_type = mpSolverType::Impulse;
             enable_interaction = 1;
             enable_colliders = 1;
             enable_forces = 1;

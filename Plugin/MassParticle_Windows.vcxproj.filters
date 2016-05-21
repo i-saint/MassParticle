@@ -33,9 +33,6 @@
     <ClInclude Include="MassParticle\Concurrency.h">
       <Filter>MassParticle</Filter>
     </ClInclude>
-    <ClInclude Include="MassParticle\ispc_vectormath.h">
-      <Filter>MassParticle</Filter>
-    </ClInclude>
     <ClInclude Include="MassParticle\MassParticle.h">
       <Filter>MassParticle</Filter>
     </ClInclude>
@@ -52,6 +49,12 @@
       <Filter>MassParticle</Filter>
     </ClInclude>
     <ClInclude Include="MassParticle\SoA.h">
+      <Filter>MassParticle</Filter>
+    </ClInclude>
+    <ClInclude Include="MassParticle\mpInternal.h">
+      <Filter>MassParticle</Filter>
+    </ClInclude>
+    <ClInclude Include="MassParticle\mpVectormath.h">
       <Filter>MassParticle</Filter>
     </ClInclude>
   </ItemGroup>
