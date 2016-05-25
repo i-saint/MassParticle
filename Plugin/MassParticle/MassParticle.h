@@ -229,4 +229,14 @@ mpAPI void           mpMoveAll(int context, mpV3 *move_amount);
 } // extern "C"
 
 // for static link usage. initialize graphics device manually.
-void mpUnitySetGraphicsDevice(void* device, int deviceType, int eventType);
+enum class mpGraphicsDeviceType
+{
+    Unknown,
+    D3D9,
+    D3D11,
+    D3D12,
+    OpenGL,
+    Vulkan,
+    PS4,
+};
+void mpSetGraphicsDevice(mpGraphicsDeviceType device_type, void* device_ptr);

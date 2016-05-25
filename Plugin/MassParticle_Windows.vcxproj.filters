@@ -25,6 +25,9 @@
     <ClCompile Include="GraphicsDevice\GraphicsDevice.cpp">
       <Filter>GraphicsDevice</Filter>
     </ClCompile>
+    <ClCompile Include="MassParticle\UnityPluginImpl.cpp">
+      <Filter>MassParticle</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MassParticle\Concurrency.h">
@@ -55,6 +58,9 @@
       <Filter>MassParticle</Filter>
     </ClInclude>
     <ClInclude Include="GraphicsDevice\GraphicsDevice.h">
+      <Filter>GraphicsDevice</Filter>
+    </ClInclude>
+    <ClInclude Include="GraphicsDevice\gdInternal.h">
       <Filter>GraphicsDevice</Filter>
     </ClInclude>
   </ItemGroup>

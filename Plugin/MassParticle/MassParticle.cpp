@@ -2,23 +2,13 @@
 #include "mpInternal.h"
 #include "mpWorld.h"
 #include "MassParticle.h"
+#include "GraphicsDevice.h"
 
 namespace {
     std::vector<mpWorld*> g_worlds;
 }
 
 extern "C" {
-
-#ifndef mpStaticLink
-mpAPI void UnitySetGraphicsDevice(void* device, int deviceType, int eventType)
-{
-    mpUnitySetGraphicsDevice(device, deviceType, eventType);
-}
-
-mpAPI void UnityRenderEvent(int eventID)
-{
-}
-#endif // mpStaticLink
 
 
 mpAPI void mpUpdateDataTexture(int context, void *tex, int width, int height)
@@ -392,3 +382,8 @@ mpAPI void mpMoveAll(int context, vec3 *move_amount)
 }
 
 } // extern "C"
+
+void mpSetGraphicsDevice(mpGraphicsDeviceType device_type, void* device_ptr)
+{
+    CreateGraphicsDevice((GraphicsDeviceType)device_type, device_ptr);
+}

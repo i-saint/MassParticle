@@ -1,66 +1,195 @@
-#include "pch.h"
-
-#ifdef _WIN32
-#pragma warning( disable : 4996 ) // _s ����Ȃ� CRT �֐��g���Əo����
-#pragma warning( disable : 4005 ) // DirectX �̃}�N���� redefinition
-
+﻿#include "pch.h"
+#include "gdInternal.h"
 #include <d3d11.h>
-#include "mpFoundation.h"
-#include "GraphicsDevice.h"
+const int D3D11MaxStagingTextures = 32;
 
-#define mpSafeRelease(obj) if(obj) { obj->Release(); obj=nullptr; }
-
-
-
-class mpGraphicsDeviceD3D11 : public mpGraphicsDevice
+class GraphicsDeviceD3D11 : public GraphicsDevice
 {
 public:
-    mpGraphicsDeviceD3D11(void *dev);
-    virtual ~mpGraphicsDeviceD3D11();
-    virtual void updateDataTexture(void *tex, int width, int height, const void *data, size_t data_size);
+    GraphicsDeviceD3D11(void *device);
+    ~GraphicsDeviceD3D11();
+    void* getDevicePtr() override;
+    GraphicsDeviceType getDeviceType() override;
+    void sync() override;
+    bool readTexture(void *o_buf, size_t bufsize, void *tex, int width, int height, PixelFormat format) override;
+    bool writeTexture(void *o_tex, int width, int height, PixelFormat format, const void *buf, size_t bufsize) override;
 
 private:
-    bool initializeResources();
-    HRESULT CompileShaderFromFile(WCHAR* szFileName, LPCSTR szEntryPoint, LPCSTR szShaderModel, ID3DBlob** ppBlobOut);
-    ID3D11Buffer* CreateVertexBuffer(const void *data, UINT size);
+    void clearStagingTextures();
+    ID3D11Texture2D* findOrCreateStagingTexture(int width, int height, PixelFormat format);
 
 private:
-    ID3D11Device        *m_pDevice;
-    ID3D11DeviceContext *m_pImmediateContext;
+    ID3D11Device *m_device;
+    ID3D11DeviceContext *m_context;
+    ID3D11Query *m_query_event;
+    std::map<uint64_t, ID3D11Texture2D*> m_staging_textures;
 };
 
-mpGraphicsDevice* mpCreateGraphicsDeviceD3D11(void *device)
+
+GraphicsDevice* CreateGraphicsDeviceD3D11(void *device)
 {
-    return new mpGraphicsDeviceD3D11(device);
+    return new GraphicsDeviceD3D11(device);
+}
+
+GraphicsDeviceD3D11::GraphicsDeviceD3D11(void *device)
+    : m_device((ID3D11Device*)device)
+    , m_context(nullptr)
+    , m_query_event(nullptr)
+{
+    clearStagingTextures();
+    if (m_device != nullptr)
+    {
+        m_device->GetImmediateContext(&m_context);
+
+        D3D11_QUERY_DESC qdesc = {D3D11_QUERY_EVENT , 0};
+        m_device->CreateQuery(&qdesc, &m_query_event);
+    }
+}
+
+GraphicsDeviceD3D11::~GraphicsDeviceD3D11()
+{
+    if (m_context != nullptr)
+    {
+        m_context->Release();
+        m_context = nullptr;
+
+        m_query_event->Release();
+        m_query_event = nullptr;
+    }
+}
+
+void* GraphicsDeviceD3D11::getDevicePtr() { return m_device; }
+GraphicsDeviceType GraphicsDeviceD3D11::getDeviceType() { return GraphicsDeviceType::D3D11; }
+
+
+static DXGI_FORMAT GetInternalFormatD3D11(PixelFormat fmt)
+{
+    switch (fmt)
+    {
+    case PixelFormat::RGBAu8:  return DXGI_FORMAT_R8G8B8A8_TYPELESS;
+
+    case PixelFormat::RGBAf16: return DXGI_FORMAT_R16G16B16A16_FLOAT;
+    case PixelFormat::RGf16:   return DXGI_FORMAT_R16G16_FLOAT;
+    case PixelFormat::Rf16:    return DXGI_FORMAT_R16_FLOAT;
+
+    case PixelFormat::RGBAf32: return DXGI_FORMAT_R32G32B32A32_FLOAT;
+    case PixelFormat::RGf32:   return DXGI_FORMAT_R32G32_FLOAT;
+    case PixelFormat::Rf32:    return DXGI_FORMAT_R32_FLOAT;
+
+    case PixelFormat::RGBAi32: return DXGI_FORMAT_R32G32B32A32_SINT;
+    case PixelFormat::RGi32:   return DXGI_FORMAT_R32G32_SINT;
+    case PixelFormat::Ri32:    return DXGI_FORMAT_R32_SINT;
+    }
+    return DXGI_FORMAT_UNKNOWN;
 }
 
 
-mpGraphicsDeviceD3D11::mpGraphicsDeviceD3D11(void *_dev)
-: m_pDevice(nullptr)
-, m_pImmediateContext(nullptr)
+ID3D11Texture2D* GraphicsDeviceD3D11::findOrCreateStagingTexture(int width, int height, PixelFormat format)
 {
-    m_pDevice = (ID3D11Device*)_dev;
-    m_pDevice->GetImmediateContext(&m_pImmediateContext);
+    if (m_staging_textures.size() >= D3D11MaxStagingTextures) {
+        clearStagingTextures();
+    }
+
+    DXGI_FORMAT internal_format = GetInternalFormatD3D11(format);
+    uint64_t hash = width + (height << 16) + ((uint64_t)internal_format << 32);
+    {
+        auto it = m_staging_textures.find(hash);
+        if (it != m_staging_textures.end())
+        {
+            return it->second;
+        }
+    }
+
+    D3D11_TEXTURE2D_DESC desc = {
+        (UINT)width, (UINT)height, 1, 1, internal_format, { 1, 0 },
+        D3D11_USAGE_STAGING, 0, D3D11_CPU_ACCESS_READ | D3D11_CPU_ACCESS_WRITE, 0
+    };
+    ID3D11Texture2D *ret = nullptr;
+    HRESULT hr = m_device->CreateTexture2D(&desc, nullptr, &ret);
+    if (SUCCEEDED(hr))
+    {
+        m_staging_textures.insert(std::make_pair(hash, ret));
+    }
+    return ret;
 }
 
-mpGraphicsDeviceD3D11::~mpGraphicsDeviceD3D11()
+void GraphicsDeviceD3D11::clearStagingTextures()
 {
-    mpSafeRelease(m_pImmediateContext);
+    for (auto& pair : m_staging_textures)
+    {
+        pair.second->Release();
+    }
+    m_staging_textures.clear();
 }
 
-
-void mpGraphicsDeviceD3D11::updateDataTexture(void *texptr, int width, int height, const void *data, size_t data_size)
+void GraphicsDeviceD3D11::sync()
 {
-    const size_t num_texels = data_size / 16;
+    m_context->End(m_query_event);
+    while (m_context->GetData(m_query_event, nullptr, 0, 0) == S_FALSE) {
+        std::this_thread::sleep_for(std::chrono::microseconds(100));
+    }
+}
+
+bool GraphicsDeviceD3D11::readTexture(void *o_buf, size_t bufsize, void *tex_, int width, int height, PixelFormat format)
+{
+    if (m_context == nullptr || tex_ == nullptr) { return false; }
+    int psize = GetPixelSize(format);
+
+    // Unity の D3D11 の RenderTexture の内容は CPU からはアクセス不可能になっている。
+    // なので staging texture を用意してそれに内容を移し、CPU はそれ経由でデータを読む。
+    ID3D11Texture2D *tex = (ID3D11Texture2D*)tex_;
+    ID3D11Texture2D *tmp = findOrCreateStagingTexture(width, height, format);
+    m_context->CopyResource(tmp, tex);
+
+    // ID3D11DeviceContext::Map() はその時点までのコマンドの終了を待ってくれないっぽくて、
+    // ↑の CopyResource() が終わるのを手動で待たないといけない。
+    sync();
+
+    D3D11_MAPPED_SUBRESOURCE mapped = { 0 };
+    HRESULT hr = m_context->Map(tmp, 0, D3D11_MAP_READ, 0, &mapped);
+    if (SUCCEEDED(hr))
+    {
+        char *wpixels = (char*)o_buf;
+        int wpitch = width * GetPixelSize(format);
+        const char *rpixels = (const char*)mapped.pData;
+        int rpitch = mapped.RowPitch;
+
+        // 表向きの解像度と内部解像度は一致しないことがあるようで、その場合 1 ラインづつコピーする必要がある。
+        // (手元の環境では内部解像度は 32 の倍数になるっぽく見える)
+        if (wpitch == rpitch)
+        {
+            memcpy(wpixels, rpixels, bufsize);
+        }
+        else
+        {
+            for (int i = 0; i < height; ++i)
+            {
+                memcpy(wpixels, rpixels, wpitch);
+                wpixels += wpitch;
+                rpixels += rpitch;
+            }
+        }
+
+        m_context->Unmap(tmp, 0);
+        return true;
+    }
+    return false;
+}
+
+bool GraphicsDeviceD3D11::writeTexture(void *o_tex, int width, int height, PixelFormat format, const void *buf, size_t bufsize)
+{
+    int psize = GetPixelSize(format);
+    int pitch = psize * width;
+    const size_t num_pixels = bufsize / psize;
 
     D3D11_BOX box;
     box.left = 0;
     box.right = width;
     box.top = 0;
-    box.bottom = ceildiv((UINT)num_texels, (UINT)width);
+    box.bottom = ceildiv((UINT)num_pixels, (UINT)width);
     box.front = 0;
     box.back = 1;
-    ID3D11Texture2D *tex = (ID3D11Texture2D*)texptr;
-    m_pImmediateContext->UpdateSubresource(tex, 0, &box, data, width * 16, 0);
+    ID3D11Texture2D *tex = (ID3D11Texture2D*)o_tex;
+    m_context->UpdateSubresource(tex, 0, &box, buf, pitch, 0);
+    return true;
 }
-#endif // _WIN32

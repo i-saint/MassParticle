@@ -1,69 +1,163 @@
-#include "pch.h"
-#include "mpFoundation.h"
-#include "GraphicsDevice.h"
+﻿#include "pch.h"
+#include "gdInternal.h"
 
 
-// Graphics device identifiers in Unity
-enum GfxDeviceRenderer
+int GetPixelSize(PixelFormat format)
 {
-    kGfxRendererOpenGL = 0,          // OpenGL
-    kGfxRendererD3D9,                // Direct3D 9
-    kGfxRendererD3D11,               // Direct3D 11
-    kGfxRendererGCM,                 // Sony PlayStation 3 GCM
-    kGfxRendererNull,                // "null" device (used in batch mode)
-    kGfxRendererHollywood,           // Nintendo Wii
-    kGfxRendererXenon,               // Xbox 360
-    kGfxRendererOpenGLES,            // OpenGL ES 1.1
-    kGfxRendererOpenGLES20Mobile,    // OpenGL ES 2.0 mobile variant
-    kGfxRendererMolehill,            // Flash 11 Stage3D
-    kGfxRendererOpenGLES20Desktop,   // OpenGL ES 2.0 desktop variant (i.e. NaCl)
-    kGfxRendererCount
-};
+    switch (format)
+    {
+    case PixelFormat::RGBAu8:  return 4;
+    case PixelFormat::RGBu8:   return 3;
+    case PixelFormat::RGu8:    return 2;
+    case PixelFormat::Ru8:     return 1;
 
-// Event types for UnitySetGraphicsDevice
-enum GfxDeviceEventType {
-    kGfxDeviceEventInitialize = 0,
-    kGfxDeviceEventShutdown,
-    kGfxDeviceEventBeforeReset,
-    kGfxDeviceEventAfterReset,
-};
+    case PixelFormat::RGBAf16:
+    case PixelFormat::RGBAi16: return 8;
+    case PixelFormat::RGBf16:
+    case PixelFormat::RGBi16:  return 6;
+    case PixelFormat::RGf16:
+    case PixelFormat::RGi16:   return 4;
+    case PixelFormat::Rf16:
+    case PixelFormat::Ri16:    return 2;
 
-
-namespace {
-    mpGraphicsDevice *g_device;
+    case PixelFormat::RGBAf32:
+    case PixelFormat::RGBAi32: return 16;
+    case PixelFormat::RGBf32:
+    case PixelFormat::RGBi32:  return 12;
+    case PixelFormat::RGf32:
+    case PixelFormat::RGi32:   return 8;
+    case PixelFormat::Rf32:
+    case PixelFormat::Ri32:    return 4;
+    }
+    return 0;
 }
 
-mpGraphicsDevice* mpGetGraphicsDevice() { return g_device; }
 
-mpGraphicsDevice* mpCreateGraphicsDeviceD3D9(void *dev);
-mpGraphicsDevice* mpCreateGraphicsDeviceD3D11(void *dev);
-mpGraphicsDevice* mpCreateGraphicsDeviceOpenGL(void *dev);
+GraphicsDevice* CreateGraphicsDeviceD3D9(void *device);
+GraphicsDevice* CreateGraphicsDeviceD3D11(void *device);
+GraphicsDevice* CreateGraphicsDeviceD3D12(void *device);
+GraphicsDevice* CreateGraphicsDeviceOpenGL();
+GraphicsDevice* CreateGraphicsDeviceVulkan();
 
-void mpUnitySetGraphicsDevice(void* device, int deviceType, int eventType)
+static GraphicsDevice *g_gfx_device;
+
+
+GraphicsDevice* CreateGraphicsDevice(GraphicsDeviceType type, void *device_ptr)
 {
-    if (eventType == kGfxDeviceEventInitialize) {
-#ifdef mpSupportD3D9
-        if (deviceType == kGfxRendererD3D9)
-        {
-            g_device = mpCreateGraphicsDeviceD3D9(device);
+    ReleaseGraphicsDevice();
+
+    switch (type) {
+#ifdef gdSupportD3D9
+    case GraphicsDeviceType::D3D9:
+        g_gfx_device = CreateGraphicsDeviceD3D9(device_ptr);
+        break;
+#endif
+#ifdef gdSupportD3D11
+    case GraphicsDeviceType::D3D11:
+        g_gfx_device = CreateGraphicsDeviceD3D11(device_ptr);
+        break;
+#endif
+#ifdef gdSupportD3D12
+    case GraphicsDeviceType::D3D12:
+        g_gfx_device = CreateGraphicsDeviceD3D12(device_ptr);
+        break;
+#endif
+#ifdef gdSupportOpenGL
+    case GraphicsDeviceType::OpenGL:
+        g_gfx_device = CreateGraphicsDeviceOpenGL();
+#endif
+#ifdef gdSupportVulkan
+    case GraphicsDeviceType::Vulkan:
+        g_gfx_device = CreateGraphicsDeviceVulkan();
+#endif
+        break;
+    }
+    return g_gfx_device;
+}
+
+void ReleaseGraphicsDevice()
+{
+    if (g_gfx_device) {
+        delete g_gfx_device;
+        g_gfx_device = nullptr;
+    }
+}
+
+GraphicsDevice* GetGraphicsDevice()
+{
+    return g_gfx_device;
+}
+
+
+
+
+#ifndef gdStaticLink
+
+#include "PluginAPI/IUnityGraphics.h"
+#ifdef gdSupportD3D9
+    #include <d3d9.h>
+    #include "PluginAPI/IUnityGraphicsD3D9.h"
+#endif
+#ifdef gdSupportD3D11
+    #include <d3d11.h>
+    #include "PluginAPI/IUnityGraphicsD3D11.h"
+#endif
+#ifdef gdSupportD3D12
+    #include <d3d12.h>
+    #include "PluginAPI/IUnityGraphicsD3D12.h"
+#endif
+
+
+static IUnityInterfaces* g_unity_interface;
+
+static void UNITY_INTERFACE_API UnityOnGraphicsDeviceEvent(UnityGfxDeviceEventType eventType)
+{
+    if (eventType == kUnityGfxDeviceEventInitialize) {
+        auto unity_gfx = g_unity_interface->Get<IUnityGraphics>();
+        auto api = unity_gfx->GetRenderer();
+
+#ifdef gdSupportD3D9
+        if (api == kUnityGfxRendererD3D9) {
+            CreateGraphicsDevice(GraphicsDeviceType::D3D9, g_unity_interface->Get<IUnityGraphicsD3D9>()->GetDevice());
         }
 #endif
-#if mpSupportD3D11
-        if (deviceType == kGfxRendererD3D11)
-        {
-            g_device = mpCreateGraphicsDeviceD3D11(device);
+#ifdef gdSupportD3D11
+        if (api == kUnityGfxRendererD3D11) {
+            CreateGraphicsDevice(GraphicsDeviceType::D3D11, g_unity_interface->Get<IUnityGraphicsD3D11>()->GetDevice());
         }
 #endif
-#if mpSupportOpenGL
-        if (deviceType == kGfxRendererOpenGL)
+#ifdef gdSupportD3D12
+        if (api == kUnityGfxRendererD3D12) {
+            CreateGraphicsDevice(GraphicsDeviceType::D3D12, g_unity_interface->Get<IUnityGraphicsD3D12>()->GetDevice());
+        }
+#endif
+#ifdef gdSupportOpenGL
+        if (api == kUnityGfxRendererOpenGL ||
+            api == kUnityGfxRendererOpenGLCore ||
+            api == kUnityGfxRendererOpenGLES20 ||
+            api == kUnityGfxRendererOpenGLES30)
         {
-            g_device = mpCreateGraphicsDeviceOpenGL(device);
+            CreateGraphicsDevice(GraphicsDeviceType::OpenGL, nullptr);
         }
 #endif
     }
-
-    if (eventType == kGfxDeviceEventShutdown) {
-        delete g_device;
-        g_device = nullptr;
+    else if (eventType == kUnityGfxDeviceEventShutdown) {
+        ReleaseGraphicsDevice();
     }
 }
+
+
+void gdUnityPluginLoad(IUnityInterfaces* unityInterfaces)
+{
+    g_unity_interface = unityInterfaces;
+    g_unity_interface->Get<IUnityGraphics>()->RegisterDeviceEventCallback(UnityOnGraphicsDeviceEvent);
+    UnityOnGraphicsDeviceEvent(kUnityGfxDeviceEventInitialize);
+}
+
+void gdUnityPluginUnload()
+{
+    auto unity_gfx = g_unity_interface->Get<IUnityGraphics>();
+    unity_gfx->UnregisterDeviceEventCallback(UnityOnGraphicsDeviceEvent);
+}
+
+#endif // gdStaticLink

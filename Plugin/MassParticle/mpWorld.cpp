@@ -4,8 +4,10 @@
 #include "mpCore_ispc.h"
 #include "mpWorld.h"
 
-
-
+const int mpDataTextureWidth = 3072;
+const int mpDataTextureHeight = 256;
+const int mpTexelsEachParticle = 3;
+const int mpParticlesEachLine = mpDataTextureWidth / mpTexelsEachParticle;
 const i32 SOA_BOCK_SIZE = 8;
 
 
@@ -951,11 +953,11 @@ int mpWorld::updateDataTexture(void *tex, int width, int height)
 {
     std::unique_lock<std::mutex> lock(m_mutex);
 
-    mpGraphicsDevice *renderer = mpGetGraphicsDevice();
-    if (renderer && !m_particles_gpu.empty()) {
+    GraphicsDevice *gd = GetGraphicsDevice();
+    if (gd && !m_particles_gpu.empty()) {
         int num_needs_copy = std::max<int>(m_num_particles_gpu, m_num_particles_gpu_prev);
         m_num_particles_gpu_prev = m_num_particles_gpu;
-        renderer->updateDataTexture(tex, width, height, &m_particles_gpu[0], sizeof(mpParticle)*m_kparams.max_particles);
+        gd->writeTexture(tex, width, height, PixelFormat::RGBAf32, &m_particles_gpu[0], sizeof(mpParticle)*m_kparams.max_particles);
     }
     return m_num_particles_gpu;
 }
