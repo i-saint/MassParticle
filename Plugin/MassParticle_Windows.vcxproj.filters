@@ -13,18 +13,6 @@
     <ClCompile Include="MassParticle\pch.cpp">
       <Filter>MassParticle</Filter>
     </ClCompile>
-    <ClCompile Include="GraphicsDevice\GraphicsDeviceD3D9.cpp">
-      <Filter>GraphicsDevice</Filter>
-    </ClCompile>
-    <ClCompile Include="GraphicsDevice\GraphicsDeviceD3D11.cpp">
-      <Filter>GraphicsDevice</Filter>
-    </ClCompile>
-    <ClCompile Include="GraphicsDevice\GraphicsDeviceOpenGL.cpp">
-      <Filter>GraphicsDevice</Filter>
-    </ClCompile>
-    <ClCompile Include="GraphicsDevice\GraphicsDevice.cpp">
-      <Filter>GraphicsDevice</Filter>
-    </ClCompile>
     <ClCompile Include="MassParticle\UnityPluginImpl.cpp">
       <Filter>MassParticle</Filter>
     </ClCompile>
@@ -57,17 +45,8 @@
     <ClInclude Include="MassParticle\mpVectormath.h">
       <Filter>MassParticle</Filter>
     </ClInclude>
-    <ClInclude Include="GraphicsDevice\GraphicsDevice.h">
-      <Filter>GraphicsDevice</Filter>
-    </ClInclude>
-    <ClInclude Include="GraphicsDevice\gdInternal.h">
-      <Filter>GraphicsDevice</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <Filter Include="GraphicsDevice">
-      <UniqueIdentifier>{2530ac3c-41e6-4442-bbf0-7abce15d88f0}</UniqueIdentifier>
-    </Filter>
     <Filter Include="MassParticle">
       <UniqueIdentifier>{9e015085-17bd-45a5-bd81-94d07bf4e373}</UniqueIdentifier>
     </Filter>

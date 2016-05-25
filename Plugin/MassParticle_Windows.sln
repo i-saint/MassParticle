@@ -9,6 +9,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{D95FFF67
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Test", "Tests\Test.vcxproj", "{5E27851A-693D-42A4-9E0F-AEFC42B7EDA4}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GraphicsDevice_Windows", "GraphicsDevice_Windows.vcxproj", "{29751262-3A23-4CF5-9DEC-8D11AFF02599}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -43,6 +45,18 @@ Global
 		{5E27851A-693D-42A4-9E0F-AEFC42B7EDA4}.MasterLib|Win32.Build.0 = MasterLib|Win32
 		{5E27851A-693D-42A4-9E0F-AEFC42B7EDA4}.MasterLib|x64.ActiveCfg = MasterLib|x64
 		{5E27851A-693D-42A4-9E0F-AEFC42B7EDA4}.MasterLib|x64.Build.0 = MasterLib|x64
+		{29751262-3A23-4CF5-9DEC-8D11AFF02599}.Debug|Win32.ActiveCfg = Debug|Win32
+		{29751262-3A23-4CF5-9DEC-8D11AFF02599}.Debug|Win32.Build.0 = Debug|Win32
+		{29751262-3A23-4CF5-9DEC-8D11AFF02599}.Debug|x64.ActiveCfg = Debug|x64
+		{29751262-3A23-4CF5-9DEC-8D11AFF02599}.Debug|x64.Build.0 = Debug|x64
+		{29751262-3A23-4CF5-9DEC-8D11AFF02599}.MasterDLL|Win32.ActiveCfg = Master|Win32
+		{29751262-3A23-4CF5-9DEC-8D11AFF02599}.MasterDLL|Win32.Build.0 = Master|Win32
+		{29751262-3A23-4CF5-9DEC-8D11AFF02599}.MasterDLL|x64.ActiveCfg = Master|x64
+		{29751262-3A23-4CF5-9DEC-8D11AFF02599}.MasterDLL|x64.Build.0 = Master|x64
+		{29751262-3A23-4CF5-9DEC-8D11AFF02599}.MasterLib|Win32.ActiveCfg = Master|Win32
+		{29751262-3A23-4CF5-9DEC-8D11AFF02599}.MasterLib|Win32.Build.0 = Master|Win32
+		{29751262-3A23-4CF5-9DEC-8D11AFF02599}.MasterLib|x64.ActiveCfg = Master|x64
+		{29751262-3A23-4CF5-9DEC-8D11AFF02599}.MasterLib|x64.Build.0 = Master|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

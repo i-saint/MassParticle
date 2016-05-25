@@ -478,10 +478,6 @@ xcopy /Yq $(TargetPath) $(SolutionDir)..\MassParticle\Assets\Ist\Plugins\x86_64\
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="GraphicsDevice\GraphicsDevice.cpp" />
-    <ClCompile Include="GraphicsDevice\GraphicsDeviceD3D11.cpp" />
-    <ClCompile Include="GraphicsDevice\GraphicsDeviceD3D9.cpp" />
-    <ClCompile Include="GraphicsDevice\GraphicsDeviceOpenGL.cpp" />
     <ClCompile Include="MassParticle\mpFoundation.cpp" />
     <ClCompile Include="MassParticle\MassParticle.cpp" />
     <ClCompile Include="MassParticle\mpWorld.cpp" />
@@ -496,8 +492,6 @@ xcopy /Yq $(TargetPath) $(SolutionDir)..\MassParticle\Assets\Ist\Plugins\x86_64\
     <ClCompile Include="MassParticle\UnityPluginImpl.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="GraphicsDevice\gdInternal.h" />
-    <ClInclude Include="GraphicsDevice\GraphicsDevice.h" />
     <ClInclude Include="MassParticle\Concurrency.h" />
     <ClInclude Include="MassParticle\MassParticle.h" />
     <ClInclude Include="MassParticle\mpFoundation.h" />
@@ -528,6 +522,11 @@ xcopy /Yq $(TargetPath) $(SolutionDir)..\MassParticle\Assets\Ist\Plugins\x86_64\
       <Outputs Condition="'$(Configuration)|$(Platform)'=='MasterDLL|x64'">$(IntDir)%(Filename).obj;$(IntDir)%(Filename)_sse2.obj;$(IntDir)%(Filename)_sse4.obj;$(IntDir)%(Filename)_avx.obj</Outputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='MasterLib|x64'">$(IntDir)%(Filename).obj;$(IntDir)%(Filename)_sse2.obj;$(IntDir)%(Filename)_sse4.obj;$(IntDir)%(Filename)_avx.obj</Outputs>
     </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="GraphicsDevice_Windows.vcxproj">
+      <Project>{29751262-3a23-4cf5-9dec-8d11aff02599}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
