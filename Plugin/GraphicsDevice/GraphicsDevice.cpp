@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "mpFoundation.h"
-#include "mpGraphicsDevice.h"
+#include "GraphicsDevice.h"
 
 
 // Graphics device identifiers in Unity

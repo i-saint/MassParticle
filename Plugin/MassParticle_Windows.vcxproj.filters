@@ -1,18 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="GraphicsDevice\mpGraphicsDeviceD3D11.cpp">
-      <Filter>GraphicsDevice</Filter>
-    </ClCompile>
-    <ClCompile Include="GraphicsDevice\mpGraphicsDeviceOpenGL.cpp">
-      <Filter>GraphicsDevice</Filter>
-    </ClCompile>
-    <ClCompile Include="GraphicsDevice\mpGraphicsDevice.cpp">
-      <Filter>GraphicsDevice</Filter>
-    </ClCompile>
-    <ClCompile Include="GraphicsDevice\mpGraphicsDeviceD3D9.cpp">
-      <Filter>GraphicsDevice</Filter>
-    </ClCompile>
     <ClCompile Include="MassParticle\MassParticle.cpp">
       <Filter>MassParticle</Filter>
     </ClCompile>
@@ -25,11 +13,20 @@
     <ClCompile Include="MassParticle\pch.cpp">
       <Filter>MassParticle</Filter>
     </ClCompile>
+    <ClCompile Include="GraphicsDevice\GraphicsDeviceD3D9.cpp">
+      <Filter>GraphicsDevice</Filter>
+    </ClCompile>
+    <ClCompile Include="GraphicsDevice\GraphicsDeviceD3D11.cpp">
+      <Filter>GraphicsDevice</Filter>
+    </ClCompile>
+    <ClCompile Include="GraphicsDevice\GraphicsDeviceOpenGL.cpp">
+      <Filter>GraphicsDevice</Filter>
+    </ClCompile>
+    <ClCompile Include="GraphicsDevice\GraphicsDevice.cpp">
+      <Filter>GraphicsDevice</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="MassParticle\GraphicsDevice\mpGraphicsDevice.h">
-      <Filter>GraphicsDevice</Filter>
-    </ClInclude>
     <ClInclude Include="MassParticle\Concurrency.h">
       <Filter>MassParticle</Filter>
     </ClInclude>
@@ -56,6 +53,9 @@
     </ClInclude>
     <ClInclude Include="MassParticle\mpVectormath.h">
       <Filter>MassParticle</Filter>
+    </ClInclude>
+    <ClInclude Include="GraphicsDevice\GraphicsDevice.h">
+      <Filter>GraphicsDevice</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

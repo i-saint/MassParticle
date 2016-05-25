@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "mpInternal.h"
-#include "mpGraphicsDevice.h"
+#include "GraphicsDevice.h"
 #include "mpCore_ispc.h"
 #include "mpWorld.h"
 

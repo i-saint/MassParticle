@@ -6,7 +6,7 @@
 
 #include <d3d11.h>
 #include "mpFoundation.h"
-#include "mpGraphicsDevice.h"
+#include "GraphicsDevice.h"
 
 #define mpSafeRelease(obj) if(obj) { obj->Release(); obj=nullptr; }
 

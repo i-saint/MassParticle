@@ -1,4 +1,3 @@
-#pragma once
 #include <cmath>
 #include <cstdio>
 #include <cstdint>
@@ -17,7 +16,7 @@
 #include <glm/gtx/simd_vec4.hpp>
 #include <glm/gtx/simd_mat4.hpp>
 
-#if defined(_WIN32) && !defined(WithTBB)
+#if defined(_WIN32) && !defined(mpWithTBB)
     #include <Windows.h>
     #include <ppl.h>
 #else

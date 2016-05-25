@@ -119,14 +119,14 @@
     <OutDir>$(SolutionDir)_out\$(ProjectName)_$(Platform)_$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)_tmp\$(ProjectName)_$(Platform)_$(Configuration)\</IntDir>
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>external\glm;$(ProjectDir)GraphicsDevice;$(ProjectDir)MassParticle;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
-    <LibraryPath>external\tbb\lib\ia32\vc14;$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86)</LibraryPath>
+    <IncludePath>external\include;$(ProjectDir)GraphicsDevice;$(ProjectDir)MassParticle;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
+    <LibraryPath>$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86)</LibraryPath>
     <TargetName>MassParticle</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>external\glm;$(ProjectDir)GraphicsDevice;$(ProjectDir)MassParticle;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
-    <LibraryPath>external\tbb\lib\intel64\vc14;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64)</LibraryPath>
+    <IncludePath>external\include;$(ProjectDir)GraphicsDevice;$(ProjectDir)MassParticle;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
+    <LibraryPath>$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64)</LibraryPath>
     <OutDir>$(SolutionDir)_out\$(ProjectName)_$(Platform)_$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)_tmp\$(ProjectName)_$(Platform)_$(Configuration)\</IntDir>
     <TargetName>MassParticle</TargetName>
@@ -159,30 +159,30 @@
     <OutDir>$(SolutionDir)_out\$(ProjectName)_$(Platform)_$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)_tmp\$(ProjectName)_$(Platform)_$(Configuration)\</IntDir>
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>external\glm;$(ProjectDir)GraphicsDevice;$(ProjectDir)MassParticle;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
-    <LibraryPath>external\tbb\lib\ia32\vc14;$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86)</LibraryPath>
+    <IncludePath>external\include;$(ProjectDir)GraphicsDevice;$(ProjectDir)MassParticle;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
+    <LibraryPath>$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86)</LibraryPath>
     <TargetName>MassParticle</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MasterLib|Win32'">
     <OutDir>$(SolutionDir)_out\$(ProjectName)_$(Platform)_$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)_tmp\$(ProjectName)_$(Platform)_$(Configuration)\</IntDir>
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>external\glm;$(ProjectDir)GraphicsDevice;$(ProjectDir)MassParticle;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
-    <LibraryPath>external\tbb\lib\ia32\vc14;$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86)</LibraryPath>
+    <IncludePath>external\include;$(ProjectDir)GraphicsDevice;$(ProjectDir)MassParticle;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
+    <LibraryPath>$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86)</LibraryPath>
     <TargetName>MassParticle_s</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MasterDLL|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>external\glm;$(ProjectDir)GraphicsDevice;$(ProjectDir)MassParticle;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
-    <LibraryPath>external\tbb\lib\intel64\vc14;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64)</LibraryPath>
+    <IncludePath>external\include;$(ProjectDir)GraphicsDevice;$(ProjectDir)MassParticle;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
+    <LibraryPath>$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64)</LibraryPath>
     <OutDir>$(SolutionDir)_out\$(ProjectName)_$(Platform)_$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)_tmp\$(ProjectName)_$(Platform)_$(Configuration)\</IntDir>
     <TargetName>MassParticle</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MasterLib|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>external\glm;$(ProjectDir)GraphicsDevice;$(ProjectDir)MassParticle;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
-    <LibraryPath>external\tbb\lib\intel64\vc14;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64)</LibraryPath>
+    <IncludePath>external\include;$(ProjectDir)GraphicsDevice;$(ProjectDir)MassParticle;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
+    <LibraryPath>$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64)</LibraryPath>
     <OutDir>$(SolutionDir)_out\$(ProjectName)_$(Platform)_$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)_tmp\$(ProjectName)_$(Platform)_$(Configuration)\</IntDir>
     <TargetName>MassParticle_s</TargetName>
@@ -460,10 +460,10 @@ xcopy /Yq $(TargetPath) $(SolutionDir)..\MassParticle\Assets\Ist\Plugins\x86_64\
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="GraphicsDevice\mpGraphicsDevice.cpp" />
-    <ClCompile Include="GraphicsDevice\mpGraphicsDeviceD3D11.cpp" />
-    <ClCompile Include="GraphicsDevice\mpGraphicsDeviceD3D9.cpp" />
-    <ClCompile Include="GraphicsDevice\mpGraphicsDeviceOpenGL.cpp" />
+    <ClCompile Include="GraphicsDevice\GraphicsDevice.cpp" />
+    <ClCompile Include="GraphicsDevice\GraphicsDeviceD3D11.cpp" />
+    <ClCompile Include="GraphicsDevice\GraphicsDeviceD3D9.cpp" />
+    <ClCompile Include="GraphicsDevice\GraphicsDeviceOpenGL.cpp" />
     <ClCompile Include="MassParticle\mpFoundation.cpp" />
     <ClCompile Include="MassParticle\MassParticle.cpp" />
     <ClCompile Include="MassParticle\mpWorld.cpp" />
@@ -477,8 +477,8 @@ xcopy /Yq $(TargetPath) $(SolutionDir)..\MassParticle\Assets\Ist\Plugins\x86_64\
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="GraphicsDevice\GraphicsDevice.h" />
     <ClInclude Include="MassParticle\Concurrency.h" />
-    <ClInclude Include="MassParticle\GraphicsDevice\mpGraphicsDevice.h" />
     <ClInclude Include="MassParticle\MassParticle.h" />
     <ClInclude Include="MassParticle\mpFoundation.h" />
     <ClInclude Include="MassParticle\mpInternal.h" />

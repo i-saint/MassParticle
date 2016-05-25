@@ -8,7 +8,7 @@
     #include <OpenGL/glext.h>
 #endif
 #include "mpFoundation.h"
-#include "mpGraphicsDevice.h"
+#include "GraphicsDevice.h"
 
 
 class mpGraphicsDeviceOpenGL : public mpGraphicsDevice

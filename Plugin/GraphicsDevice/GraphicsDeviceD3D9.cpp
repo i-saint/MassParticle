@@ -3,7 +3,7 @@
 #ifdef _WIN32
 #include <d3d9.h>
 #include "mpFoundation.h"
-#include "mpGraphicsDevice.h"
+#include "GraphicsDevice.h"
 
 #define mpSafeRelease(obj) if(obj) { obj->Release(); obj=nullptr; }
 
