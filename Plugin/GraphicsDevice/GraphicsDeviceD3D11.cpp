@@ -11,8 +11,12 @@ public:
     void* getDevicePtr() override;
     GraphicsDeviceType getDeviceType() override;
     void sync() override;
+
     bool readTexture(void *o_buf, size_t bufsize, void *tex, int width, int height, PixelFormat format) override;
     bool writeTexture(void *o_tex, int width, int height, PixelFormat format, const void *buf, size_t bufsize) override;
+
+    bool readBuffer(void *dst, const void *src_buf, size_t srcsize) override;
+    bool writeBuffer(void *dst_buf, const void *src, size_t srcsize) override;
 
 private:
     void clearStagingTextures();
@@ -192,4 +196,14 @@ bool GraphicsDeviceD3D11::writeTexture(void *o_tex, int width, int height, Pixel
     ID3D11Texture2D *tex = (ID3D11Texture2D*)o_tex;
     m_context->UpdateSubresource(tex, 0, &box, buf, pitch, 0);
     return true;
+}
+
+bool GraphicsDeviceD3D11::readBuffer(void *dst, const void *src_buf, size_t srcsize)
+{
+    return false;
+}
+
+bool GraphicsDeviceD3D11::writeBuffer(void *dst_buf, const void *src, size_t srcsize)
+{
+    return false;
 }

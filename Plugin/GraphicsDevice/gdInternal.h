@@ -7,9 +7,9 @@
 #ifdef _WIN32
     #define gdSupportD3D9
     #define gdSupportD3D11
-    //#define gdSupportD3D12
+    #define gdSupportD3D12
     #define gdSupportOpenGL
-    //#define gdSupportVulkan
+    #define gdSupportVulkan
 #else
     #define gdSupportOpenGL
 #endif

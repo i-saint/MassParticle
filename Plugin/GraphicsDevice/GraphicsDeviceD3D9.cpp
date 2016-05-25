@@ -15,6 +15,13 @@ public:
     bool readTexture(void *o_buf, size_t bufsize, void *tex, int width, int height, PixelFormat format) override;
     bool writeTexture(void *o_tex, int width, int height, PixelFormat format, const void *buf, size_t bufsize) override;
 
+    bool readBuffer(void *dst, const void *src_buf, size_t srcsize) override;
+    bool readIndexBuffer(void *dst, const void *src_buf, size_t srcsize) override;
+    bool readVertexBuffer(void *dst, const void *src_buf, size_t srcsize) override;
+    bool writeBuffer(void *dst_buf, const void *src, size_t srcsize) override;
+    bool writeIndexBuffer(void *dst_buf, const void *src, size_t srcsize) override;
+    bool writeVertexBuffer(void *dst_buf, const void *src, size_t srcsize) override;
+
 private:
     void clearStagingTextures();
     IDirect3DSurface9* findOrCreateStagingTexture(int width, int height, PixelFormat format);
@@ -244,5 +251,31 @@ bool GraphicsDeviceD3D9::writeTexture(void *o_tex, int width, int height, PixelF
     }
     surf_dst->Release();
 
+    return false;
+}
+
+bool GraphicsDeviceD3D9::readBuffer(void *dst, const void *src_buf, size_t srcsize)
+{
+    return false;
+}
+bool GraphicsDeviceD3D9::readIndexBuffer(void *dst, const void *src_buf, size_t srcsize)
+{
+    return false;
+}
+bool GraphicsDeviceD3D9::readVertexBuffer(void *dst, const void *src_buf, size_t srcsize)
+{
+    return false;
+}
+
+bool GraphicsDeviceD3D9::writeBuffer(void *dst_buf, const void *src, size_t srcsize)
+{
+    return false;
+}
+bool GraphicsDeviceD3D9::writeIndexBuffer(void *dst_buf, const void *src, size_t srcsize)
+{
+    return false;
+}
+bool GraphicsDeviceD3D9::writeVertexBuffer(void *dst_buf, const void *src, size_t srcsize)
+{
     return false;
 }

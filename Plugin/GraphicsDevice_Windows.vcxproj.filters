@@ -32,5 +32,11 @@
     <ClCompile Include="GraphicsDevice\pch.cpp">
       <Filter>GraphicsDevice</Filter>
     </ClCompile>
+    <ClCompile Include="GraphicsDevice\GraphicsDeviceD3D12.cpp">
+      <Filter>GraphicsDevice</Filter>
+    </ClCompile>
+    <ClCompile Include="GraphicsDevice\GraphicsDeviceVulkan.cpp">
+      <Filter>GraphicsDevice</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

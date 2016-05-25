@@ -26,8 +26,10 @@
   <ItemGroup>
     <ClCompile Include="GraphicsDevice\GraphicsDevice.cpp" />
     <ClCompile Include="GraphicsDevice\GraphicsDeviceD3D11.cpp" />
+    <ClCompile Include="GraphicsDevice\GraphicsDeviceD3D12.cpp" />
     <ClCompile Include="GraphicsDevice\GraphicsDeviceD3D9.cpp" />
     <ClCompile Include="GraphicsDevice\GraphicsDeviceOpenGL.cpp" />
+    <ClCompile Include="GraphicsDevice\GraphicsDeviceVulkan.cpp" />
     <ClCompile Include="GraphicsDevice\pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Master|Win32'">Create</PrecompiledHeader>
@@ -38,7 +40,7 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{29751262-3A23-4CF5-9DEC-8D11AFF02599}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.10586.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Master|Win32'" Label="Configuration">

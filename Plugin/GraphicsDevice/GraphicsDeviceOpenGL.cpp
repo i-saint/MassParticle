@@ -16,8 +16,12 @@ public:
     void* getDevicePtr() override;
     GraphicsDeviceType getDeviceType() override;
     void sync() override;
+
     bool readTexture(void *o_buf, size_t bufsize, void *tex, int width, int height, PixelFormat format) override;
     bool writeTexture(void *o_tex, int width, int height, PixelFormat format, const void *buf, size_t bufsize) override;
+
+    bool readBuffer(void *dst, const void *src_buf, size_t srcsize) override;
+    bool writeBuffer(void *dst_buf, const void *src, size_t srcsize) override;
 };
 
 
@@ -95,4 +99,14 @@ bool GraphicsDeviceOpenGL::writeTexture(void *o_tex, int width, int height, Pixe
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, internal_format, internal_type, buf);
     glBindTexture(GL_TEXTURE_2D, 0);
     return true;
+}
+
+bool GraphicsDeviceOpenGL::readBuffer(void *dst, const void *src_buf, size_t srcsize)
+{
+    return false;
+}
+
+bool GraphicsDeviceOpenGL::writeBuffer(void *dst_buf, const void *src, size_t srcsize)
+{
+    return false;
 }

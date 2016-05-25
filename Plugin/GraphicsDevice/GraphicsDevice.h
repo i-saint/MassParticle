@@ -53,9 +53,18 @@ public:
     virtual ~GraphicsDevice() {}
     virtual void* getDevicePtr() = 0;
     virtual GraphicsDeviceType getDeviceType() = 0;
+
     virtual void sync() = 0;
-    virtual bool readTexture(void *o_buf, size_t bufsize, void *tex, int width, int height, PixelFormat format) = 0;
-    virtual bool writeTexture(void *o_tex, int width, int height, PixelFormat format, const void *buf, size_t bufsize) = 0;
+
+    virtual bool readTexture(void *dst, size_t dstsize, void *src_tex, int width, int height, PixelFormat format) = 0;
+    virtual bool writeTexture(void *dst_tex, int width, int height, PixelFormat format, const void *src, size_t srcsize) = 0;
+
+    virtual bool readBuffer(void *dst, const void *src_buf, size_t srcsize) = 0;
+    virtual bool readIndexBuffer(void *dst, const void *src_buf, size_t srcsize) { return readBuffer(dst, src_buf, srcsize); }
+    virtual bool readVertexBuffer(void *dst, const void *src_buf, size_t srcsize) { return readBuffer(dst, src_buf, srcsize); }
+    virtual bool writeBuffer(void *dst_buf, const void *src, size_t srcsize) = 0;
+    virtual bool writeIndexBuffer(void *dst_buf, const void *src, size_t srcsize) { return writeBuffer(dst_buf, src, srcsize); }
+    virtual bool writeVertexBuffer(void *dst_buf, const void *src, size_t srcsize) { return writeBuffer(dst_buf, src, srcsize); }
 };
 
 
