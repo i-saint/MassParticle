@@ -3,7 +3,7 @@
 #include "GraphicsDevice.h"
 #include "PluginAPI/IUnityGraphics.h"
 
-#ifndef gdStaticLink
+#ifndef mpStaticLink
 
 void gdUnityPluginLoad(IUnityInterfaces* unityInterfaces);
 void gdUnityPluginUnload();
@@ -33,7 +33,7 @@ UnityRenderingEvent GetRenderEventFunc()
 }
 
 
-IUnityInterfaces* GetUnityInterface()
+UNITY_INTERFACE_EXPORT IUnityInterfaces* GetUnityInterface()
 {
     return g_unity_interface;
 }
@@ -57,6 +57,15 @@ void GfxForceInitialize()
         }
     }
 }
-#endif
 
-#endif // gdStaticLink
+BOOL WINAPI DllMain(HINSTANCE module_handle, DWORD reason_for_call, LPVOID reserved)
+{
+    if (reason_for_call == DLL_PROCESS_ATTACH)
+    {
+        GfxForceInitialize();
+    }
+    return TRUE;
+}
+
+#endif // _WIN32
+#endif // mpStaticLink

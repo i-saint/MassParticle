@@ -403,6 +403,9 @@ xcopy /Yq $(TargetPath) $(SolutionDir)..\MassParticle\Assets\Ist\Plugins\x86\</C
       <Command>
       </Command>
     </PostBuildEvent>
+    <ProjectReference>
+      <LinkLibraryDependencies>true</LinkLibraryDependencies>
+    </ProjectReference>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='MasterDLL|x64'">
     <ClCompile>
@@ -476,6 +479,9 @@ xcopy /Yq $(TargetPath) $(SolutionDir)..\MassParticle\Assets\Ist\Plugins\x86_64\
       <Command>
       </Command>
     </PostBuildEvent>
+    <ProjectReference>
+      <LinkLibraryDependencies>true</LinkLibraryDependencies>
+    </ProjectReference>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="MassParticle\mpFoundation.cpp" />
