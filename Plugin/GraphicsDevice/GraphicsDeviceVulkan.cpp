@@ -13,8 +13,8 @@ public:
     Error readTexture(void *o_buf, size_t bufsize, void *tex, int width, int height, TextureFormat format) override;
     Error writeTexture(void *o_tex, int width, int height, TextureFormat format, const void *buf, size_t bufsize) override;
 
-    Error readBuffer(void *dst, const void *src_buf, size_t srcsize) override;
-    Error writeBuffer(void *dst_buf, const void *src, size_t srcsize) override;
+    Error readBuffer(void *dst, const void *src_buf, size_t read_size, BufferType type) override;
+    Error writeBuffer(void *dst_buf, const void *src, size_t write_size, BufferType type) override;
 
 private:
 };
@@ -52,21 +52,21 @@ void GraphicsDeviceVulkan::sync()
 
 GraphicsDevice::Error GraphicsDeviceVulkan::readTexture(void *o_buf, size_t bufsize, void *tex, int width, int height, TextureFormat format)
 {
-    return Error::NotImplemented;
+    return Error::NotAvailable;
 }
 
 GraphicsDevice::Error GraphicsDeviceVulkan::writeTexture(void *o_tex, int width, int height, TextureFormat format, const void *buf, size_t bufsize)
 {
-    return Error::NotImplemented;
+    return Error::NotAvailable;
 }
 
 
-GraphicsDevice::Error GraphicsDeviceVulkan::readBuffer(void *dst, const void *src_buf, size_t srcsize)
+GraphicsDevice::Error GraphicsDeviceVulkan::readBuffer(void *dst, const void *src_buf, size_t read_size, BufferType type)
 {
-    return Error::NotImplemented;
+    return Error::NotAvailable;
 }
 
-GraphicsDevice::Error GraphicsDeviceVulkan::writeBuffer(void *dst_buf, const void *src, size_t srcsize)
+GraphicsDevice::Error GraphicsDeviceVulkan::writeBuffer(void *dst_buf, const void *src, size_t write_size, BufferType type)
 {
-    return Error::NotImplemented;
+    return Error::NotAvailable;
 }

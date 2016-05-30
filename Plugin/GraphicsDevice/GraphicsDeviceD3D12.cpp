@@ -14,8 +14,8 @@ public:
     Error readTexture(void *o_buf, size_t bufsize, void *tex, int width, int height, TextureFormat format) override;
     Error writeTexture(void *o_tex, int width, int height, TextureFormat format, const void *buf, size_t bufsize) override;
 
-    Error readBuffer(void *dst, const void *src_buf, size_t srcsize) override;
-    Error writeBuffer(void *dst_buf, const void *src, size_t srcsize) override;
+    Error readBuffer(void *dst, const void *src_buf, size_t read_size, BufferType type) override;
+    Error writeBuffer(void *dst_buf, const void *src, size_t write_size, BufferType type) override;
 
 private:
     ID3D12Device *m_device;
@@ -56,22 +56,22 @@ void GraphicsDeviceD3D12::sync()
 GraphicsDevice::Error GraphicsDeviceD3D12::readTexture(void *dst, size_t dstsize, void *src_tex_, int width, int height, TextureFormat format)
 {
     auto *src_tex = (ID3D12Resource*)src_tex_;
-    return Error::NotImplemented;
+    return Error::NotAvailable;
 }
 
 GraphicsDevice::Error GraphicsDeviceD3D12::writeTexture(void *dst_tex_, int width, int height, TextureFormat format, const void *src, size_t srcsize)
 {
     auto *dst_tex = (ID3D12Resource*)dst_tex_;
-    return Error::NotImplemented;
+    return Error::NotAvailable;
 }
 
 
-GraphicsDevice::Error GraphicsDeviceD3D12::readBuffer(void *dst, const void *src_buf, size_t srcsize)
+GraphicsDevice::Error GraphicsDeviceD3D12::readBuffer(void *dst, const void *src_buf, size_t read_size, BufferType type)
 {
-    return Error::NotImplemented;
+    return Error::NotAvailable;
 }
 
-GraphicsDevice::Error GraphicsDeviceD3D12::writeBuffer(void *dst_buf, const void *src, size_t srcsize)
+GraphicsDevice::Error GraphicsDeviceD3D12::writeBuffer(void *dst_buf, const void *src, size_t write_size, BufferType type)
 {
-    return Error::NotImplemented;
+    return Error::NotAvailable;
 }

@@ -20,8 +20,8 @@ public:
     Error readTexture(void *o_buf, size_t bufsize, void *tex, int width, int height, TextureFormat format) override;
     Error writeTexture(void *o_tex, int width, int height, TextureFormat format, const void *buf, size_t bufsize) override;
 
-    Error readBuffer(void *dst, const void *src_buf, size_t srcsize) override;
-    Error writeBuffer(void *dst_buf, const void *src, size_t srcsize) override;
+    Error readBuffer(void *dst, const void *src_buf, size_t read_size, BufferType type) override;
+    Error writeBuffer(void *dst_buf, const void *src, size_t write_size, BufferType type) override;
 };
 
 
@@ -102,12 +102,13 @@ GraphicsDevice::Error GraphicsDeviceOpenGL::writeTexture(void *o_tex, int width,
     return Error::OK;
 }
 
-GraphicsDevice::Error GraphicsDeviceOpenGL::readBuffer(void *dst, const void *src_buf, size_t srcsize)
+
+GraphicsDevice::Error GraphicsDeviceOpenGL::readBuffer(void *dst, const void *src_buf, size_t read_size, BufferType type)
 {
-    return Error::NotImplemented;
+    return Error::NotAvailable;
 }
 
-GraphicsDevice::Error GraphicsDeviceOpenGL::writeBuffer(void *dst_buf, const void *src, size_t srcsize)
+GraphicsDevice::Error GraphicsDeviceOpenGL::writeBuffer(void *dst_buf, const void *src, size_t write_size, BufferType type)
 {
-    return Error::NotImplemented;
+    return Error::NotAvailable;
 }

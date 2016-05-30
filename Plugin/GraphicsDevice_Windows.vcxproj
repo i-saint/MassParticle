@@ -144,7 +144,6 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>mpDebug;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <PrecompiledHeader>Use</PrecompiledHeader>
@@ -166,8 +165,8 @@
       <ModuleDefinitionFile>exports_x86.def</ModuleDefinitionFile>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy /Yq $(TargetPath) $(SolutionDir)Bin\x86\
-xcopy /Yq $(TargetPath) $(SolutionDir)..\MassParticle\Assets\Ist\Plugins\x86\</Command>
+      <Command>
+      </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -193,8 +192,8 @@ xcopy /Yq $(TargetPath) $(SolutionDir)..\MassParticle\Assets\Ist\Plugins\x86\</C
       <MapExports>true</MapExports>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy /Yq $(TargetPath) $(SolutionDir)Bin\x86_64\
-xcopy /Yq $(TargetPath) $(SolutionDir)..\MassParticle\Assets\Ist\Plugins\x86_64\</Command>
+      <Command>
+      </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Master|Win32'">

@@ -17,12 +17,8 @@ public:
     Error readTexture(void *o_buf, size_t bufsize, void *tex, int width, int height, TextureFormat format) override;
     Error writeTexture(void *o_tex, int width, int height, TextureFormat format, const void *buf, size_t bufsize) override;
 
-    Error readBuffer(void *dst, const void *src_buf, size_t srcsize) override;
-    Error readIndexBuffer(void *dst, const void *src_buf, size_t srcsize) override;
-    Error readVertexBuffer(void *dst, const void *src_buf, size_t srcsize) override;
-    Error writeBuffer(void *dst_buf, const void *src, size_t srcsize) override;
-    Error writeIndexBuffer(void *dst_buf, const void *src, size_t srcsize) override;
-    Error writeVertexBuffer(void *dst_buf, const void *src, size_t srcsize) override;
+    Error readBuffer(void *dst, const void *src_buf, size_t read_size, BufferType type) override;
+    Error writeBuffer(void *dst_buf, const void *src, size_t write_size, BufferType type) override;
 
 private:
     void clearStagingTextures();
@@ -257,28 +253,13 @@ GraphicsDevice::Error GraphicsDeviceD3D9::writeTexture(void *o_tex, int width, i
     return ret;
 }
 
-GraphicsDevice::Error GraphicsDeviceD3D9::readBuffer(void *dst, const void *src_buf, size_t srcsize)
+
+GraphicsDevice::Error GraphicsDeviceD3D9::readBuffer(void *dst, const void *src_buf, size_t read_size, BufferType type)
 {
-    return Error::NotImplemented;
-}
-GraphicsDevice::Error GraphicsDeviceD3D9::readIndexBuffer(void *dst, const void *src_buf, size_t srcsize)
-{
-    return Error::NotImplemented;
-}
-GraphicsDevice::Error GraphicsDeviceD3D9::readVertexBuffer(void *dst, const void *src_buf, size_t srcsize)
-{
-    return Error::NotImplemented;
+    return Error::NotAvailable;
 }
 
-GraphicsDevice::Error GraphicsDeviceD3D9::writeBuffer(void *dst_buf, const void *src, size_t srcsize)
+GraphicsDevice::Error GraphicsDeviceD3D9::writeBuffer(void *dst_buf, const void *src, size_t write_size, BufferType type)
 {
-    return Error::NotImplemented;
-}
-GraphicsDevice::Error GraphicsDeviceD3D9::writeIndexBuffer(void *dst_buf, const void *src, size_t srcsize)
-{
-    return Error::NotImplemented;
-}
-GraphicsDevice::Error GraphicsDeviceD3D9::writeVertexBuffer(void *dst_buf, const void *src, size_t srcsize)
-{
-    return Error::NotImplemented;
+    return Error::NotAvailable;
 }

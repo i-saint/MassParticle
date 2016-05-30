@@ -15,18 +15,21 @@ public:
     Error readTexture(void *o_buf, size_t bufsize, void *tex, int width, int height, TextureFormat format) override;
     Error writeTexture(void *o_tex, int width, int height, TextureFormat format, const void *buf, size_t bufsize) override;
 
-    Error readBuffer(void *dst, const void *src_buf, size_t srcsize) override;
-    Error writeBuffer(void *dst_buf, const void *src, size_t srcsize) override;
+    Error readBuffer(void *dst, const void *src_buf, size_t read_size, BufferType type) override;
+    Error writeBuffer(void *dst_buf, const void *src, size_t write_size, BufferType type) override;
 
 private:
     void clearStagingTextures();
-    ID3D11Texture2D* findOrCreateStagingTexture(int width, int height, TextureFormat format);
+    void clearStagingBuffers();
+    ID3D11Texture2D* getStagingTexture(int width, int height, TextureFormat format);
+    ID3D11Buffer* getStagingBuffer(BufferType type, size_t size);
 
 private:
-    ID3D11Device *m_device;
-    ID3D11DeviceContext *m_context;
-    ID3D11Query *m_query_event;
+    ID3D11Device *m_device = nullptr;
+    ID3D11DeviceContext *m_context = nullptr;
+    ID3D11Query *m_query_event = nullptr;
     std::map<uint64_t, ID3D11Texture2D*> m_staging_textures;
+    std::array<ID3D11Buffer*, (int)BufferType::End> m_staging_buffers;
 };
 
 
@@ -37,10 +40,8 @@ GraphicsDevice* CreateGraphicsDeviceD3D11(void *device)
 
 GraphicsDeviceD3D11::GraphicsDeviceD3D11(void *device)
     : m_device((ID3D11Device*)device)
-    , m_context(nullptr)
-    , m_query_event(nullptr)
 {
-    clearStagingTextures();
+    std::fill(m_staging_buffers.begin(), m_staging_buffers.end(), nullptr);
     if (m_device != nullptr)
     {
         m_device->GetImmediateContext(&m_context);
@@ -52,6 +53,9 @@ GraphicsDeviceD3D11::GraphicsDeviceD3D11(void *device)
 
 GraphicsDeviceD3D11::~GraphicsDeviceD3D11()
 {
+    clearStagingTextures();
+    clearStagingBuffers();
+
     if (m_context != nullptr)
     {
         m_context->Release();
@@ -62,8 +66,32 @@ GraphicsDeviceD3D11::~GraphicsDeviceD3D11()
     }
 }
 
+void GraphicsDeviceD3D11::clearStagingTextures()
+{
+    for (auto& pair : m_staging_textures) { pair.second->Release(); }
+    m_staging_textures.clear();
+}
+
+void GraphicsDeviceD3D11::clearStagingBuffers()
+{
+    for (auto& buf : m_staging_buffers) {
+        if (buf) {
+            buf->Release();
+            buf = nullptr;
+        }
+    }
+}
+
 void* GraphicsDeviceD3D11::getDevicePtr() { return m_device; }
 GraphicsDevice::DeviceType GraphicsDeviceD3D11::getDeviceType() { return DeviceType::D3D11; }
+
+void GraphicsDeviceD3D11::sync()
+{
+    m_context->End(m_query_event);
+    while (m_context->GetData(m_query_event, nullptr, 0, 0) == S_FALSE) {
+        std::this_thread::sleep_for(std::chrono::microseconds(100));
+    }
+}
 
 
 static DXGI_FORMAT GetInternalFormatD3D11(GraphicsDevice::TextureFormat fmt)
@@ -88,8 +116,7 @@ static DXGI_FORMAT GetInternalFormatD3D11(GraphicsDevice::TextureFormat fmt)
     return DXGI_FORMAT_UNKNOWN;
 }
 
-
-ID3D11Texture2D* GraphicsDeviceD3D11::findOrCreateStagingTexture(int width, int height, TextureFormat format)
+ID3D11Texture2D* GraphicsDeviceD3D11::getStagingTexture(int width, int height, TextureFormat format)
 {
     if (m_staging_textures.size() >= D3D11MaxStagingTextures) {
         clearStagingTextures();
@@ -118,93 +145,254 @@ ID3D11Texture2D* GraphicsDeviceD3D11::findOrCreateStagingTexture(int width, int 
     return ret;
 }
 
-void GraphicsDeviceD3D11::clearStagingTextures()
+GraphicsDevice::Error GraphicsDeviceD3D11::readTexture(void *dst, size_t dst_size, void *src_tex_, int width, int height, TextureFormat format)
 {
-    for (auto& pair : m_staging_textures)
-    {
-        pair.second->Release();
-    }
-    m_staging_textures.clear();
-}
-
-void GraphicsDeviceD3D11::sync()
-{
-    m_context->End(m_query_event);
-    while (m_context->GetData(m_query_event, nullptr, 0, 0) == S_FALSE) {
-        std::this_thread::sleep_for(std::chrono::microseconds(100));
-    }
-}
-
-GraphicsDevice::Error GraphicsDeviceD3D11::readTexture(void *o_buf, size_t bufsize, void *tex_, int width, int height, TextureFormat format)
-{
-    if (m_context == nullptr || tex_ == nullptr) { return Error::InvalidParameter; }
+    if (m_context == nullptr || src_tex_ == nullptr) { return Error::InvalidParameter; }
     int psize = GetTexelSize(format);
 
-    // Unity の D3D11 の RenderTexture の内容は CPU からはアクセス不可能になっている。
-    // なので staging texture を用意してそれに内容を移し、CPU はそれ経由でデータを読む。
-    auto *tex = (ID3D11Texture2D*)tex_;
-    auto *tmp = findOrCreateStagingTexture(width, height, format);
-    m_context->CopyResource(tmp, tex);
-
-    // ID3D11DeviceContext::Map() はその時点までのコマンドの終了を待ってくれないっぽくて、
-    // ↑の CopyResource() が終わるのを手動で待たないといけない。
-    sync();
-
-    D3D11_MAPPED_SUBRESOURCE mapped = { 0 };
-    auto hr = m_context->Map(tmp, 0, D3D11_MAP_READ, 0, &mapped);
-    if (SUCCEEDED(hr))
+    auto *src_tex = (ID3D11Texture2D*)src_tex_;
+    bool mappable = false;
     {
-        char *wpixels = (char*)o_buf;
-        int wpitch = width * GetTexelSize(format);
-        const char *rpixels = (const char*)mapped.pData;
-        int rpitch = mapped.RowPitch;
-
-        // 表向きの解像度と内部解像度は一致しないことがあるようで、その場合 1 ラインづつコピーする必要がある。
-        // (手元の環境では内部解像度は 32 の倍数になるっぽく見える)
-        if (wpitch == rpitch)
-        {
-            memcpy(wpixels, rpixels, bufsize);
-        }
-        else
-        {
-            for (int i = 0; i < height; ++i)
-            {
-                memcpy(wpixels, rpixels, wpitch);
-                wpixels += wpitch;
-                rpixels += rpitch;
-            }
-        }
-
-        m_context->Unmap(tmp, 0);
-        return Error::OK;
+        D3D11_TEXTURE2D_DESC desc;
+        src_tex->GetDesc(&desc);
+        mappable = (desc.CPUAccessFlags & D3D11_CPU_ACCESS_READ) != 0;
     }
-    return Error::Unknown;
+
+    Error ret = Error::OK;
+    auto proc_read = [this, &ret](void *dst, size_t dst_size, ID3D11Texture2D *tex, int width, int height, TextureFormat format) {
+        D3D11_MAPPED_SUBRESOURCE mapped = { 0 };
+        auto hr = m_context->Map(tex, 0, D3D11_MAP_READ, 0, &mapped);
+        if (FAILED(hr)) {
+            gdLogError("GraphicsDeviceD3D11::readTexture(): Map() failed.\n");
+            ret = Error::Unknown;
+        }
+        else {
+            auto *dst_pixels = (char*)dst;
+            auto *src_pixels = (const char*)mapped.pData;
+            int dst_pitch = width * GetTexelSize(format);
+            int src_pitch = mapped.RowPitch;
+
+            // pitch may not be same with (width * size_of_texel)
+            if (dst_pitch == src_pitch)
+            {
+                memcpy(dst_pixels, src_pixels, dst_size);
+            }
+            else
+            {
+                for (int i = 0; i < height; ++i)
+                {
+                    memcpy(dst_pixels, src_pixels, dst_pitch);
+                    dst_pixels += dst_pitch;
+                    src_pixels += src_pitch;
+                }
+            }
+
+            m_context->Unmap(tex, 0);
+        }
+    };
+
+    if (mappable) {
+        // read buffer data directly
+        proc_read(dst, dst_size, src_tex, width, height, format);
+    }
+    else {
+        // copy texture data to staging texture and read from it
+        auto *staging = getStagingTexture(width, height, format);
+        m_context->CopyResource(staging, src_tex);
+        // Map() doesn't wait completion of above CopyResource(). manual synchronization is required.
+        sync();
+        proc_read(dst, dst_size, staging, width, height, format);
+    }
+
+    return ret;
 }
 
-GraphicsDevice::Error GraphicsDeviceD3D11::writeTexture(void *o_tex, int width, int height, TextureFormat format, const void *buf, size_t bufsize)
+GraphicsDevice::Error GraphicsDeviceD3D11::writeTexture(void *dst_tex_, int width, int height, TextureFormat format, const void *src, size_t src_size)
 {
+    if (!dst_tex_ || !src) { return Error::InvalidParameter; }
+    auto *dst_tex = (ID3D11Texture2D*)dst_tex_;
+    bool mappable = false;
+    {
+        D3D11_TEXTURE2D_DESC desc;
+        dst_tex->GetDesc(&desc);
+        mappable = (desc.CPUAccessFlags & D3D11_CPU_ACCESS_WRITE) != 0;
+    }
+
     int psize = GetTexelSize(format);
     int pitch = psize * width;
-    const size_t num_pixels = bufsize / psize;
+    const size_t num_pixels = src_size / psize;
 
-    D3D11_BOX box;
-    box.left = 0;
-    box.right = width;
-    box.top = 0;
-    box.bottom = ceildiv((UINT)num_pixels, (UINT)width);
-    box.front = 0;
-    box.back = 1;
-    ID3D11Texture2D *tex = (ID3D11Texture2D*)o_tex;
-    m_context->UpdateSubresource(tex, 0, &box, buf, pitch, 0);
+    if (mappable) {
+        D3D11_MAPPED_SUBRESOURCE mapped = { 0 };
+        auto hr = m_context->Map(dst_tex, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+        if (FAILED(hr)) {
+            gdLogError("GraphicsDeviceD3D11::writeTexture(): Map() failed.\n");
+        }
+        else {
+            auto *dst_pixels = (char*)mapped.pData;
+            auto *src_pixels = (const char*)src;
+            int dst_pitch = mapped.RowPitch;
+            int src_pitch = width * GetTexelSize(format);
+
+            // pitch may not be same with (width * size_of_texel)
+            if (dst_pitch == src_pitch)
+            {
+                memcpy(dst_pixels, src_pixels, src_size);
+            }
+            else
+            {
+                for (int i = 0; i < height; ++i)
+                {
+                    memcpy(dst_pixels, src_pixels, dst_pitch);
+                    dst_pixels += dst_pitch;
+                    src_pixels += src_pitch;
+                }
+            }
+            m_context->Unmap(dst_tex, 0);
+        }
+    }
+    else {
+        D3D11_BOX box;
+        box.left = 0;
+        box.right = width;
+        box.top = 0;
+        box.bottom = ceildiv((UINT)num_pixels, (UINT)width);
+        box.front = 0;
+        box.back = 1;
+        m_context->UpdateSubresource(dst_tex, 0, &box, src, pitch, 0);
+    }
     return GraphicsDevice::Error::OK;
 }
 
-GraphicsDevice::Error GraphicsDeviceD3D11::readBuffer(void *dst, const void *src_buf_, size_t read_size)
+
+
+ID3D11Buffer* GraphicsDeviceD3D11::getStagingBuffer(BufferType type, size_t size_required)
 {
-    return Error::NotImplemented;
+    size_t size = 1024 * 1024;
+    while (size < size_required) {
+        size *= 2;
+    }
+
+    auto& staging = m_staging_buffers[(int)type];
+    size_t current_size = 0;
+    if (staging) {
+        CD3D11_BUFFER_DESC desc;
+        staging->GetDesc(&desc);
+        current_size = desc.ByteWidth;
+    }
+
+
+    if (size > current_size) {
+        if (staging) {
+            staging->Release();
+            staging = nullptr;
+        }
+
+        CD3D11_BUFFER_DESC desc;
+        desc.ByteWidth = (UINT)size;
+        desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE | D3D11_CPU_ACCESS_READ;
+        desc.Usage = D3D11_USAGE_STAGING;
+        switch (type) {
+        case GraphicsDevice::BufferType::Index:
+            desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+            break;
+        case GraphicsDevice::BufferType::Vertex:
+            desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+            break;
+        case GraphicsDevice::BufferType::Constant:
+            desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+            break;
+        case GraphicsDevice::BufferType::Compute:
+            desc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
+            break;
+        }
+        HRESULT hr = m_device->CreateBuffer(&desc, nullptr, &staging);
+        if (FAILED(hr)) {
+            gdLogError("GraphicsDeviceD3D11::findOrCreateStagingBuffer(): CreateBuffer() failed!\n");
+        }
+    }
+    return staging;
 }
 
-GraphicsDevice::Error GraphicsDeviceD3D11::writeBuffer(void *dst_buf_, const void *src, size_t write_size)
+GraphicsDevice::Error GraphicsDeviceD3D11::readBuffer(void *dst, const void *src_buf_, size_t read_size, BufferType type)
 {
-    return Error::NotImplemented;
+    if (read_size == 0) { return Error::OK; }
+    if (!dst || !src_buf_) { return Error::InvalidParameter; }
+
+    auto *src_buf = (ID3D11Buffer*)src_buf_;
+    bool mappable = false;
+    {
+        D3D11_BUFFER_DESC desc;
+        src_buf->GetDesc(&desc);
+        mappable = (desc.CPUAccessFlags & D3D11_CPU_ACCESS_READ) != 0;
+    }
+
+
+    Error ret = Error::OK;
+    auto proc_read = [this, &ret](void *dst, ID3D11Buffer *buf, size_t size) {
+        D3D11_MAPPED_SUBRESOURCE mapped;
+        HRESULT hr = m_context->Map(buf, 0, D3D11_MAP_READ, 0, &mapped);
+        if (FAILED(hr)) {
+            gdLogError("GraphicsDeviceD3D11::readBuffer(): Map() failed.\n");
+            ret = Error::Unknown;
+        }
+        else {
+            memcpy(dst, mapped.pData, size);
+            m_context->Unmap(buf, 0);
+        }
+    };
+
+    if (mappable) {
+        // read buffer data directly
+        proc_read(dst, src_buf, read_size);
+    }
+    else {
+        // copy buffer data to staging buffer and read from it
+        auto *staging_buf = getStagingBuffer(type, read_size);
+        m_context->CopyResource(staging_buf, src_buf);
+        sync();
+        proc_read(dst, staging_buf, read_size);
+    }
+
+    return ret;
+}
+
+GraphicsDevice::Error GraphicsDeviceD3D11::writeBuffer(void *dst_buf_, const void *src, size_t write_size, BufferType type)
+{
+    if (write_size == 0) { return Error::OK; }
+    if (!dst_buf_ || !src) { return Error::InvalidParameter; }
+
+    auto *dst_buf = (ID3D11Buffer*)dst_buf_;
+    bool mappable = false;
+    {
+        D3D11_BUFFER_DESC desc;
+        dst_buf->GetDesc(&desc);
+        mappable = (desc.CPUAccessFlags & D3D11_CPU_ACCESS_WRITE) != 0;
+    }
+
+    Error ret = Error::OK;
+    if (mappable) {
+        D3D11_MAPPED_SUBRESOURCE mapped;
+        HRESULT hr = m_context->Map(dst_buf, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+        if (FAILED(hr)) {
+            gdLogError("GraphicsDeviceD3D11::writeBuffer(): Map() failed.\n");
+            ret = Error::Unknown;
+        }
+        else {
+            memcpy(mapped.pData, src, write_size);
+            m_context->Unmap(dst_buf, 0);
+        }
+    }
+    else {
+        D3D11_BOX box;
+        box.left = 0;
+        box.right = (UINT)write_size;
+        box.top = 0;
+        box.bottom = 1;
+        box.front = 0;
+        box.back = 1;
+        m_context->UpdateSubresource(dst_buf, 0, &box, src, (UINT)write_size, 0);
+    }
+
+    return ret;
 }

@@ -1,6 +1,7 @@
 #include <cmath>
 #include <cstdio>
 #include <cstdint>
+#include <array>
 #include <vector>
 #include <map>
 #include <algorithm>
