@@ -55,11 +55,11 @@ void RunTest(TestType type)
 {
     TestImpl *test = nullptr;
     switch (type) {
-    case TestType::D3D9: break;
+    case TestType::D3D9: test = CreateTestD3D9(); break;
     case TestType::D3D11: test = CreateTestD3D11(); break;
-    case TestType::D3D12: break;
-    case TestType::OpenGL: break;
-    case TestType::Vulkan: break;
+    case TestType::D3D12: test = CreateTestD3D12(); break;
+    case TestType::OpenGL: test = CreateTestOpenGL(); break;
+    case TestType::Vulkan: test = CreateTestVulkan(); break;
     }
 
     if (!test) {
@@ -77,7 +77,7 @@ void RunTest(TestType type)
     windowClass.lpszClassName = L"TestGraphicsDevice";
     RegisterClassEx(&windowClass);
 
-    RECT windowRect = { 0, 0, static_cast<LONG>(320), static_cast<LONG>(240) };
+    RECT windowRect = { 0, 0, WindowWidth, WindowHeight };
     AdjustWindowRect(&windowRect, WS_OVERLAPPEDWINDOW, FALSE);
 
     // Create the window and store a handle to it.
@@ -94,7 +94,7 @@ void RunTest(TestType type)
         windowClass.hInstance,
         test);
 
-    test->onInit();
+    test->onInit(hwnd);
     ShowWindow(hwnd, SW_SHOWDEFAULT);
 
     // Main sample loop.

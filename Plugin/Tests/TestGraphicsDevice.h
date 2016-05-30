@@ -3,6 +3,8 @@
 #include <vector>
 #include <array>
 
+#define WindowWidth 320
+#define WindowHeight 240
 
 enum class TestType
 {
@@ -20,7 +22,7 @@ public:
     virtual TestType getType() const = 0;
     virtual void* getDevice() const = 0;
 
-    virtual void onInit() = 0;
+    virtual void onInit(void *hwnd) = 0;
     virtual void testMain();
 };
 
