@@ -27,18 +27,22 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Test.cpp" />
+    <ClCompile Include="TestGraphicsDevice.cpp" />
+    <ClCompile Include="TestGraphicsDeviceImpl.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\MassParticle_Windows.vcxproj">
+    <ProjectReference Include="..\GraphicsDevice_Windows.vcxproj">
       <Project>{f7cfef5a-54bd-42e8-a59e-54abaeb4ea9c}</Project>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="TestGraphicsDevice.h" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{5E27851A-693D-42A4-9E0F-AEFC42B7EDA4}</ProjectGuid>
+    <ProjectGuid>{DC3F4841-7AD6-4028-85C8-1B081C0CE19C}</ProjectGuid>
     <RootNamespace>MassParticle</RootNamespace>
     <Keyword>Win32Proj</Keyword>
-    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.10586.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MasterDLL|Win32'" Label="Configuration">
