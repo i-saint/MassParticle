@@ -132,13 +132,13 @@
     <OutDir>$(SolutionDir)_out\$(ProjectName)_$(Platform)_$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)_tmp\$(ProjectName)_$(Platform)_$(Configuration)\</IntDir>
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
-    <LibraryPath>$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86)</LibraryPath>
+    <IncludePath>$(VK_SDK_PATH)\include;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
+    <LibraryPath>$(VK_SDK_PATH)\bin32;$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
-    <LibraryPath>$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64)</LibraryPath>
+    <IncludePath>$(VK_SDK_PATH)\include;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
+    <LibraryPath>$(VK_SDK_PATH)\bin;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64)</LibraryPath>
     <OutDir>$(SolutionDir)_out\$(ProjectName)_$(Platform)_$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)_tmp\$(ProjectName)_$(Platform)_$(Configuration)\</IntDir>
   </PropertyGroup>
@@ -170,27 +170,27 @@
     <OutDir>$(SolutionDir)_out\$(ProjectName)_$(Platform)_$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)_tmp\$(ProjectName)_$(Platform)_$(Configuration)\</IntDir>
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
-    <LibraryPath>$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86)</LibraryPath>
+    <IncludePath>$(VK_SDK_PATH)\include;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
+    <LibraryPath>$(VK_SDK_PATH)\bin32;$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MasterLib|Win32'">
     <OutDir>$(SolutionDir)_out\$(ProjectName)_$(Platform)_$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)_tmp\$(ProjectName)_$(Platform)_$(Configuration)\</IntDir>
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
-    <LibraryPath>$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86)</LibraryPath>
+    <IncludePath>$(VK_SDK_PATH)\include;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
+    <LibraryPath>$(VK_SDK_PATH)\bin32;$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MasterDLL|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
-    <LibraryPath>$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64)</LibraryPath>
+    <IncludePath>$(VK_SDK_PATH)\include;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
+    <LibraryPath>$(VK_SDK_PATH)\bin;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64)</LibraryPath>
     <OutDir>$(SolutionDir)_out\$(ProjectName)_$(Platform)_$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)_tmp\$(ProjectName)_$(Platform)_$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MasterLib|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
-    <LibraryPath>$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64)</LibraryPath>
+    <IncludePath>$(VK_SDK_PATH)\include;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
+    <LibraryPath>$(VK_SDK_PATH)\bin;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64)</LibraryPath>
     <OutDir>$(SolutionDir)_out\$(ProjectName)_$(Platform)_$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)_tmp\$(ProjectName)_$(Platform)_$(Configuration)\</IntDir>
   </PropertyGroup>
