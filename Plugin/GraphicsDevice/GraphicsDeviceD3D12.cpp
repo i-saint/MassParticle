@@ -18,7 +18,7 @@ public:
     Error writeBuffer(void *dst_buf, const void *src, size_t write_size, BufferType type) override;
 
 private:
-    ID3D12Device *m_device;
+    ID3D12Device *m_device = nullptr;
 };
 
 

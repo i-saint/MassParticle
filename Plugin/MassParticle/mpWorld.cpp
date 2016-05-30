@@ -222,9 +222,9 @@ void mpWorld::forceSetNumParticles(int v)
 }
 
 int         mpWorld::getNumParticles() const { return m_num_particles; }
-mpParticle* mpWorld::getParticles() { return m_particles.empty() ? nullptr : &m_particles[0]; }
+mpParticle* mpWorld::getParticles() { return m_particles.data(); }
 int         mpWorld::getNumParticlesGPU() const { return m_num_particles_gpu; }
-mpParticle* mpWorld::getParticlesGPU() { return m_particles_gpu.empty() ? nullptr : &m_particles_gpu[0]; }
+mpParticle* mpWorld::getParticlesGPU() { return m_particles_gpu.data(); }
 
 mpParticleIM& mpWorld::getIntermediateData(int i) { return m_imd[i]; }
 mpParticleIM& mpWorld::getIntermediateData() { return m_imd[m_current]; }
@@ -639,12 +639,12 @@ void mpWorld::update(float dt)
         m_soa.resize(num_soa_data_blocks * 8);
     }
 
-    mpCell              *ce = &m_cells[0];
-    mpPlaneCollider     *planes = m_plane_colliders.empty() ? nullptr : &m_plane_colliders[0];
-    mpSphereCollider    *spheres = m_sphere_colliders.empty() ? nullptr : &m_sphere_colliders[0];
-    mpCapsuleCollider   *capsules = m_capsule_colliders.empty() ? nullptr : &m_capsule_colliders[0];
-    mpBoxCollider       *boxes = m_box_colliders.empty() ? nullptr : &m_box_colliders[0];
-    mpForce             *forces = m_forces.empty() ? nullptr : &m_forces[0];
+    mpCell              *ce = m_cells.data();
+    mpPlaneCollider     *planes = m_plane_colliders.data();
+    mpSphereCollider    *spheres = m_sphere_colliders.data();
+    mpCapsuleCollider   *capsules = m_capsule_colliders.data();
+    mpBoxCollider       *boxes = m_box_colliders.data();
+    mpForce             *forces = m_forces.data();
 
     int num_colliders = int(m_plane_colliders.size() + m_sphere_colliders.size() + m_capsule_colliders.size() + m_box_colliders.size());
 
@@ -658,10 +658,10 @@ void mpWorld::update(float dt)
 
     mpKernelContext kcontext = {
         &kp, ce,
-        &m_soa.pos_x[0], &m_soa.pos_y[0], &m_soa.pos_z[0],
-        &m_soa.vel_x[0], &m_soa.vel_y[0], &m_soa.vel_z[0],
-        &m_soa.acl_x[0], &m_soa.acl_y[0], &m_soa.acl_z[0],
-        &m_soa.speed[0], &m_soa.density[0], &m_soa.affection[0], &m_soa.hit[0],
+        m_soa.pos_x.data(), m_soa.pos_y.data(), m_soa.pos_z.data(),
+        m_soa.vel_x.data(), m_soa.vel_y.data(), m_soa.vel_z.data(),
+        m_soa.acl_x.data(), m_soa.acl_y.data(), m_soa.acl_z.data(),
+        m_soa.speed.data(), m_soa.density.data(), m_soa.affection.data(), m_soa.hit.data(),
         planes, spheres, capsules, boxes, forces,
         (int)m_plane_colliders.size(), (int)m_sphere_colliders.size(), (int)m_capsule_colliders.size(), (int)m_box_colliders.size(), (int)m_forces.size()
     };
@@ -687,7 +687,7 @@ void mpWorld::update(float dt)
         });
 
     // sort by hash
-    ist::parallel_sort(&m_particles[0], &m_particles[0] + m_num_particles,
+    ist::parallel_sort(m_particles.data(), m_particles.data() + m_num_particles,
         [&](const mpParticle &a, const mpParticle &b) { return a.hash < b.hash; });
 
     // count num particles
@@ -839,7 +839,7 @@ void mpWorld::update(float dt)
         int num_particles_needs_copy = std::max<int>(m_num_particles, m_num_particles_gpu);
         m_num_particles_gpu = m_num_particles;
         if (num_particles_needs_copy > 0) {
-            memcpy(&m_particles_gpu[0], &m_particles[0], sizeof(mpParticle)*num_particles_needs_copy);
+            memcpy(m_particles_gpu.data(), m_particles.data(), sizeof(mpParticle)*num_particles_needs_copy);
         }
     }
 }
@@ -902,7 +902,7 @@ void mpWorld::callHandlers()
     if (m_has_forcehandler) {
 
         m_pforce.resize(num_colliders);
-        memset((void*)&m_pforce[0], 0, sizeof(mpParticleForce)*m_pforce.size());
+        memset(m_pforce.data(), 0, sizeof(mpParticleForce)*m_pforce.size());
         ist::parallel_for_blocked(0, m_num_particles, g_particles_par_task,
             [&](int begin, int end) {
                 mpPForceCont &pf = m_pcombinable.local();
@@ -923,7 +923,7 @@ void mpWorld::callHandlers()
                 (simdvec4&)m_pforce[i].force += h.force;
                 m_pforce[i].num_hits += h.num_hits;
             }
-            memset((void*)&pf[0], 0, sizeof(mpParticleForce)*pf.size());
+            memset((void*)pf.data(), 0, sizeof(mpParticleForce)*pf.size());
         });
 
         for (int i = 0; i < num_colliders; ++i) {
@@ -958,7 +958,7 @@ int mpWorld::updateDataTexture(void *tex, int width, int height)
         int num_needs_copy = std::max<int>(m_num_particles_gpu, m_num_particles_gpu_prev);
         m_num_particles_gpu_prev = m_num_particles_gpu;
         gd->writeTexture(tex, width, height, GraphicsDevice::TextureFormat::RGBAf32,
-            &m_particles_gpu[0], sizeof(mpParticle)*m_kparams.max_particles);
+            m_particles_gpu.data(), sizeof(mpParticle)*m_kparams.max_particles);
     }
     return m_num_particles_gpu;
 }

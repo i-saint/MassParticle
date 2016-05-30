@@ -25,8 +25,8 @@ private:
     IDirect3DSurface9* findOrCreateStagingTexture(int width, int height, TextureFormat format);
 
 private:
-    IDirect3DDevice9 *m_device;
-    IDirect3DQuery9 *m_query_event;
+    IDirect3DDevice9 *m_device = nullptr;
+    IDirect3DQuery9 *m_query_event = nullptr;
     std::map<uint64_t, IDirect3DSurface9*> m_staging_textures;
 };
 

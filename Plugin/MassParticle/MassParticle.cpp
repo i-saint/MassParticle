@@ -163,7 +163,7 @@ mpAPI void mpScatterParticlesSphere(int context, vec3 *center, float radius, int
         (vec3&)p.position = pos;
     }
     mpApplySpawnParams(particles, params);
-    g_worlds[context]->addParticles(&particles[0], particles.size());
+    g_worlds[context]->addParticles(particles.data(), particles.size());
 }
 
 mpAPI void mpScatterParticlesBox(int context, vec3 *center, vec3 *size, int32_t num, const mpSpawnParams *params)
@@ -177,7 +177,7 @@ mpAPI void mpScatterParticlesBox(int context, vec3 *center, vec3 *size, int32_t 
         (vec3&)p.position = pos;
     }
     mpApplySpawnParams(particles, params);
-    g_worlds[context]->addParticles(&particles[0], particles.size());
+    g_worlds[context]->addParticles(particles.data(), particles.size());
 }
 
 
@@ -196,7 +196,7 @@ mpAPI void mpScatterParticlesSphereTransform(int context, mat4 *transform, int32
         (vec3&)p.position = (vec3&)pos;
     }
     mpApplySpawnParams(particles, params);
-    g_worlds[context]->addParticles(&particles[0], particles.size());
+    g_worlds[context]->addParticles(particles.data(), particles.size());
 }
 
 mpAPI void mpScatterParticlesBoxTransform(int context, mat4 *transform, int32_t num, const mpSpawnParams *params)
@@ -212,7 +212,7 @@ mpAPI void mpScatterParticlesBoxTransform(int context, mat4 *transform, int32_t 
         (vec3&)p.position = (vec3&)pos;
     }
     mpApplySpawnParams(particles, params);
-    g_worlds[context]->addParticles(&particles[0], particles.size());
+    g_worlds[context]->addParticles(particles.data(), particles.size());
 }
 
 
