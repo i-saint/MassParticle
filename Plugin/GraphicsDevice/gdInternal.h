@@ -2,6 +2,7 @@
 
 #ifndef gdLog
     #define gdLog(...)
+    #define gdLogError(...)
 #endif
 
 #ifdef _WIN32

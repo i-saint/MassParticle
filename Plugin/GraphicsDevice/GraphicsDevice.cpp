@@ -2,32 +2,28 @@
 #include "gdInternal.h"
 
 
-int GetPixelSize(PixelFormat format)
+int GetTexelSize(GraphicsDevice::TextureFormat format)
 {
+    using TextureFormat = GraphicsDevice::TextureFormat;
     switch (format)
     {
-    case PixelFormat::RGBAu8:  return 4;
-    case PixelFormat::RGBu8:   return 3;
-    case PixelFormat::RGu8:    return 2;
-    case PixelFormat::Ru8:     return 1;
+    case TextureFormat::RGBAu8:  return 4;
+    case TextureFormat::RGu8:    return 2;
+    case TextureFormat::Ru8:     return 1;
 
-    case PixelFormat::RGBAf16:
-    case PixelFormat::RGBAi16: return 8;
-    case PixelFormat::RGBf16:
-    case PixelFormat::RGBi16:  return 6;
-    case PixelFormat::RGf16:
-    case PixelFormat::RGi16:   return 4;
-    case PixelFormat::Rf16:
-    case PixelFormat::Ri16:    return 2;
+    case TextureFormat::RGBAf16:
+    case TextureFormat::RGBAi16: return 8;
+    case TextureFormat::RGf16:
+    case TextureFormat::RGi16:   return 4;
+    case TextureFormat::Rf16:
+    case TextureFormat::Ri16:    return 2;
 
-    case PixelFormat::RGBAf32:
-    case PixelFormat::RGBAi32: return 16;
-    case PixelFormat::RGBf32:
-    case PixelFormat::RGBi32:  return 12;
-    case PixelFormat::RGf32:
-    case PixelFormat::RGi32:   return 8;
-    case PixelFormat::Rf32:
-    case PixelFormat::Ri32:    return 4;
+    case TextureFormat::RGBAf32:
+    case TextureFormat::RGBAi32: return 16;
+    case TextureFormat::RGf32:
+    case TextureFormat::RGi32:   return 8;
+    case TextureFormat::Rf32:
+    case TextureFormat::Ri32:    return 4;
     }
     return 0;
 }
@@ -42,32 +38,32 @@ GraphicsDevice* CreateGraphicsDeviceVulkan();
 static GraphicsDevice *g_gfx_device;
 
 
-GraphicsDevice* CreateGraphicsDevice(GraphicsDeviceType type, void *device_ptr)
+GraphicsDevice* CreateGraphicsDevice(GraphicsDevice::DeviceType type, void *device_ptr)
 {
     ReleaseGraphicsDevice();
 
     switch (type) {
 #ifdef gdSupportD3D9
-    case GraphicsDeviceType::D3D9:
+    case GraphicsDevice::DeviceType::D3D9:
         g_gfx_device = CreateGraphicsDeviceD3D9(device_ptr);
         break;
 #endif
 #ifdef gdSupportD3D11
-    case GraphicsDeviceType::D3D11:
+    case GraphicsDevice::DeviceType::D3D11:
         g_gfx_device = CreateGraphicsDeviceD3D11(device_ptr);
         break;
 #endif
 #ifdef gdSupportD3D12
-    case GraphicsDeviceType::D3D12:
+    case GraphicsDevice::DeviceType::D3D12:
         g_gfx_device = CreateGraphicsDeviceD3D12(device_ptr);
         break;
 #endif
 #ifdef gdSupportOpenGL
-    case GraphicsDeviceType::OpenGL:
+    case GraphicsDevice::DeviceType::OpenGL:
         g_gfx_device = CreateGraphicsDeviceOpenGL();
 #endif
 #ifdef gdSupportVulkan
-    case GraphicsDeviceType::Vulkan:
+    case GraphicsDevice::DeviceType::Vulkan:
         g_gfx_device = CreateGraphicsDeviceVulkan();
 #endif
         break;
@@ -118,17 +114,17 @@ static void UNITY_INTERFACE_API UnityOnGraphicsDeviceEvent(UnityGfxDeviceEventTy
 
 #ifdef gdSupportD3D9
         if (api == kUnityGfxRendererD3D9) {
-            CreateGraphicsDevice(GraphicsDeviceType::D3D9, g_unity_interface->Get<IUnityGraphicsD3D9>()->GetDevice());
+            CreateGraphicsDevice(GraphicsDevice::DeviceType::D3D9, g_unity_interface->Get<IUnityGraphicsD3D9>()->GetDevice());
         }
 #endif
 #ifdef gdSupportD3D11
         if (api == kUnityGfxRendererD3D11) {
-            CreateGraphicsDevice(GraphicsDeviceType::D3D11, g_unity_interface->Get<IUnityGraphicsD3D11>()->GetDevice());
+            CreateGraphicsDevice(GraphicsDevice::DeviceType::D3D11, g_unity_interface->Get<IUnityGraphicsD3D11>()->GetDevice());
         }
 #endif
 #ifdef gdSupportD3D12
         if (api == kUnityGfxRendererD3D12) {
-            CreateGraphicsDevice(GraphicsDeviceType::D3D12, g_unity_interface->Get<IUnityGraphicsD3D12>()->GetDevice());
+            CreateGraphicsDevice(GraphicsDevice::DeviceType::D3D12, g_unity_interface->Get<IUnityGraphicsD3D12>()->GetDevice());
         }
 #endif
 #ifdef gdSupportOpenGL
@@ -137,7 +133,7 @@ static void UNITY_INTERFACE_API UnityOnGraphicsDeviceEvent(UnityGfxDeviceEventTy
             api == kUnityGfxRendererOpenGLES20 ||
             api == kUnityGfxRendererOpenGLES30)
         {
-            CreateGraphicsDevice(GraphicsDeviceType::OpenGL, nullptr);
+            CreateGraphicsDevice(GraphicsDevice::DeviceType::OpenGL, nullptr);
         }
 #endif
     }

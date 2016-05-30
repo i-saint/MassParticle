@@ -14,14 +14,14 @@ public:
     GraphicsDeviceOpenGL();
     ~GraphicsDeviceOpenGL();
     void* getDevicePtr() override;
-    GraphicsDeviceType getDeviceType() override;
+    DeviceType getDeviceType() override;
     void sync() override;
 
-    bool readTexture(void *o_buf, size_t bufsize, void *tex, int width, int height, PixelFormat format) override;
-    bool writeTexture(void *o_tex, int width, int height, PixelFormat format, const void *buf, size_t bufsize) override;
+    Error readTexture(void *o_buf, size_t bufsize, void *tex, int width, int height, TextureFormat format) override;
+    Error writeTexture(void *o_tex, int width, int height, TextureFormat format, const void *buf, size_t bufsize) override;
 
-    bool readBuffer(void *dst, const void *src_buf, size_t srcsize) override;
-    bool writeBuffer(void *dst_buf, const void *src, size_t srcsize) override;
+    Error readBuffer(void *dst, const void *src_buf, size_t srcsize) override;
+    Error writeBuffer(void *dst_buf, const void *src, size_t srcsize) override;
 };
 
 
@@ -32,7 +32,7 @@ GraphicsDevice* CreateGraphicsDeviceOpenGL()
 
 
 void* GraphicsDeviceOpenGL::getDevicePtr() { return nullptr; }
-GraphicsDeviceType GraphicsDeviceOpenGL::getDeviceType() { return GraphicsDeviceType::OpenGL; }
+GraphicsDevice::DeviceType GraphicsDeviceOpenGL::getDeviceType() { return DeviceType::OpenGL; }
 
 GraphicsDeviceOpenGL::GraphicsDeviceOpenGL()
 {
@@ -44,23 +44,24 @@ GraphicsDeviceOpenGL::~GraphicsDeviceOpenGL()
 }
 
 
-static void GetInternalFormatOpenGL(PixelFormat format, GLenum &o_fmt, GLenum &o_type)
+static void GetInternalFormatOpenGL(GraphicsDevice::TextureFormat format, GLenum &o_fmt, GLenum &o_type)
 {
+    using TextureFormat = GraphicsDevice::TextureFormat;
     switch (format)
     {
-    case PixelFormat::RGBAu8:   o_fmt = GL_RGBA; o_type = GL_UNSIGNED_BYTE; return;
+    case TextureFormat::RGBAu8:   o_fmt = GL_RGBA; o_type = GL_UNSIGNED_BYTE; return;
 
-    case PixelFormat::RGBAf16:  o_fmt = GL_RGBA; o_type = GL_HALF_FLOAT; return;
-    case PixelFormat::RGf16:    o_fmt = GL_RG; o_type = GL_HALF_FLOAT; return;
-    case PixelFormat::Rf16:     o_fmt = GL_RED; o_type = GL_HALF_FLOAT; return;
+    case TextureFormat::RGBAf16:  o_fmt = GL_RGBA; o_type = GL_HALF_FLOAT; return;
+    case TextureFormat::RGf16:    o_fmt = GL_RG; o_type = GL_HALF_FLOAT; return;
+    case TextureFormat::Rf16:     o_fmt = GL_RED; o_type = GL_HALF_FLOAT; return;
 
-    case PixelFormat::RGBAf32:  o_fmt = GL_RGBA; o_type = GL_FLOAT; return;
-    case PixelFormat::RGf32:    o_fmt = GL_RG; o_type = GL_FLOAT; return;
-    case PixelFormat::Rf32:     o_fmt = GL_RED; o_type = GL_FLOAT; return;
+    case TextureFormat::RGBAf32:  o_fmt = GL_RGBA; o_type = GL_FLOAT; return;
+    case TextureFormat::RGf32:    o_fmt = GL_RG; o_type = GL_FLOAT; return;
+    case TextureFormat::Rf32:     o_fmt = GL_RED; o_type = GL_FLOAT; return;
 
-    case PixelFormat::RGBAi32:  o_fmt = GL_RGBA_INTEGER; o_type = GL_INT; return;
-    case PixelFormat::RGi32:    o_fmt = GL_RG_INTEGER; o_type = GL_INT; return;
-    case PixelFormat::Ri32:     o_fmt = GL_RED_INTEGER; o_type = GL_INT; return;
+    case TextureFormat::RGBAi32:  o_fmt = GL_RGBA_INTEGER; o_type = GL_INT; return;
+    case TextureFormat::RGi32:    o_fmt = GL_RG_INTEGER; o_type = GL_INT; return;
+    case TextureFormat::Ri32:     o_fmt = GL_RED_INTEGER; o_type = GL_INT; return;
     default: break;
     }
 }
@@ -70,7 +71,7 @@ void GraphicsDeviceOpenGL::sync()
     glFinish();
 }
 
-bool GraphicsDeviceOpenGL::readTexture(void *o_buf, size_t, void *tex, int, int, PixelFormat format)
+GraphicsDevice::Error GraphicsDeviceOpenGL::readTexture(void *o_buf, size_t, void *tex, int, int, TextureFormat format)
 {
     GLenum internal_format = 0;
     GLenum internal_type = 0;
@@ -83,10 +84,10 @@ bool GraphicsDeviceOpenGL::readTexture(void *o_buf, size_t, void *tex, int, int,
     glBindTexture(GL_TEXTURE_2D, (GLuint)(size_t)tex);
     glGetTexImage(GL_TEXTURE_2D, 0, internal_format, internal_type, o_buf);
     glBindTexture(GL_TEXTURE_2D, 0);
-    return true;
+    return Error::OK;
 }
 
-bool GraphicsDeviceOpenGL::writeTexture(void *o_tex, int width, int height, PixelFormat format, const void *buf, size_t)
+GraphicsDevice::Error GraphicsDeviceOpenGL::writeTexture(void *o_tex, int width, int height, TextureFormat format, const void *buf, size_t)
 {
     GLenum internal_format = 0;
     GLenum internal_type = 0;
@@ -98,15 +99,15 @@ bool GraphicsDeviceOpenGL::writeTexture(void *o_tex, int width, int height, Pixe
     glBindTexture(GL_TEXTURE_2D, (GLuint)(size_t)o_tex);
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, internal_format, internal_type, buf);
     glBindTexture(GL_TEXTURE_2D, 0);
-    return true;
+    return Error::OK;
 }
 
-bool GraphicsDeviceOpenGL::readBuffer(void *dst, const void *src_buf, size_t srcsize)
+GraphicsDevice::Error GraphicsDeviceOpenGL::readBuffer(void *dst, const void *src_buf, size_t srcsize)
 {
-    return false;
+    return Error::NotImplemented;
 }
 
-bool GraphicsDeviceOpenGL::writeBuffer(void *dst_buf, const void *src, size_t srcsize)
+GraphicsDevice::Error GraphicsDeviceOpenGL::writeBuffer(void *dst_buf, const void *src, size_t srcsize)
 {
-    return false;
+    return Error::NotImplemented;
 }

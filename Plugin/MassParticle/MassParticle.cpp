@@ -13,6 +13,7 @@ extern "C" {
 
 mpAPI void mpUpdateDataTexture(int context, void *tex, int width, int height)
 {
+    mpTraceFunc();
     if (context == 0) return;
     g_worlds[context]->updateDataTexture(tex, width, height);
 }
@@ -21,6 +22,7 @@ mpAPI void mpUpdateDataTexture(int context, void *tex, int width, int height)
 
 mpAPI int mpCreateContext()
 {
+    mpTraceFunc();
     mpWorld *p = new mpWorld();
 
     if (g_worlds.empty()) {
@@ -35,8 +37,10 @@ mpAPI int mpCreateContext()
     g_worlds.push_back(p);
     return (int)g_worlds.size()-1;
 }
+
 mpAPI void mpDestroyContext(int context)
 {
+    mpTraceFunc();
     delete g_worlds[context];
     g_worlds[context] = nullptr;
 }
@@ -44,55 +48,69 @@ mpAPI void mpDestroyContext(int context)
 
 mpAPI void mpUpdate(int context, float dt)
 {
+    mpTraceFunc();
     g_worlds[context]->update(dt);
 }
+
 mpAPI void mpBeginUpdate(int context, float dt)
 {
+    mpTraceFunc();
     g_worlds[context]->beginUpdate(dt);
 }
+
 mpAPI void mpEndUpdate(int context)
 {
+    mpTraceFunc();
     g_worlds[context]->endUpdate();
 }
+
 mpAPI void mpCallHandlers(int context)
 {
+    mpTraceFunc();
     g_worlds[context]->callHandlers();
 }
 
 
 mpAPI void mpClearParticles(int context)
 {
+    mpTraceFunc();
     g_worlds[context]->clearParticles();
 }
 
 mpAPI void mpClearCollidersAndForces(int context)
 {
+    mpTraceFunc();
     g_worlds[context]->clearCollidersAndForces();
 }
 
 mpAPI void mpGetKernelParams(int context, mpKernelParams *params)
 {
+    mpTraceFunc();
     *params = g_worlds[context]->getKernelParams();
 }
 
 mpAPI void mpSetKernelParams(int context, const mpKernelParams *params)
 {
+    mpTraceFunc();
     g_worlds[context]->setKernelParams(*params);
 }
 
 
 mpAPI int mpGetNumParticles(int context)
 {
+    mpTraceFunc();
     if (context == 0) return 0;
     return g_worlds[context]->getNumParticles();
 }
 
 mpAPI void mpForceSetNumParticles(int context, int num)
 {
+    mpTraceFunc();
     g_worlds[context]->forceSetNumParticles(num);
 }
 mpAPI mpParticleIM*	mpGetIntermediateData(int context, int nth)
 {
+    mpTraceFunc();
     return nth < 0 ?
         &g_worlds[context]->getIntermediateData() :
         &g_worlds[context]->getIntermediateData(nth);
@@ -100,12 +118,14 @@ mpAPI mpParticleIM*	mpGetIntermediateData(int context, int nth)
 
 mpAPI mpParticle* mpGetParticles(int context)
 {
+    mpTraceFunc();
     return g_worlds[context]->getParticles();
 }
 
 
 inline void mpApplySpawnParams(mpParticleCont &particles, const mpSpawnParams *params)
 {
+    mpTraceFunc();
     if (params == nullptr) return;
 
     vec3 vel = params->velocity_base;
@@ -132,6 +152,7 @@ inline void mpApplySpawnParams(mpParticleCont &particles, const mpSpawnParams *p
 
 mpAPI void mpScatterParticlesSphere(int context, vec3 *center, float radius, int32_t num, const mpSpawnParams *params)
 {
+    mpTraceFunc();
     if (num <= 0) { return; }
 
     mpParticleCont particles(num);
@@ -147,6 +168,7 @@ mpAPI void mpScatterParticlesSphere(int context, vec3 *center, float radius, int
 
 mpAPI void mpScatterParticlesBox(int context, vec3 *center, vec3 *size, int32_t num, const mpSpawnParams *params)
 {
+    mpTraceFunc();
     if (num <= 0) { return; }
 
     mpParticleCont particles(num);
@@ -161,6 +183,7 @@ mpAPI void mpScatterParticlesBox(int context, vec3 *center, vec3 *size, int32_t 
 
 mpAPI void mpScatterParticlesSphereTransform(int context, mat4 *transform, int32_t num, const mpSpawnParams *params)
 {
+    mpTraceFunc();
     if (num <= 0) { return; }
 
     mpParticleCont particles(num);
@@ -178,6 +201,7 @@ mpAPI void mpScatterParticlesSphereTransform(int context, mat4 *transform, int32
 
 mpAPI void mpScatterParticlesBoxTransform(int context, mat4 *transform, int32_t num, const mpSpawnParams *params)
 {
+    mpTraceFunc();
     if (num <= 0) { return; }
 
     mpParticleCont particles(num);
@@ -195,6 +219,8 @@ mpAPI void mpScatterParticlesBoxTransform(int context, mat4 *transform, int32_t 
 
 inline void mpBuildBoxCollider(int context, mpBoxCollider &o, const mat4 &transform, const vec3 &center, const vec3 &_size)
 {
+    mpTraceFunc();
+
     float psize = g_worlds[context]->getKernelParams().particle_size;
     vec3 size = _size * 0.5f;
 
@@ -248,6 +274,8 @@ inline void mpBuildBoxCollider(int context, mpBoxCollider &o, const mat4 &transf
 
 inline void mpBuildSphereCollider(int context, mpSphereCollider &o, vec3 center, float radius)
 {
+    mpTraceFunc();
+
     float psize = g_worlds[context]->getKernelParams().particle_size;
     float er = radius + psize;
     (vec3&)o.shape.center = center;
@@ -258,6 +286,8 @@ inline void mpBuildSphereCollider(int context, mpSphereCollider &o, vec3 center,
 
 inline void mpBuildCapsuleCollider(int context, mpCapsuleCollider &o, vec3 pos1, vec3 pos2, float radius)
 {
+    mpTraceFunc();
+
     float psize = g_worlds[context]->getKernelParams().particle_size;
     float er = radius + psize;
 
@@ -275,6 +305,8 @@ inline void mpBuildCapsuleCollider(int context, mpCapsuleCollider &o, vec3 pos1,
 
 mpAPI void mpAddBoxCollider(int context, mpColliderProperties *props, mat4 *transform, vec3 *size, vec3 *center)
 {
+    mpTraceFunc();
+
     mpBoxCollider col;
     col.props = *props;
     mpBuildBoxCollider(context, col, *transform, *size, *center);
@@ -283,11 +315,13 @@ mpAPI void mpAddBoxCollider(int context, mpColliderProperties *props, mat4 *tran
 
 mpAPI void mpRemoveCollider(int context, mpColliderProperties *props)
 {
+    mpTraceFunc();
     g_worlds[context]->removeCollider(*props);
 }
 
 mpAPI void mpAddSphereCollider(int context, mpColliderProperties *props, vec3 *center, float radius)
 {
+    mpTraceFunc();
     mpSphereCollider col;
     col.props = *props;
     mpBuildSphereCollider(context, col, *center, radius);
@@ -296,6 +330,7 @@ mpAPI void mpAddSphereCollider(int context, mpColliderProperties *props, vec3 *c
 
 mpAPI void mpAddCapsuleCollider(int context, mpColliderProperties *props, vec3 *pos1, vec3 *pos2, float radius)
 {
+    mpTraceFunc();
     mpCapsuleCollider col;
     col.props = *props;
     mpBuildCapsuleCollider(context, col, *pos1, *pos2, radius);
@@ -304,6 +339,7 @@ mpAPI void mpAddCapsuleCollider(int context, mpColliderProperties *props, vec3 *
 
 mpAPI void mpAddForce(int context, mpForceProperties *props, mat4 *_trans)
 {
+    mpTraceFunc();
     mat4 &trans = *_trans;
     mpForce force;
     force.props = *props;
@@ -351,33 +387,43 @@ mpAPI void mpAddForce(int context, mpForceProperties *props, mat4 *_trans)
 
 mpAPI void mpScanSphere(int context, mpHitHandler handler, vec3 *center, float radius)
 {
+    mpTraceFunc();
     return g_worlds[context]->scanSphere(handler, *center, radius);
 }
+
 mpAPI void mpScanAABB(int context, mpHitHandler handler, vec3 *center, vec3 *extent)
 {
+    mpTraceFunc();
     return g_worlds[context]->scanAABB(handler, *center, *extent);
 }
+
 mpAPI void mpScanSphereParallel(int context, mpHitHandler handler, vec3 *center, float radius)
 {
+    mpTraceFunc();
     return g_worlds[context]->scanSphereParallel(handler, *center, radius);
 }
+
 mpAPI void mpScanAABBParallel(int context, mpHitHandler handler, vec3 *center, vec3 *extent)
 {
+    mpTraceFunc();
     return g_worlds[context]->scanAABBParallel(handler, *center, *extent);
 }
 
 mpAPI void mpScanAll(int context, mpHitHandler handler)
 {
+    mpTraceFunc();
     return g_worlds[context]->scanAll(handler);
 }
 
 mpAPI void mpScanAllParallel(int context, mpHitHandler handler)
 {
+    mpTraceFunc();
     return g_worlds[context]->scanAllParallel(handler);
 }
 
 mpAPI void mpMoveAll(int context, vec3 *move_amount)
 {
+    mpTraceFunc();
     g_worlds[context]->moveAll(*move_amount);
 }
 
@@ -385,5 +431,6 @@ mpAPI void mpMoveAll(int context, vec3 *move_amount)
 
 void mpSetGraphicsDevice(mpGraphicsDeviceType device_type, void* device_ptr)
 {
-    CreateGraphicsDevice((GraphicsDeviceType)device_type, device_ptr);
+    mpTraceFunc();
+    CreateGraphicsDevice((GraphicsDevice::DeviceType)device_type, device_ptr);
 }

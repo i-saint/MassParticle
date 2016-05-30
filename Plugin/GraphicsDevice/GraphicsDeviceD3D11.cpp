@@ -9,18 +9,18 @@ public:
     GraphicsDeviceD3D11(void *device);
     ~GraphicsDeviceD3D11();
     void* getDevicePtr() override;
-    GraphicsDeviceType getDeviceType() override;
+    DeviceType getDeviceType() override;
     void sync() override;
 
-    bool readTexture(void *o_buf, size_t bufsize, void *tex, int width, int height, PixelFormat format) override;
-    bool writeTexture(void *o_tex, int width, int height, PixelFormat format, const void *buf, size_t bufsize) override;
+    Error readTexture(void *o_buf, size_t bufsize, void *tex, int width, int height, TextureFormat format) override;
+    Error writeTexture(void *o_tex, int width, int height, TextureFormat format, const void *buf, size_t bufsize) override;
 
-    bool readBuffer(void *dst, const void *src_buf, size_t srcsize) override;
-    bool writeBuffer(void *dst_buf, const void *src, size_t srcsize) override;
+    Error readBuffer(void *dst, const void *src_buf, size_t srcsize) override;
+    Error writeBuffer(void *dst_buf, const void *src, size_t srcsize) override;
 
 private:
     void clearStagingTextures();
-    ID3D11Texture2D* findOrCreateStagingTexture(int width, int height, PixelFormat format);
+    ID3D11Texture2D* findOrCreateStagingTexture(int width, int height, TextureFormat format);
 
 private:
     ID3D11Device *m_device;
@@ -63,32 +63,33 @@ GraphicsDeviceD3D11::~GraphicsDeviceD3D11()
 }
 
 void* GraphicsDeviceD3D11::getDevicePtr() { return m_device; }
-GraphicsDeviceType GraphicsDeviceD3D11::getDeviceType() { return GraphicsDeviceType::D3D11; }
+GraphicsDevice::DeviceType GraphicsDeviceD3D11::getDeviceType() { return DeviceType::D3D11; }
 
 
-static DXGI_FORMAT GetInternalFormatD3D11(PixelFormat fmt)
+static DXGI_FORMAT GetInternalFormatD3D11(GraphicsDevice::TextureFormat fmt)
 {
+    using TextureFormat = GraphicsDevice::TextureFormat;
     switch (fmt)
     {
-    case PixelFormat::RGBAu8:  return DXGI_FORMAT_R8G8B8A8_TYPELESS;
+    case TextureFormat::RGBAu8:  return DXGI_FORMAT_R8G8B8A8_TYPELESS;
 
-    case PixelFormat::RGBAf16: return DXGI_FORMAT_R16G16B16A16_FLOAT;
-    case PixelFormat::RGf16:   return DXGI_FORMAT_R16G16_FLOAT;
-    case PixelFormat::Rf16:    return DXGI_FORMAT_R16_FLOAT;
+    case TextureFormat::RGBAf16: return DXGI_FORMAT_R16G16B16A16_FLOAT;
+    case TextureFormat::RGf16:   return DXGI_FORMAT_R16G16_FLOAT;
+    case TextureFormat::Rf16:    return DXGI_FORMAT_R16_FLOAT;
 
-    case PixelFormat::RGBAf32: return DXGI_FORMAT_R32G32B32A32_FLOAT;
-    case PixelFormat::RGf32:   return DXGI_FORMAT_R32G32_FLOAT;
-    case PixelFormat::Rf32:    return DXGI_FORMAT_R32_FLOAT;
+    case TextureFormat::RGBAf32: return DXGI_FORMAT_R32G32B32A32_FLOAT;
+    case TextureFormat::RGf32:   return DXGI_FORMAT_R32G32_FLOAT;
+    case TextureFormat::Rf32:    return DXGI_FORMAT_R32_FLOAT;
 
-    case PixelFormat::RGBAi32: return DXGI_FORMAT_R32G32B32A32_SINT;
-    case PixelFormat::RGi32:   return DXGI_FORMAT_R32G32_SINT;
-    case PixelFormat::Ri32:    return DXGI_FORMAT_R32_SINT;
+    case TextureFormat::RGBAi32: return DXGI_FORMAT_R32G32B32A32_SINT;
+    case TextureFormat::RGi32:   return DXGI_FORMAT_R32G32_SINT;
+    case TextureFormat::Ri32:    return DXGI_FORMAT_R32_SINT;
     }
     return DXGI_FORMAT_UNKNOWN;
 }
 
 
-ID3D11Texture2D* GraphicsDeviceD3D11::findOrCreateStagingTexture(int width, int height, PixelFormat format)
+ID3D11Texture2D* GraphicsDeviceD3D11::findOrCreateStagingTexture(int width, int height, TextureFormat format)
 {
     if (m_staging_textures.size() >= D3D11MaxStagingTextures) {
         clearStagingTextures();
@@ -134,15 +135,15 @@ void GraphicsDeviceD3D11::sync()
     }
 }
 
-bool GraphicsDeviceD3D11::readTexture(void *o_buf, size_t bufsize, void *tex_, int width, int height, PixelFormat format)
+GraphicsDevice::Error GraphicsDeviceD3D11::readTexture(void *o_buf, size_t bufsize, void *tex_, int width, int height, TextureFormat format)
 {
-    if (m_context == nullptr || tex_ == nullptr) { return false; }
-    int psize = GetPixelSize(format);
+    if (m_context == nullptr || tex_ == nullptr) { return Error::InvalidParameter; }
+    int psize = GetTexelSize(format);
 
     // Unity の D3D11 の RenderTexture の内容は CPU からはアクセス不可能になっている。
     // なので staging texture を用意してそれに内容を移し、CPU はそれ経由でデータを読む。
-    ID3D11Texture2D *tex = (ID3D11Texture2D*)tex_;
-    ID3D11Texture2D *tmp = findOrCreateStagingTexture(width, height, format);
+    auto *tex = (ID3D11Texture2D*)tex_;
+    auto *tmp = findOrCreateStagingTexture(width, height, format);
     m_context->CopyResource(tmp, tex);
 
     // ID3D11DeviceContext::Map() はその時点までのコマンドの終了を待ってくれないっぽくて、
@@ -150,11 +151,11 @@ bool GraphicsDeviceD3D11::readTexture(void *o_buf, size_t bufsize, void *tex_, i
     sync();
 
     D3D11_MAPPED_SUBRESOURCE mapped = { 0 };
-    HRESULT hr = m_context->Map(tmp, 0, D3D11_MAP_READ, 0, &mapped);
+    auto hr = m_context->Map(tmp, 0, D3D11_MAP_READ, 0, &mapped);
     if (SUCCEEDED(hr))
     {
         char *wpixels = (char*)o_buf;
-        int wpitch = width * GetPixelSize(format);
+        int wpitch = width * GetTexelSize(format);
         const char *rpixels = (const char*)mapped.pData;
         int rpitch = mapped.RowPitch;
 
@@ -175,14 +176,14 @@ bool GraphicsDeviceD3D11::readTexture(void *o_buf, size_t bufsize, void *tex_, i
         }
 
         m_context->Unmap(tmp, 0);
-        return true;
+        return Error::OK;
     }
-    return false;
+    return Error::Unknown;
 }
 
-bool GraphicsDeviceD3D11::writeTexture(void *o_tex, int width, int height, PixelFormat format, const void *buf, size_t bufsize)
+GraphicsDevice::Error GraphicsDeviceD3D11::writeTexture(void *o_tex, int width, int height, TextureFormat format, const void *buf, size_t bufsize)
 {
-    int psize = GetPixelSize(format);
+    int psize = GetTexelSize(format);
     int pitch = psize * width;
     const size_t num_pixels = bufsize / psize;
 
@@ -195,15 +196,15 @@ bool GraphicsDeviceD3D11::writeTexture(void *o_tex, int width, int height, Pixel
     box.back = 1;
     ID3D11Texture2D *tex = (ID3D11Texture2D*)o_tex;
     m_context->UpdateSubresource(tex, 0, &box, buf, pitch, 0);
-    return true;
+    return GraphicsDevice::Error::OK;
 }
 
-bool GraphicsDeviceD3D11::readBuffer(void *dst, const void *src_buf, size_t srcsize)
+GraphicsDevice::Error GraphicsDeviceD3D11::readBuffer(void *dst, const void *src_buf_, size_t read_size)
 {
-    return false;
+    return Error::NotImplemented;
 }
 
-bool GraphicsDeviceD3D11::writeBuffer(void *dst_buf, const void *src, size_t srcsize)
+GraphicsDevice::Error GraphicsDeviceD3D11::writeBuffer(void *dst_buf_, const void *src, size_t write_size)
 {
-    return false;
+    return Error::NotImplemented;
 }

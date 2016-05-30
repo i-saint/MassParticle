@@ -957,7 +957,8 @@ int mpWorld::updateDataTexture(void *tex, int width, int height)
     if (gd && !m_particles_gpu.empty()) {
         int num_needs_copy = std::max<int>(m_num_particles_gpu, m_num_particles_gpu_prev);
         m_num_particles_gpu_prev = m_num_particles_gpu;
-        gd->writeTexture(tex, width, height, PixelFormat::RGBAf32, &m_particles_gpu[0], sizeof(mpParticle)*m_kparams.max_particles);
+        gd->writeTexture(tex, width, height, GraphicsDevice::TextureFormat::RGBAf32,
+            &m_particles_gpu[0], sizeof(mpParticle)*m_kparams.max_particles);
     }
     return m_num_particles_gpu;
 }

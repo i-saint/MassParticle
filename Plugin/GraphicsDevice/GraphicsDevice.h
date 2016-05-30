@@ -1,75 +1,86 @@
 ﻿#pragma once
 
-enum class PixelFormat
-{
-    Unknown = 0,
-
-    ChannelMask = 0xF,
-    TypeMask    = 0xF << 4,
-    Type_f16    = 0x1 << 4,
-    Type_f32    = 0x2 << 4,
-    Type_u8     = 0x3 << 4,
-    Type_i16    = 0x4 << 4,
-    Type_i32    = 0x5 << 4,
-
-    Rf16    = Type_f16 | 1,
-    RGf16   = Type_f16 | 2,
-    RGBf16  = Type_f16 | 3,
-    RGBAf16 = Type_f16 | 4,
-    Rf32    = Type_f32 | 1,
-    RGf32   = Type_f32 | 2,
-    RGBf32  = Type_f32 | 3,
-    RGBAf32 = Type_f32 | 4,
-    Ru8     = Type_u8 | 1,
-    RGu8    = Type_u8 | 2,
-    RGBu8   = Type_u8 | 3,
-    RGBAu8  = Type_u8 | 4,
-    Ri16    = Type_i16 | 1,
-    RGi16   = Type_i16 | 2,
-    RGBi16  = Type_i16 | 3,
-    RGBAi16 = Type_i16 | 4,
-    Ri32    = Type_i32 | 1,
-    RGi32   = Type_i32 | 2,
-    RGBi32  = Type_i32 | 3,
-    RGBAi32 = Type_i32 | 4,
-    I420    = 0x10 << 4,
-};
-
-enum class GraphicsDeviceType
-{
-    Unknown,
-    D3D9,
-    D3D11,
-    D3D12,
-    OpenGL,
-    Vulkan,
-    PS4,
-};
-
-
 class GraphicsDevice
 {
 public:
+    enum class DeviceType
+    {
+        Unknown,
+        D3D9,
+        D3D11,
+        D3D12,
+        OpenGL,
+        Vulkan,
+        PS4,
+    };
+
+    enum class Error
+    {
+        OK,
+        Unknown,
+        NotImplemented,
+        InvalidParameter,
+        OutOfMemory,
+        InaccesibleFromCPU,
+    };
+
+    enum class TextureFormat
+    {
+        Unknown = 0,
+
+        ElementsMask  = 0xFF,
+        Elements_R    = 0x01,
+        Elements_RG   = 0x02,
+        Elements_RGBA = 0x04,
+
+        TypeMask = 0xFF << 8,
+        Type_f16 = 0x1 << 8,
+        Type_f32 = 0x2 << 8,
+        Type_u8  = 0x3 << 8,
+        Type_i16 = 0x4 << 8,
+        Type_i32 = 0x5 << 8,
+
+        Rf16    = Type_f16 | Elements_R,
+        RGf16   = Type_f16 | Elements_RG,
+        RGBAf16 = Type_f16 | Elements_RGBA,
+        Rf32    = Type_f32 | Elements_R,
+        RGf32   = Type_f32 | Elements_RG,
+        RGBAf32 = Type_f32 | Elements_RGBA,
+        Ru8     = Type_u8  | Elements_R,
+        RGu8    = Type_u8  | Elements_RG,
+        RGBAu8  = Type_u8  | Elements_RGBA,
+        Ri16    = Type_i16 | Elements_R,
+        RGi16   = Type_i16 | Elements_RG,
+        RGBAi16 = Type_i16 | Elements_RGBA,
+        Ri32    = Type_i32 | Elements_R,
+        RGi32   = Type_i32 | Elements_RG,
+        RGBAi32 = Type_i32 | Elements_RGBA,
+
+        I420    = 0x10 << 8,
+    };
+
+
+public:
     virtual ~GraphicsDevice() {}
     virtual void* getDevicePtr() = 0;
-    virtual GraphicsDeviceType getDeviceType() = 0;
+    virtual DeviceType getDeviceType() = 0;
 
     virtual void sync() = 0;
 
-    virtual bool readTexture(void *dst, size_t dstsize, void *src_tex, int width, int height, PixelFormat format) = 0;
-    virtual bool writeTexture(void *dst_tex, int width, int height, PixelFormat format, const void *src, size_t srcsize) = 0;
+    virtual Error readTexture(void *dst, size_t dstsize, void *src_tex, int width, int height, TextureFormat format) = 0;
+    virtual Error writeTexture(void *dst_tex, int width, int height, TextureFormat format, const void *src, size_t srcsize) = 0;
 
-    virtual bool readBuffer(void *dst, const void *src_buf, size_t srcsize) = 0;
-    virtual bool readIndexBuffer(void *dst, const void *src_buf, size_t srcsize) { return readBuffer(dst, src_buf, srcsize); }
-    virtual bool readVertexBuffer(void *dst, const void *src_buf, size_t srcsize) { return readBuffer(dst, src_buf, srcsize); }
-    virtual bool writeBuffer(void *dst_buf, const void *src, size_t srcsize) = 0;
-    virtual bool writeIndexBuffer(void *dst_buf, const void *src, size_t srcsize) { return writeBuffer(dst_buf, src, srcsize); }
-    virtual bool writeVertexBuffer(void *dst_buf, const void *src, size_t srcsize) { return writeBuffer(dst_buf, src, srcsize); }
+    virtual Error readBuffer(void *dst, const void *src_buf, size_t read_size) = 0;
+    virtual Error readIndexBuffer(void *dst, const void *src_buf, size_t read_size) { return readBuffer(dst, src_buf, read_size); }
+    virtual Error readVertexBuffer(void *dst, const void *src_buf, size_t read_size) { return readBuffer(dst, src_buf, read_size); }
+    virtual Error writeBuffer(void *dst_buf, const void *src, size_t write_size) = 0;
+    virtual Error writeIndexBuffer(void *dst_buf, const void *src, size_t write_size) { return writeBuffer(dst_buf, src, write_size); }
+    virtual Error writeVertexBuffer(void *dst_buf, const void *src, size_t write_size) { return writeBuffer(dst_buf, src, write_size); }
 };
 
 
-int             GetPixelSize(PixelFormat format);
+int             GetTexelSize(GraphicsDevice::TextureFormat format);
 
-GraphicsDevice* CreateGraphicsDevice(GraphicsDeviceType type, void *device_ptr);
+GraphicsDevice* CreateGraphicsDevice(GraphicsDevice::DeviceType type, void *device_ptr);
 void            ReleaseGraphicsDevice();
 GraphicsDevice* GetGraphicsDevice();

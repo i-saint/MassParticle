@@ -7,14 +7,14 @@ public:
     GraphicsDeviceVulkan();
     ~GraphicsDeviceVulkan();
     void* getDevicePtr() override;
-    GraphicsDeviceType getDeviceType() override;
+    DeviceType getDeviceType() override;
     void sync() override;
 
-    bool readTexture(void *o_buf, size_t bufsize, void *tex, int width, int height, PixelFormat format) override;
-    bool writeTexture(void *o_tex, int width, int height, PixelFormat format, const void *buf, size_t bufsize) override;
+    Error readTexture(void *o_buf, size_t bufsize, void *tex, int width, int height, TextureFormat format) override;
+    Error writeTexture(void *o_tex, int width, int height, TextureFormat format, const void *buf, size_t bufsize) override;
 
-    bool readBuffer(void *dst, const void *src_buf, size_t srcsize) override;
-    bool writeBuffer(void *dst_buf, const void *src, size_t srcsize) override;
+    Error readBuffer(void *dst, const void *src_buf, size_t srcsize) override;
+    Error writeBuffer(void *dst_buf, const void *src, size_t srcsize) override;
 
 private:
 };
@@ -39,9 +39,9 @@ void* GraphicsDeviceVulkan::getDevicePtr()
     return nullptr;
 }
 
-GraphicsDeviceType GraphicsDeviceVulkan::getDeviceType()
+GraphicsDevice::DeviceType GraphicsDeviceVulkan::getDeviceType()
 {
-    return GraphicsDeviceType::Vulkan;
+    return DeviceType::Vulkan;
 }
 
 void GraphicsDeviceVulkan::sync()
@@ -50,23 +50,23 @@ void GraphicsDeviceVulkan::sync()
 }
 
 
-bool GraphicsDeviceVulkan::readTexture(void *o_buf, size_t bufsize, void *tex, int width, int height, PixelFormat format)
+GraphicsDevice::Error GraphicsDeviceVulkan::readTexture(void *o_buf, size_t bufsize, void *tex, int width, int height, TextureFormat format)
 {
-    return false;
+    return Error::NotImplemented;
 }
 
-bool GraphicsDeviceVulkan::writeTexture(void *o_tex, int width, int height, PixelFormat format, const void *buf, size_t bufsize)
+GraphicsDevice::Error GraphicsDeviceVulkan::writeTexture(void *o_tex, int width, int height, TextureFormat format, const void *buf, size_t bufsize)
 {
-    return false;
+    return Error::NotImplemented;
 }
 
 
-bool GraphicsDeviceVulkan::readBuffer(void *dst, const void *src_buf, size_t srcsize)
+GraphicsDevice::Error GraphicsDeviceVulkan::readBuffer(void *dst, const void *src_buf, size_t srcsize)
 {
-    return false;
+    return Error::NotImplemented;
 }
 
-bool GraphicsDeviceVulkan::writeBuffer(void *dst_buf, const void *src, size_t srcsize)
+GraphicsDevice::Error GraphicsDeviceVulkan::writeBuffer(void *dst_buf, const void *src, size_t srcsize)
 {
-    return false;
+    return Error::NotImplemented;
 }
