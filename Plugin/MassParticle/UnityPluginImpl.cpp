@@ -33,7 +33,7 @@ UnityRenderingEvent GetRenderEventFunc()
 }
 
 
-UNITY_INTERFACE_EXPORT IUnityInterfaces* GetUnityInterface()
+extern "C" UNITY_INTERFACE_EXPORT IUnityInterfaces* GetUnityInterface()
 {
     return g_unity_interface;
 }
@@ -42,27 +42,22 @@ UNITY_INTERFACE_EXPORT IUnityInterfaces* GetUnityInterface()
 #include <windows.h>
 typedef IUnityInterfaces* (*GetUnityInterfaceT)();
 
-void GfxForceInitialize()
-{
-    // PatchLibrary で突っ込まれたモジュールは UnityPluginLoad() が呼ばれないので、
-    // 先にロードされているモジュールからインターフェースをもらって同等の処理を行う。
-    HMODULE m = ::GetModuleHandleA("MassParticle.dll");
-    if (m) {
-        auto proc = (GetUnityInterfaceT)::GetProcAddress(m, "GetUnityInterface");
-        if (proc) {
-            auto *iface = proc();
-            if (iface) {
-                UnityPluginLoad(iface);
-            }
-        }
-    }
-}
-
 BOOL WINAPI DllMain(HINSTANCE module_handle, DWORD reason_for_call, LPVOID reserved)
 {
     if (reason_for_call == DLL_PROCESS_ATTACH)
     {
-        GfxForceInitialize();
+        // PatchLibrary で突っ込まれたモジュールは UnityPluginLoad() が呼ばれないので、
+        // 先にロードされているモジュールからインターフェースをもらって同等の処理を行う。
+        auto mod = ::GetModuleHandleA("MassParticle.dll");
+        if (mod) {
+            auto proc = (GetUnityInterfaceT)::GetProcAddress(mod, "GetUnityInterface");
+            if (proc) {
+                auto *iface = proc();
+                if (iface) {
+                    UnityPluginLoad(iface);
+                }
+            }
+        }
     }
     return TRUE;
 }

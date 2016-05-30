@@ -18,6 +18,7 @@ public:
     bool writeBuffer(void *dst_buf, const void *src, size_t srcsize) override;
 
 private:
+    ID3D12Device *m_device;
 };
 
 
@@ -28,6 +29,7 @@ GraphicsDevice* CreateGraphicsDeviceD3D12(void *device)
 
 
 GraphicsDeviceD3D12::GraphicsDeviceD3D12(void *device)
+    : m_device((ID3D12Device*)device)
 {
 }
 
@@ -51,13 +53,15 @@ void GraphicsDeviceD3D12::sync()
 }
 
 
-bool GraphicsDeviceD3D12::readTexture(void *o_buf, size_t bufsize, void *tex, int width, int height, PixelFormat format)
+bool GraphicsDeviceD3D12::readTexture(void *dst, size_t dstsize, void *src_tex_, int width, int height, PixelFormat format)
 {
+    auto *src_tex = (ID3D12Resource*)src_tex_;
     return false;
 }
 
-bool GraphicsDeviceD3D12::writeTexture(void *o_tex, int width, int height, PixelFormat format, const void *buf, size_t bufsize)
+bool GraphicsDeviceD3D12::writeTexture(void *dst_tex_, int width, int height, PixelFormat format, const void *src, size_t srcsize)
 {
+    auto *dst_tex = (ID3D12Resource*)dst_tex_;
     return false;
 }
 
