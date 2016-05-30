@@ -1,6 +1,12 @@
 #include "pch.h"
 #include "gdInternal.h"
 
+#ifdef _WIN32
+    #define VK_USE_PLATFORM_WIN32_KHR
+#endif // _WIN32
+#include <vulkan/vulkan.h>
+#pragma comment(lib, "vulkan-1.lib")
+
 class GraphicsDeviceVulkan : public GraphicsDevice
 {
 public:

@@ -55,7 +55,8 @@ void TestImplD3D9::onInit(void *hwnd)
 }
 
 TestImpl* CreateTestD3D9() { return new TestImplD3D9(); }
-
+#else // WithD3D9
+TestImpl* CreateTestD3D9() { return nullptr; }
 #endif // WithD3D9
 
 
@@ -126,7 +127,8 @@ void TestImplD3D11::onInit(void *hwnd)
 }
 
 TestImpl* CreateTestD3D11() { return new TestImplD3D11(); }
-
+#else // WithD3D11
+TestImpl* CreateTestD3D11() { return nullptr; }
 #endif // WithD3D11
 
 
@@ -209,7 +211,8 @@ void TestImplD3D12::onInit(void *hwnd)
 }
 
 TestImpl* CreateTestD3D12() { return new TestImplD3D12(); }
-
+#else // WithD3D12
+TestImpl* CreateTestD3D12() { return nullptr; }
 #endif // WithD3D12
 
 
@@ -275,7 +278,8 @@ void TestImplOpenGL::onInit(void *hwnd)
 }
 
 TestImpl* CreateTestOpenGL() { return new TestImplOpenGL(); }
-
+#else // WithOpenGL
+TestImpl* CreateTestOpenGL() { return nullptr; }
 #endif // WithOpenGL
 
 
@@ -299,14 +303,14 @@ private:
     VkInstance m_instance = nullptr;
     VkPhysicalDevice m_physical_device = nullptr;
     VkDevice m_device = nullptr;
-    VkSurfaceKHR m_surface = nullptr;
+    VkSurfaceKHR m_surface = 0;
 };
 
 TestImplVulkan::~TestImplVulkan()
 {
     if (m_surface) {
         vkDestroySurfaceKHR(m_instance, m_surface, nullptr);
-        m_surface = nullptr;
+        m_surface = 0;
     }
     if (m_device) {
         vkDestroyDevice(m_device, nullptr);
@@ -416,5 +420,6 @@ void TestImplVulkan::onInit(void *hwnd)
 }
 
 TestImpl* CreateTestVulkan() { return new TestImplVulkan(); }
-
+#else // WithVulkan
+TestImpl* CreateTestVulkan() { return nullptr; }
 #endif // WithVulkan
