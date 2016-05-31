@@ -13,7 +13,7 @@ namespace gd {
 class GraphicsDeviceOpenGL : public GraphicsDevice
 {
 public:
-    GraphicsDeviceOpenGL();
+    GraphicsDeviceOpenGL(void *device);
     ~GraphicsDeviceOpenGL() override;
     void release() override;
 
@@ -21,24 +21,26 @@ public:
     DeviceType getDeviceType() override;
     void sync() override;
 
+    Error createTexture(void **dst_tex, int width, int height, TextureFormat format, const void *data, CPUAccessFlag flags) override;
     Error readTexture(void *o_buf, size_t bufsize, void *tex, int width, int height, TextureFormat format) override;
     Error writeTexture(void *o_tex, int width, int height, TextureFormat format, const void *buf, size_t bufsize) override;
 
+    Error createBuffer(void **dst_buf, size_t size, BufferType type, const void *data, CPUAccessFlag flags) override;
     Error readBuffer(void *dst, const void *src_buf, size_t read_size, BufferType type) override;
     Error writeBuffer(void *dst_buf, const void *src, size_t write_size, BufferType type) override;
 };
 
 
-GraphicsDevice* CreateGraphicsDeviceOpenGL()
+GraphicsDevice* CreateGraphicsDeviceOpenGL(void *device)
 {
-    return new GraphicsDeviceOpenGL();
+    return new GraphicsDeviceOpenGL(device);
 }
 
 
 void* GraphicsDeviceOpenGL::getDevicePtr() { return nullptr; }
 DeviceType GraphicsDeviceOpenGL::getDeviceType() { return DeviceType::OpenGL; }
 
-GraphicsDeviceOpenGL::GraphicsDeviceOpenGL()
+GraphicsDeviceOpenGL::GraphicsDeviceOpenGL(void *device)
 {
 //    glewInit();
 }
@@ -79,6 +81,11 @@ void GraphicsDeviceOpenGL::sync()
     glFinish();
 }
 
+Error GraphicsDeviceOpenGL::createTexture(void **dst_tex, int width, int height, TextureFormat format, const void *data, CPUAccessFlag flags)
+{
+    return Error::NotAvailable;
+}
+
 Error GraphicsDeviceOpenGL::readTexture(void *o_buf, size_t, void *tex, int, int, TextureFormat format)
 {
     GLenum internal_format = 0;
@@ -110,6 +117,11 @@ Error GraphicsDeviceOpenGL::writeTexture(void *o_tex, int width, int height, Tex
     return Error::OK;
 }
 
+
+Error GraphicsDeviceOpenGL::createBuffer(void **dst_buf, size_t size, BufferType type, const void *data, CPUAccessFlag flags)
+{
+    return Error::NotAvailable;
+}
 
 Error GraphicsDeviceOpenGL::readBuffer(void *dst, const void *src_buf, size_t read_size, BufferType type)
 {

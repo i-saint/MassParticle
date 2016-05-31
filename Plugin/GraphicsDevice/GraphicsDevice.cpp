@@ -36,29 +36,29 @@ GraphicsDevice* CreateGraphicsDevice(DeviceType type, void *device_ptr)
     switch (type) {
 #ifdef gdSupportD3D9
     case DeviceType::D3D9:
-        return CreateGraphicsDeviceD3D9(device_ptr);
+        g_gfx_device = CreateGraphicsDeviceD3D9(device_ptr);
         break;
 #endif
 #ifdef gdSupportD3D11
     case DeviceType::D3D11:
-        return CreateGraphicsDeviceD3D11(device_ptr);
+        g_gfx_device = CreateGraphicsDeviceD3D11(device_ptr);
         break;
 #endif
 #ifdef gdSupportD3D12
     case DeviceType::D3D12:
-        return CreateGraphicsDeviceD3D12(device_ptr);
+        g_gfx_device = CreateGraphicsDeviceD3D12(device_ptr);
         break;
 #endif
 #ifdef gdSupportOpenGL
     case DeviceType::OpenGL:
-        return CreateGraphicsDeviceOpenGL();
+        g_gfx_device = CreateGraphicsDeviceOpenGL(device_ptr);
 #endif
 #ifdef gdSupportVulkan
     case DeviceType::Vulkan:
-        return CreateGraphicsDeviceVulkan();
+        g_gfx_device = CreateGraphicsDeviceVulkan(device_ptr);
 #endif
     }
-    return nullptr;
+    return g_gfx_device;
 }
 
 GraphicsDevice* GetGraphicsDevice()

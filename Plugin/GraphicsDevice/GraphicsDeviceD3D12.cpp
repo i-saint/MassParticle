@@ -15,9 +15,11 @@ public:
     DeviceType getDeviceType() override;
     void sync() override;
 
+    Error createTexture(void **dst_tex, int width, int height, TextureFormat format, const void *data, CPUAccessFlag flags) override;
     Error readTexture(void *o_buf, size_t bufsize, void *tex, int width, int height, TextureFormat format) override;
     Error writeTexture(void *o_tex, int width, int height, TextureFormat format, const void *buf, size_t bufsize) override;
 
+    Error createBuffer(void **dst_buf, size_t size, BufferType type, const void *data, CPUAccessFlag flags) override;
     Error readBuffer(void *dst, const void *src_buf, size_t read_size, BufferType type) override;
     Error writeBuffer(void *dst_buf, const void *src, size_t write_size, BufferType type) override;
 
@@ -63,6 +65,11 @@ void GraphicsDeviceD3D12::sync()
 }
 
 
+Error GraphicsDeviceD3D12::createTexture(void **dst_tex, int width, int height, TextureFormat format, const void *data, CPUAccessFlag flags)
+{
+    return Error::NotAvailable;
+}
+
 Error GraphicsDeviceD3D12::readTexture(void *dst, size_t dstsize, void *src_tex_, int width, int height, TextureFormat format)
 {
     auto *src_tex = (ID3D12Resource*)src_tex_;
@@ -75,6 +82,11 @@ Error GraphicsDeviceD3D12::writeTexture(void *dst_tex_, int width, int height, T
     return Error::NotAvailable;
 }
 
+
+Error GraphicsDeviceD3D12::createBuffer(void **dst_buf, size_t size, BufferType type, const void *data, CPUAccessFlag flags)
+{
+    return Error::NotAvailable;
+}
 
 Error GraphicsDeviceD3D12::readBuffer(void *dst, const void *src_buf, size_t read_size, BufferType type)
 {

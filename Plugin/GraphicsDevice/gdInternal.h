@@ -23,8 +23,8 @@ class GraphicsDevice;
 GraphicsDevice* CreateGraphicsDeviceD3D9(void *device);
 GraphicsDevice* CreateGraphicsDeviceD3D11(void *device);
 GraphicsDevice* CreateGraphicsDeviceD3D12(void *device);
-GraphicsDevice* CreateGraphicsDeviceOpenGL();
-GraphicsDevice* CreateGraphicsDeviceVulkan();
+GraphicsDevice* CreateGraphicsDeviceOpenGL(void *device);
+GraphicsDevice* CreateGraphicsDeviceVulkan(void *device);
 
 
 // i.e:
