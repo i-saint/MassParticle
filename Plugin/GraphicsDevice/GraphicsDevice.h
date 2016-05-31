@@ -75,8 +75,8 @@ enum class BufferType
 enum class CPUAccessFlag
 {
     None = 0x0,
-    R = 0x1,
-    W = 0x2,
+    W = 0x1,
+    R = 0x2,
     RW = R | W,
 };
 

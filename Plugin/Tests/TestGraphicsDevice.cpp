@@ -5,6 +5,9 @@
 #include "TestGraphicsDevice.h"
 #include "../GraphicsDevice/GraphicsDevice.h"
 
+#define Test(exp) { gd::Error e = exp; printf("%d: " #exp "\n", (int)e); }
+
+struct float4 { float x, y, z, w; };
 
 void TestImpl::testMain()
 {
@@ -21,27 +24,42 @@ void TestImpl::testMain()
         return;
     }
 
-#define ShowResult(exp) { gd::Error e = exp; printf(#exp ": %d\n", (int)e); }
     {
         const int width = 1024;
         const int height = 1024;
+        const int num_texels = width * height;
+        const int data_size = width * height * 16;
         gd::TextureFormat format = gd::TextureFormat::RGBAf32;
 
-        std::vector<float> data;
-        data.resize(1024 * 1024 * 4);
+        std::vector<float4> data, ret, wret, rwret;
+        data.resize(num_texels);
+        ret.resize(num_texels);
+        wret.resize(num_texels);
+        rwret.resize(num_texels);
+
         for (size_t i = 0; i < data.size(); ++i) {
-            data[i] = (float)i;
+            float f = (float)i;
+            data[i] = { f + 0.0f, f + 0.2f, f + 0.4f, f + 0.8f };
         }
 
         void *texture = nullptr;
+        void *wtexture = nullptr;
         void *rwtexture = nullptr;
-        ShowResult(dev->createTexture(&texture, width, height, format, nullptr, gd::CPUAccessFlag::None));
-        ShowResult(dev->createTexture(&rwtexture, width, height, format, nullptr, gd::CPUAccessFlag::RW));
 
-        ShowResult(dev->writeTexture(texture, width, height, format, data.data(), data.size() * sizeof(float)));
-        ShowResult(dev->writeTexture(rwtexture, width, height, format, data.data(), data.size() * sizeof(float)));
+        Test(dev->createTexture(&texture, width, height, format, nullptr, gd::CPUAccessFlag::None));
+        Test(dev->createTexture(&wtexture, width, height, format, nullptr, gd::CPUAccessFlag::W));
+        Test(dev->createTexture(&rwtexture, width, height, format, nullptr, gd::CPUAccessFlag::RW));
+
+        Test(dev->writeTexture(texture, width, height, format, data.data(), data_size));
+        Test(dev->writeTexture(wtexture, width, height, format, data.data(), data_size));
+        Test(dev->writeTexture(rwtexture, width, height, format, data.data(), data_size));
+
+        Test(dev->readTexture(ret.data(), data_size, texture, width, height, format));
+        Test(dev->readTexture(wret.data(), data_size, wtexture, width, height, format));
+        Test(dev->readTexture(rwret.data(), data_size, rwtexture, width, height, format));
 
         dev->releaseTexture(texture);
+        dev->releaseTexture(wtexture);
         dev->releaseTexture(rwtexture);
     }
 }

@@ -293,7 +293,10 @@ Error GraphicsDeviceD3D11::writeTexture(void *dst_tex_, int width, int height, T
     Error ret = Error::OK;
     if (mappable) {
         D3D11_MAPPED_SUBRESOURCE mapped = { 0 };
-        auto hr = m_context->Map(dst_tex, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+        auto hr = m_context->Map(dst_tex, 0, D3D11_MAP_WRITE, 0, &mapped);
+        if (FAILED(hr)) {
+            hr = m_context->Map(dst_tex, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+        }
         if (FAILED(hr)) {
             gdLogError("GraphicsDeviceD3D11::writeTexture(): Map() failed.\n");
             ret = TranslateReturnCode(hr);
@@ -335,18 +338,6 @@ Error GraphicsDeviceD3D11::writeTexture(void *dst_tex_, int width, int height, T
 }
 
 
-
-Error GraphicsDeviceD3D11::createBuffer(void **dst_buf, size_t size, BufferType type, const void *data, CPUAccessFlag flags)
-{
-    return Error::NotAvailable;
-}
-
-void GraphicsDeviceD3D11::releaseBuffer(void *buf)
-{
-    if (buf) {
-        ((ID3D11Buffer*)buf)->Release();
-    }
-}
 
 ID3D11Buffer* GraphicsDeviceD3D11::getStagingBuffer(BufferType type, size_t size_required)
 {
@@ -394,6 +385,53 @@ ID3D11Buffer* GraphicsDeviceD3D11::getStagingBuffer(BufferType type, size_t size
         }
     }
     return staging;
+}
+
+Error GraphicsDeviceD3D11::createBuffer(void **dst_buf, size_t size, BufferType type, const void *data, CPUAccessFlag flags)
+{
+    CD3D11_BUFFER_DESC desc;
+    desc.ByteWidth = (UINT)size;
+    desc.Usage = D3D11_USAGE_DEFAULT;
+
+    switch (type) {
+    case BufferType::Index:
+        desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+        break;
+    case BufferType::Vertex:
+        desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+        break;
+    case BufferType::Constant:
+        desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+        break;
+    case BufferType::Compute:
+        desc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
+        break;
+    }
+
+    desc.CPUAccessFlags = 0;
+    if (flags & CPUAccessFlag::W) {
+        desc.Usage = D3D11_USAGE_DYNAMIC;
+        desc.CPUAccessFlags |= D3D11_CPU_ACCESS_WRITE;
+    }
+    if (flags & CPUAccessFlag::R) {
+        desc.Usage = D3D11_USAGE_STAGING;
+        desc.CPUAccessFlags |= D3D11_CPU_ACCESS_READ;
+    }
+
+    ID3D11Buffer *ret = nullptr;
+    HRESULT hr = m_device->CreateBuffer(&desc, nullptr, &ret);
+    if (FAILED(hr)) {
+        return TranslateReturnCode(hr);
+    }
+    *dst_buf = ret;
+    return Error::OK;
+}
+
+void GraphicsDeviceD3D11::releaseBuffer(void *buf)
+{
+    if (buf) {
+        ((ID3D11Buffer*)buf)->Release();
+    }
 }
 
 Error GraphicsDeviceD3D11::readBuffer(void *dst, const void *src_buf_, size_t read_size, BufferType type)
@@ -455,7 +493,10 @@ Error GraphicsDeviceD3D11::writeBuffer(void *dst_buf_, const void *src, size_t w
     Error ret = Error::OK;
     if (mappable) {
         D3D11_MAPPED_SUBRESOURCE mapped;
-        HRESULT hr = m_context->Map(dst_buf, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+        auto hr = m_context->Map(dst_buf, 0, D3D11_MAP_WRITE, 0, &mapped);
+        if (FAILED(hr)) {
+            hr = m_context->Map(dst_buf, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+        }
         if (FAILED(hr)) {
             gdLogError("GraphicsDeviceD3D11::writeBuffer(): Map() failed.\n");
             ret = Error::Unknown;
