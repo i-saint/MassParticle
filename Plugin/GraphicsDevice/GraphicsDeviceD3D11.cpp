@@ -18,10 +18,12 @@ public:
     void sync() override;
 
     Error createTexture(void **dst_tex, int width, int height, TextureFormat format, const void *data, CPUAccessFlag flags) override;
+    void releaseTexture(void *tex) override;
     Error readTexture(void *o_buf, size_t bufsize, void *tex, int width, int height, TextureFormat format) override;
     Error writeTexture(void *o_tex, int width, int height, TextureFormat format, const void *buf, size_t bufsize) override;
 
     Error createBuffer(void **dst_buf, size_t size, BufferType type, const void *data, CPUAccessFlag flags) override;
+    void releaseBuffer(void *buf) override;
     Error readBuffer(void *dst, const void *src_buf, size_t read_size, BufferType type) override;
     Error writeBuffer(void *dst_buf, const void *src, size_t write_size, BufferType type) override;
 
@@ -107,11 +109,6 @@ void GraphicsDeviceD3D11::sync()
 }
 
 
-Error GraphicsDeviceD3D11::createTexture(void **dst_tex, int width, int height, TextureFormat format, const void *data, CPUAccessFlag flags)
-{
-    return Error::NotAvailable;
-}
-
 static DXGI_FORMAT GetInternalFormatD3D11(TextureFormat fmt)
 {
     switch (fmt)
@@ -162,6 +159,60 @@ ID3D11Texture2D* GraphicsDeviceD3D11::getStagingTexture(int width, int height, T
     return ret;
 }
 
+static inline bool operator&(CPUAccessFlag a, CPUAccessFlag b) { return ((int)a & (int)b) != 0; }
+
+static Error TranslateReturnCode(HRESULT hr)
+{
+    switch (hr) {
+    case S_OK: return Error::OK;
+    case E_OUTOFMEMORY: return Error::OutOfMemory;
+    case E_INVALIDARG: return Error::InvalidParameter;
+    }
+    return Error::Unknown;
+}
+
+Error GraphicsDeviceD3D11::createTexture(void **dst_tex, int width, int height, TextureFormat format, const void *data, CPUAccessFlag flags)
+{
+    size_t texel_size = GetTexelSize(format);
+    DXGI_FORMAT internal_format = GetInternalFormatD3D11(format);
+
+    D3D11_TEXTURE2D_DESC desc = {
+        (UINT)width, (UINT)height, 1, 1, internal_format, { 1, 0 },
+        D3D11_USAGE_DEFAULT, D3D11_BIND_SHADER_RESOURCE, 0, 0
+    };
+    if (flags & CPUAccessFlag::W) {
+        desc.Usage = D3D11_USAGE_DYNAMIC;
+        desc.CPUAccessFlags |= D3D11_CPU_ACCESS_WRITE;
+    }
+    if (flags & CPUAccessFlag::R) {
+        desc.Usage = D3D11_USAGE_STAGING;
+        desc.CPUAccessFlags |= D3D11_CPU_ACCESS_READ;
+        desc.BindFlags = 0;
+    }
+
+    D3D11_SUBRESOURCE_DATA subr = {
+        data,
+        width * (UINT)texel_size,
+        width * height * (UINT)texel_size,
+    };
+
+    ID3D11Texture2D *ret = nullptr;
+    HRESULT hr = m_device->CreateTexture2D(&desc, data ? &subr : nullptr, &ret);
+    if (FAILED(hr))
+    {
+        return TranslateReturnCode(hr);
+    }
+    *dst_tex = ret;
+    return Error::OK;
+}
+
+void GraphicsDeviceD3D11::releaseTexture(void *tex)
+{
+    if (tex) {
+        ((ID3D11Texture2D*)tex)->Release();
+    }
+}
+
 Error GraphicsDeviceD3D11::readTexture(void *dst, size_t dst_size, void *src_tex_, int width, int height, TextureFormat format)
 {
     if (m_context == nullptr || src_tex_ == nullptr) { return Error::InvalidParameter; }
@@ -181,7 +232,7 @@ Error GraphicsDeviceD3D11::readTexture(void *dst, size_t dst_size, void *src_tex
         auto hr = m_context->Map(tex, 0, D3D11_MAP_READ, 0, &mapped);
         if (FAILED(hr)) {
             gdLogError("GraphicsDeviceD3D11::readTexture(): Map() failed.\n");
-            ret = Error::Unknown;
+            ret = TranslateReturnCode(hr);
         }
         else {
             auto *dst_pixels = (char*)dst;
@@ -239,11 +290,13 @@ Error GraphicsDeviceD3D11::writeTexture(void *dst_tex_, int width, int height, T
     int pitch = psize * width;
     const size_t num_pixels = src_size / psize;
 
+    Error ret = Error::OK;
     if (mappable) {
         D3D11_MAPPED_SUBRESOURCE mapped = { 0 };
         auto hr = m_context->Map(dst_tex, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
         if (FAILED(hr)) {
             gdLogError("GraphicsDeviceD3D11::writeTexture(): Map() failed.\n");
+            ret = TranslateReturnCode(hr);
         }
         else {
             auto *dst_pixels = (char*)mapped.pData;
@@ -278,7 +331,7 @@ Error GraphicsDeviceD3D11::writeTexture(void *dst_tex_, int width, int height, T
         box.back = 1;
         m_context->UpdateSubresource(dst_tex, 0, &box, src, pitch, 0);
     }
-    return Error::OK;
+    return ret;
 }
 
 
@@ -286,6 +339,13 @@ Error GraphicsDeviceD3D11::writeTexture(void *dst_tex_, int width, int height, T
 Error GraphicsDeviceD3D11::createBuffer(void **dst_buf, size_t size, BufferType type, const void *data, CPUAccessFlag flags)
 {
     return Error::NotAvailable;
+}
+
+void GraphicsDeviceD3D11::releaseBuffer(void *buf)
+{
+    if (buf) {
+        ((ID3D11Buffer*)buf)->Release();
+    }
 }
 
 ID3D11Buffer* GraphicsDeviceD3D11::getStagingBuffer(BufferType type, size_t size_required)

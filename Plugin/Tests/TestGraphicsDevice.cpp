@@ -8,7 +8,42 @@
 
 void TestImpl::testMain()
 {
+    gd::GraphicsDevice *dev = nullptr;
+    switch (getType()) {
+    case TestType::D3D9: dev = gd::CreateGraphicsDevice(gd::DeviceType::D3D9, getDevice()); break;
+    case TestType::D3D11: dev = gd::CreateGraphicsDevice(gd::DeviceType::D3D11, getDevice()); break;
+    case TestType::D3D12: dev = gd::CreateGraphicsDevice(gd::DeviceType::D3D12, getDevice()); break;
+    case TestType::OpenGL: dev = gd::CreateGraphicsDevice(gd::DeviceType::OpenGL, getDevice()); break;
+    case TestType::Vulkan: dev = gd::CreateGraphicsDevice(gd::DeviceType::Vulkan, getDevice()); break;
+    }
+    if (!dev) {
+        printf("TestImpl::testMain(): device is null\n");
+        return;
+    }
 
+#define ShowResult(exp) { gd::Error e = exp; printf(#exp ": %d\n", (int)e); }
+    {
+        const int width = 1024;
+        const int height = 1024;
+        gd::TextureFormat format = gd::TextureFormat::RGBAf32;
+
+        std::vector<float> data;
+        data.resize(1024 * 1024 * 4);
+        for (size_t i = 0; i < data.size(); ++i) {
+            data[i] = (float)i;
+        }
+
+        void *texture = nullptr;
+        void *rwtexture = nullptr;
+        ShowResult(dev->createTexture(&texture, width, height, format, nullptr, gd::CPUAccessFlag::None));
+        ShowResult(dev->createTexture(&rwtexture, width, height, format, nullptr, gd::CPUAccessFlag::RW));
+
+        ShowResult(dev->writeTexture(texture, width, height, format, data.data(), data.size() * sizeof(float)));
+        ShowResult(dev->writeTexture(rwtexture, width, height, format, data.data(), data.size() * sizeof(float)));
+
+        dev->releaseTexture(texture);
+        dev->releaseTexture(rwtexture);
+    }
 }
 
 

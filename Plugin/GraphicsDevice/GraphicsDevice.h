@@ -91,10 +91,12 @@ public:
     virtual void sync() = 0;
 
     virtual Error createTexture(void **dst_tex, int width, int height, TextureFormat format, const void *data, CPUAccessFlag flags) = 0;
+    virtual void releaseTexture(void *tex) = 0;
     virtual Error readTexture(void *dst, size_t dstsize, void *src_tex, int width, int height, TextureFormat format) = 0;
     virtual Error writeTexture(void *dst_tex, int width, int height, TextureFormat format, const void *src, size_t write_size) = 0;
 
     virtual Error createBuffer(void **dst_buf, size_t size, BufferType type, const void *data, CPUAccessFlag flags) = 0;
+    virtual void releaseBuffer(void *buf) = 0;
     virtual Error readBuffer(void *dst, const void *src_buf, size_t read_size, BufferType type) = 0;
     virtual Error writeBuffer(void *dst_buf, const void *src, size_t write_size, BufferType type) = 0;
 
