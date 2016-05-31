@@ -15,6 +15,9 @@
     <ClInclude Include="GraphicsDevice\pch.h">
       <Filter>GraphicsDevice</Filter>
     </ClInclude>
+    <ClInclude Include="GraphicsDevice\gdUnityPluginImpl.h">
+      <Filter>GraphicsDevice</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="GraphicsDevice\GraphicsDevice.cpp">
@@ -36,6 +39,9 @@
       <Filter>GraphicsDevice</Filter>
     </ClCompile>
     <ClCompile Include="GraphicsDevice\GraphicsDeviceVulkan.cpp">
+      <Filter>GraphicsDevice</Filter>
+    </ClCompile>
+    <ClCompile Include="GraphicsDevice\gdUnityPluginImpl.cpp">
       <Filter>GraphicsDevice</Filter>
     </ClCompile>
   </ItemGroup>

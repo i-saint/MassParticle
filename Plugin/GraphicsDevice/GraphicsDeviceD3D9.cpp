@@ -2,13 +2,16 @@
 #include "gdInternal.h"
 #include <d3d9.h>
 
+namespace gd {
+
 const int D3D9MaxStagingTextures = 32;
 
 class GraphicsDeviceD3D9 : public GraphicsDevice
 {
 public:
     GraphicsDeviceD3D9(void *device);
-    ~GraphicsDeviceD3D9();
+    ~GraphicsDeviceD3D9() override;
+    void release() override;
 
     void* getDevicePtr() override;
     DeviceType getDeviceType() override;
@@ -33,6 +36,7 @@ private:
 
 GraphicsDevice* CreateGraphicsDeviceD3D9(void *device)
 {
+    if (!device) { return nullptr; }
     return new GraphicsDeviceD3D9(device);
 }
 
@@ -52,8 +56,13 @@ GraphicsDeviceD3D9::~GraphicsDeviceD3D9()
     clearStagingTextures();
 }
 
+void GraphicsDeviceD3D9::release()
+{
+    delete this;
+}
+
 void* GraphicsDeviceD3D9::getDevicePtr() { return m_device; }
-GraphicsDevice::DeviceType GraphicsDeviceD3D9::getDeviceType() { return DeviceType::D3D9; }
+DeviceType GraphicsDeviceD3D9::getDeviceType() { return DeviceType::D3D9; }
 
 
 void GraphicsDeviceD3D9::clearStagingTextures()
@@ -67,9 +76,8 @@ void GraphicsDeviceD3D9::clearStagingTextures()
 
 
 
-static D3DFORMAT GetInternalFormatD3D9(GraphicsDevice::TextureFormat fmt)
+static D3DFORMAT GetInternalFormatD3D9(TextureFormat fmt)
 {
-    using TextureFormat = GraphicsDevice::TextureFormat;
     switch (fmt)
     {
     case TextureFormat::RGBAu8:   return D3DFMT_A8R8G8B8;
@@ -149,7 +157,7 @@ void GraphicsDeviceD3D9::sync()
     }
 }
 
-GraphicsDevice::Error GraphicsDeviceD3D9::readTexture(void *o_buf, size_t bufsize, void *tex_, int width, int height, TextureFormat format)
+Error GraphicsDeviceD3D9::readTexture(void *o_buf, size_t bufsize, void *tex_, int width, int height, TextureFormat format)
 {
     HRESULT hr;
     IDirect3DTexture9 *tex = (IDirect3DTexture9*)tex_;
@@ -207,7 +215,7 @@ GraphicsDevice::Error GraphicsDeviceD3D9::readTexture(void *o_buf, size_t bufsiz
     return ret;
 }
 
-GraphicsDevice::Error GraphicsDeviceD3D9::writeTexture(void *o_tex, int width, int height, TextureFormat format, const void *buf, size_t bufsize)
+Error GraphicsDeviceD3D9::writeTexture(void *o_tex, int width, int height, TextureFormat format, const void *buf, size_t bufsize)
 {
     int psize = GetTexelSize(format);
     int pitch = psize * width;
@@ -254,12 +262,14 @@ GraphicsDevice::Error GraphicsDeviceD3D9::writeTexture(void *o_tex, int width, i
 }
 
 
-GraphicsDevice::Error GraphicsDeviceD3D9::readBuffer(void *dst, const void *src_buf, size_t read_size, BufferType type)
+Error GraphicsDeviceD3D9::readBuffer(void *dst, const void *src_buf, size_t read_size, BufferType type)
 {
     return Error::NotAvailable;
 }
 
-GraphicsDevice::Error GraphicsDeviceD3D9::writeBuffer(void *dst_buf, const void *src, size_t write_size, BufferType type)
+Error GraphicsDeviceD3D9::writeBuffer(void *dst_buf, const void *src, size_t write_size, BufferType type)
 {
     return Error::NotAvailable;
 }
+
+} // namespace gd

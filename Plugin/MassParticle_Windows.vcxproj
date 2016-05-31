@@ -485,6 +485,7 @@ xcopy /Yq $(TargetPath) $(SolutionDir)..\MassParticle\Assets\Ist\Plugins\x86_64\
   <ItemGroup>
     <ClCompile Include="MassParticle\mpFoundation.cpp" />
     <ClCompile Include="MassParticle\MassParticle.cpp" />
+    <ClCompile Include="MassParticle\mpUnityPluginImpl.cpp" />
     <ClCompile Include="MassParticle\mpWorld.cpp" />
     <ClCompile Include="MassParticle\pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
@@ -494,7 +495,6 @@ xcopy /Yq $(TargetPath) $(SolutionDir)..\MassParticle\Assets\Ist\Plugins\x86_64\
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='MasterDLL|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='MasterLib|x64'">Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="MassParticle\UnityPluginImpl.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MassParticle\Concurrency.h" />

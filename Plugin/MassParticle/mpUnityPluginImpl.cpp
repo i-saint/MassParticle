@@ -1,12 +1,10 @@
 #include "pch.h"
 #include "mpInternal.h"
 #include "GraphicsDevice.h"
+#include "gdUnityPluginImpl.h"
 #include "PluginAPI/IUnityGraphics.h"
 
 #ifndef mpStaticLink
-
-void gdUnityPluginLoad(IUnityInterfaces* unityInterfaces);
-void gdUnityPluginUnload();
 
 static IUnityInterfaces* g_unity_interface;
 
@@ -14,13 +12,13 @@ extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API
 UnityPluginLoad(IUnityInterfaces* unityInterfaces)
 {
     g_unity_interface = g_unity_interface;
-    gdUnityPluginLoad(unityInterfaces);
+    gd::UnityPluginLoad(unityInterfaces);
 }
 
 extern "C" void UNITY_INTERFACE_EXPORT UNITY_INTERFACE_API
 UnityPluginUnload()
 {
-    gdUnityPluginUnload();
+    gd::UnityPluginUnload();
 }
 
 static void UNITY_INTERFACE_API UnityRenderEvent(int eventID)

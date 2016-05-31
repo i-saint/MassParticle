@@ -8,11 +8,15 @@
 #endif
 #include <GL/glew.h>
 
+namespace gd {
+
 class GraphicsDeviceOpenGL : public GraphicsDevice
 {
 public:
     GraphicsDeviceOpenGL();
-    ~GraphicsDeviceOpenGL();
+    ~GraphicsDeviceOpenGL() override;
+    void release() override;
+
     void* getDevicePtr() override;
     DeviceType getDeviceType() override;
     void sync() override;
@@ -32,7 +36,7 @@ GraphicsDevice* CreateGraphicsDeviceOpenGL()
 
 
 void* GraphicsDeviceOpenGL::getDevicePtr() { return nullptr; }
-GraphicsDevice::DeviceType GraphicsDeviceOpenGL::getDeviceType() { return DeviceType::OpenGL; }
+DeviceType GraphicsDeviceOpenGL::getDeviceType() { return DeviceType::OpenGL; }
 
 GraphicsDeviceOpenGL::GraphicsDeviceOpenGL()
 {
@@ -43,10 +47,14 @@ GraphicsDeviceOpenGL::~GraphicsDeviceOpenGL()
 {
 }
 
-
-static void GetInternalFormatOpenGL(GraphicsDevice::TextureFormat format, GLenum &o_fmt, GLenum &o_type)
+void GraphicsDeviceOpenGL::release()
 {
-    using TextureFormat = GraphicsDevice::TextureFormat;
+    delete this;
+}
+
+
+static void GetInternalFormatOpenGL(TextureFormat format, GLenum &o_fmt, GLenum &o_type)
+{
     switch (format)
     {
     case TextureFormat::RGBAu8:   o_fmt = GL_RGBA; o_type = GL_UNSIGNED_BYTE; return;
@@ -71,7 +79,7 @@ void GraphicsDeviceOpenGL::sync()
     glFinish();
 }
 
-GraphicsDevice::Error GraphicsDeviceOpenGL::readTexture(void *o_buf, size_t, void *tex, int, int, TextureFormat format)
+Error GraphicsDeviceOpenGL::readTexture(void *o_buf, size_t, void *tex, int, int, TextureFormat format)
 {
     GLenum internal_format = 0;
     GLenum internal_type = 0;
@@ -87,7 +95,7 @@ GraphicsDevice::Error GraphicsDeviceOpenGL::readTexture(void *o_buf, size_t, voi
     return Error::OK;
 }
 
-GraphicsDevice::Error GraphicsDeviceOpenGL::writeTexture(void *o_tex, int width, int height, TextureFormat format, const void *buf, size_t)
+Error GraphicsDeviceOpenGL::writeTexture(void *o_tex, int width, int height, TextureFormat format, const void *buf, size_t)
 {
     GLenum internal_format = 0;
     GLenum internal_type = 0;
@@ -103,12 +111,15 @@ GraphicsDevice::Error GraphicsDeviceOpenGL::writeTexture(void *o_tex, int width,
 }
 
 
-GraphicsDevice::Error GraphicsDeviceOpenGL::readBuffer(void *dst, const void *src_buf, size_t read_size, BufferType type)
+Error GraphicsDeviceOpenGL::readBuffer(void *dst, const void *src_buf, size_t read_size, BufferType type)
 {
     return Error::NotAvailable;
 }
 
-GraphicsDevice::Error GraphicsDeviceOpenGL::writeBuffer(void *dst_buf, const void *src, size_t write_size, BufferType type)
+Error GraphicsDeviceOpenGL::writeBuffer(void *dst_buf, const void *src, size_t write_size, BufferType type)
 {
     return Error::NotAvailable;
 }
+
+} // namespace gd
+

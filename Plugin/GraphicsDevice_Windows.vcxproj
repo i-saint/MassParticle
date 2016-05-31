@@ -20,10 +20,12 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="GraphicsDevice\gdInternal.h" />
+    <ClInclude Include="GraphicsDevice\gdUnityPluginImpl.h" />
     <ClInclude Include="GraphicsDevice\GraphicsDevice.h" />
     <ClInclude Include="GraphicsDevice\pch.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="GraphicsDevice\gdUnityPluginImpl.cpp" />
     <ClCompile Include="GraphicsDevice\GraphicsDevice.cpp" />
     <ClCompile Include="GraphicsDevice\GraphicsDeviceD3D11.cpp" />
     <ClCompile Include="GraphicsDevice\GraphicsDeviceD3D12.cpp" />

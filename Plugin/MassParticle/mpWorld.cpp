@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "mpInternal.h"
 #include "GraphicsDevice.h"
+#include "gdUnityPluginImpl.h"
 #include "mpCore_ispc.h"
 #include "mpWorld.h"
 
@@ -953,11 +954,11 @@ int mpWorld::updateDataTexture(void *tex, int width, int height)
 {
     std::unique_lock<std::mutex> lock(m_mutex);
 
-    GraphicsDevice *gd = GetGraphicsDevice();
+    auto *gd = gd::GetGraphicsDevice();
     if (gd && !m_particles_gpu.empty()) {
         int num_needs_copy = std::max<int>(m_num_particles_gpu, m_num_particles_gpu_prev);
         m_num_particles_gpu_prev = m_num_particles_gpu;
-        gd->writeTexture(tex, width, height, GraphicsDevice::TextureFormat::RGBAf32,
+        gd->writeTexture(tex, width, height, gd::TextureFormat::RGBAf32,
             m_particles_gpu.data(), sizeof(mpParticle)*m_kparams.max_particles);
     }
     return m_num_particles_gpu;

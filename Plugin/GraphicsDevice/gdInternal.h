@@ -15,6 +15,18 @@
     #define gdSupportOpenGL
 #endif
 
+#include "GraphicsDevice.h"
+
+namespace gd {
+
+class GraphicsDevice;
+GraphicsDevice* CreateGraphicsDeviceD3D9(void *device);
+GraphicsDevice* CreateGraphicsDeviceD3D11(void *device);
+GraphicsDevice* CreateGraphicsDeviceD3D12(void *device);
+GraphicsDevice* CreateGraphicsDeviceOpenGL();
+GraphicsDevice* CreateGraphicsDeviceVulkan();
+
+
 // i.e:
 //  roundup<16>(31) : 32
 //  roundup<16>(32) : 32
@@ -35,4 +47,4 @@ inline IntType ceildiv(IntType a, IntType b)
     return a / b + (a%b == 0 ? 0 : 1);
 }
 
-#include "GraphicsDevice.h"
+} // namespace gd

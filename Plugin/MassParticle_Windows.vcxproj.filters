@@ -13,7 +13,7 @@
     <ClCompile Include="MassParticle\pch.cpp">
       <Filter>MassParticle</Filter>
     </ClCompile>
-    <ClCompile Include="MassParticle\UnityPluginImpl.cpp">
+    <ClCompile Include="MassParticle\mpUnityPluginImpl.cpp">
       <Filter>MassParticle</Filter>
     </ClCompile>
   </ItemGroup>

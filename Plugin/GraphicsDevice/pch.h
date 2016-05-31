@@ -8,3 +8,11 @@
 #include <functional>
 #include <thread>
 #include <mutex>
+
+#ifdef _WIN32
+    #include <d3d9.h>
+    #include <d3d11.h>
+    #include <d3d12.h>
+    #include <GL/glew.h>
+    #include <vulkan/vulkan.h>
+#endif

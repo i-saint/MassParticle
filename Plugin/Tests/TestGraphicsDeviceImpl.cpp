@@ -355,13 +355,13 @@ void TestImplVulkan::onInit(void *hwnd)
         vkCreateInstance(&instance_info, nullptr, &m_instance);
     }
 
-    // initialize physical device
+    // get physical device
     {
-        uint32_t gpu_count = 0;
-        vkEnumeratePhysicalDevices(m_instance, &gpu_count, nullptr);
+        uint32_t num_gpus = 0;
+        vkEnumeratePhysicalDevices(m_instance, &num_gpus, nullptr);
 
-        std::vector<VkPhysicalDevice> physical_devices(gpu_count);
-        err = vkEnumeratePhysicalDevices(m_instance, &gpu_count, physical_devices.data());
+        std::vector<VkPhysicalDevice> physical_devices(num_gpus);
+        err = vkEnumeratePhysicalDevices(m_instance, &num_gpus, physical_devices.data());
 
         m_physical_device = physical_devices[0];
     }

@@ -7,11 +7,15 @@
 #include <vulkan/vulkan.h>
 #pragma comment(lib, "vulkan-1.lib")
 
+namespace gd {
+
 class GraphicsDeviceVulkan : public GraphicsDevice
 {
 public:
     GraphicsDeviceVulkan();
-    ~GraphicsDeviceVulkan();
+    ~GraphicsDeviceVulkan() override;
+    void release() override;
+
     void* getDevicePtr() override;
     DeviceType getDeviceType() override;
     void sync() override;
@@ -40,12 +44,17 @@ GraphicsDeviceVulkan::~GraphicsDeviceVulkan()
 {
 }
 
+void GraphicsDeviceVulkan::release()
+{
+    delete this;
+}
+
 void* GraphicsDeviceVulkan::getDevicePtr()
 {
     return nullptr;
 }
 
-GraphicsDevice::DeviceType GraphicsDeviceVulkan::getDeviceType()
+DeviceType GraphicsDeviceVulkan::getDeviceType()
 {
     return DeviceType::Vulkan;
 }
@@ -56,23 +65,26 @@ void GraphicsDeviceVulkan::sync()
 }
 
 
-GraphicsDevice::Error GraphicsDeviceVulkan::readTexture(void *o_buf, size_t bufsize, void *tex, int width, int height, TextureFormat format)
+Error GraphicsDeviceVulkan::readTexture(void *o_buf, size_t bufsize, void *tex, int width, int height, TextureFormat format)
 {
     return Error::NotAvailable;
 }
 
-GraphicsDevice::Error GraphicsDeviceVulkan::writeTexture(void *o_tex, int width, int height, TextureFormat format, const void *buf, size_t bufsize)
+Error GraphicsDeviceVulkan::writeTexture(void *o_tex, int width, int height, TextureFormat format, const void *buf, size_t bufsize)
 {
     return Error::NotAvailable;
 }
 
 
-GraphicsDevice::Error GraphicsDeviceVulkan::readBuffer(void *dst, const void *src_buf, size_t read_size, BufferType type)
+Error GraphicsDeviceVulkan::readBuffer(void *dst, const void *src_buf, size_t read_size, BufferType type)
 {
     return Error::NotAvailable;
 }
 
-GraphicsDevice::Error GraphicsDeviceVulkan::writeBuffer(void *dst_buf, const void *src, size_t write_size, BufferType type)
+Error GraphicsDeviceVulkan::writeBuffer(void *dst_buf, const void *src, size_t write_size, BufferType type)
 {
     return Error::NotAvailable;
 }
+
+} // namespace gd
+

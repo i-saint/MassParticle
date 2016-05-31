@@ -2,11 +2,15 @@
 #include "gdInternal.h"
 #include <d3d12.h>
 
+namespace gd {
+
 class GraphicsDeviceD3D12 : public GraphicsDevice
 {
 public:
     GraphicsDeviceD3D12(void *device);
     ~GraphicsDeviceD3D12();
+    void release() override;
+
     void* getDevicePtr() override;
     DeviceType getDeviceType() override;
     void sync() override;
@@ -24,6 +28,7 @@ private:
 
 GraphicsDevice* CreateGraphicsDeviceD3D12(void *device)
 {
+    if (!device) { return nullptr; }
     return new GraphicsDeviceD3D12(device);
 }
 
@@ -37,12 +42,17 @@ GraphicsDeviceD3D12::~GraphicsDeviceD3D12()
 {
 }
 
+void GraphicsDeviceD3D12::release()
+{
+    delete this;
+}
+
 void* GraphicsDeviceD3D12::getDevicePtr()
 {
     return nullptr;
 }
 
-GraphicsDevice::DeviceType GraphicsDeviceD3D12::getDeviceType()
+DeviceType GraphicsDeviceD3D12::getDeviceType()
 {
     return DeviceType::D3D12;
 }
@@ -53,25 +63,27 @@ void GraphicsDeviceD3D12::sync()
 }
 
 
-GraphicsDevice::Error GraphicsDeviceD3D12::readTexture(void *dst, size_t dstsize, void *src_tex_, int width, int height, TextureFormat format)
+Error GraphicsDeviceD3D12::readTexture(void *dst, size_t dstsize, void *src_tex_, int width, int height, TextureFormat format)
 {
     auto *src_tex = (ID3D12Resource*)src_tex_;
     return Error::NotAvailable;
 }
 
-GraphicsDevice::Error GraphicsDeviceD3D12::writeTexture(void *dst_tex_, int width, int height, TextureFormat format, const void *src, size_t srcsize)
+Error GraphicsDeviceD3D12::writeTexture(void *dst_tex_, int width, int height, TextureFormat format, const void *src, size_t srcsize)
 {
     auto *dst_tex = (ID3D12Resource*)dst_tex_;
     return Error::NotAvailable;
 }
 
 
-GraphicsDevice::Error GraphicsDeviceD3D12::readBuffer(void *dst, const void *src_buf, size_t read_size, BufferType type)
+Error GraphicsDeviceD3D12::readBuffer(void *dst, const void *src_buf, size_t read_size, BufferType type)
 {
     return Error::NotAvailable;
 }
 
-GraphicsDevice::Error GraphicsDeviceD3D12::writeBuffer(void *dst_buf, const void *src, size_t write_size, BufferType type)
+Error GraphicsDeviceD3D12::writeBuffer(void *dst_buf, const void *src, size_t write_size, BufferType type)
 {
     return Error::NotAvailable;
 }
+
+} // namespace gd

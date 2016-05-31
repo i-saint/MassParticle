@@ -1,13 +1,18 @@
 ﻿#include "pch.h"
 #include "gdInternal.h"
 #include <d3d11.h>
+
+namespace gd {
+
 const int D3D11MaxStagingTextures = 32;
 
 class GraphicsDeviceD3D11 : public GraphicsDevice
 {
 public:
     GraphicsDeviceD3D11(void *device);
-    ~GraphicsDeviceD3D11();
+    ~GraphicsDeviceD3D11() override;
+    void release() override;
+
     void* getDevicePtr() override;
     DeviceType getDeviceType() override;
     void sync() override;
@@ -35,6 +40,7 @@ private:
 
 GraphicsDevice* CreateGraphicsDeviceD3D11(void *device)
 {
+    if (!device) { return nullptr; }
     return new GraphicsDeviceD3D11(device);
 }
 
@@ -66,6 +72,11 @@ GraphicsDeviceD3D11::~GraphicsDeviceD3D11()
     }
 }
 
+void GraphicsDeviceD3D11::release()
+{
+    delete this;
+}
+
 void GraphicsDeviceD3D11::clearStagingTextures()
 {
     for (auto& pair : m_staging_textures) { pair.second->Release(); }
@@ -83,7 +94,7 @@ void GraphicsDeviceD3D11::clearStagingBuffers()
 }
 
 void* GraphicsDeviceD3D11::getDevicePtr() { return m_device; }
-GraphicsDevice::DeviceType GraphicsDeviceD3D11::getDeviceType() { return DeviceType::D3D11; }
+DeviceType GraphicsDeviceD3D11::getDeviceType() { return DeviceType::D3D11; }
 
 void GraphicsDeviceD3D11::sync()
 {
@@ -94,9 +105,8 @@ void GraphicsDeviceD3D11::sync()
 }
 
 
-static DXGI_FORMAT GetInternalFormatD3D11(GraphicsDevice::TextureFormat fmt)
+static DXGI_FORMAT GetInternalFormatD3D11(TextureFormat fmt)
 {
-    using TextureFormat = GraphicsDevice::TextureFormat;
     switch (fmt)
     {
     case TextureFormat::RGBAu8:  return DXGI_FORMAT_R8G8B8A8_TYPELESS;
@@ -145,7 +155,7 @@ ID3D11Texture2D* GraphicsDeviceD3D11::getStagingTexture(int width, int height, T
     return ret;
 }
 
-GraphicsDevice::Error GraphicsDeviceD3D11::readTexture(void *dst, size_t dst_size, void *src_tex_, int width, int height, TextureFormat format)
+Error GraphicsDeviceD3D11::readTexture(void *dst, size_t dst_size, void *src_tex_, int width, int height, TextureFormat format)
 {
     if (m_context == nullptr || src_tex_ == nullptr) { return Error::InvalidParameter; }
     int psize = GetTexelSize(format);
@@ -207,7 +217,7 @@ GraphicsDevice::Error GraphicsDeviceD3D11::readTexture(void *dst, size_t dst_siz
     return ret;
 }
 
-GraphicsDevice::Error GraphicsDeviceD3D11::writeTexture(void *dst_tex_, int width, int height, TextureFormat format, const void *src, size_t src_size)
+Error GraphicsDeviceD3D11::writeTexture(void *dst_tex_, int width, int height, TextureFormat format, const void *src, size_t src_size)
 {
     if (!dst_tex_ || !src) { return Error::InvalidParameter; }
     auto *dst_tex = (ID3D11Texture2D*)dst_tex_;
@@ -261,7 +271,7 @@ GraphicsDevice::Error GraphicsDeviceD3D11::writeTexture(void *dst_tex_, int widt
         box.back = 1;
         m_context->UpdateSubresource(dst_tex, 0, &box, src, pitch, 0);
     }
-    return GraphicsDevice::Error::OK;
+    return Error::OK;
 }
 
 
@@ -293,16 +303,16 @@ ID3D11Buffer* GraphicsDeviceD3D11::getStagingBuffer(BufferType type, size_t size
         desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE | D3D11_CPU_ACCESS_READ;
         desc.Usage = D3D11_USAGE_STAGING;
         switch (type) {
-        case GraphicsDevice::BufferType::Index:
+        case BufferType::Index:
             desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
             break;
-        case GraphicsDevice::BufferType::Vertex:
+        case BufferType::Vertex:
             desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
             break;
-        case GraphicsDevice::BufferType::Constant:
+        case BufferType::Constant:
             desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
             break;
-        case GraphicsDevice::BufferType::Compute:
+        case BufferType::Compute:
             desc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
             break;
         }
@@ -314,7 +324,7 @@ ID3D11Buffer* GraphicsDeviceD3D11::getStagingBuffer(BufferType type, size_t size
     return staging;
 }
 
-GraphicsDevice::Error GraphicsDeviceD3D11::readBuffer(void *dst, const void *src_buf_, size_t read_size, BufferType type)
+Error GraphicsDeviceD3D11::readBuffer(void *dst, const void *src_buf_, size_t read_size, BufferType type)
 {
     if (read_size == 0) { return Error::OK; }
     if (!dst || !src_buf_) { return Error::InvalidParameter; }
@@ -357,7 +367,7 @@ GraphicsDevice::Error GraphicsDeviceD3D11::readBuffer(void *dst, const void *src
     return ret;
 }
 
-GraphicsDevice::Error GraphicsDeviceD3D11::writeBuffer(void *dst_buf_, const void *src, size_t write_size, BufferType type)
+Error GraphicsDeviceD3D11::writeBuffer(void *dst_buf_, const void *src, size_t write_size, BufferType type)
 {
     if (write_size == 0) { return Error::OK; }
     if (!dst_buf_ || !src) { return Error::InvalidParameter; }
@@ -396,3 +406,5 @@ GraphicsDevice::Error GraphicsDeviceD3D11::writeBuffer(void *dst_buf_, const voi
 
     return ret;
 }
+
+} // namespace gd
