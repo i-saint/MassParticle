@@ -47,4 +47,6 @@ inline IntType ceildiv(IntType a, IntType b)
     return a / b + (a%b == 0 ? 0 : 1);
 }
 
+static inline bool operator&(CPUAccessFlag a, CPUAccessFlag b) { return ((int)a & (int)b) != 0; }
+
 } // namespace gd

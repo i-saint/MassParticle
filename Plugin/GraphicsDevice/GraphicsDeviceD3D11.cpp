@@ -159,8 +159,6 @@ ID3D11Texture2D* GraphicsDeviceD3D11::getStagingTexture(int width, int height, T
     return ret;
 }
 
-static inline bool operator&(CPUAccessFlag a, CPUAccessFlag b) { return ((int)a & (int)b) != 0; }
-
 static Error TranslateReturnCode(HRESULT hr)
 {
     switch (hr) {
