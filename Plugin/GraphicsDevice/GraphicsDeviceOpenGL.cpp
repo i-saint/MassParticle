@@ -78,6 +78,19 @@ static void GetGLTextureType(TextureFormat format, GLenum &glfmt, GLenum &gltype
     }
 }
 
+static Error GetGLError()
+{
+    auto e = glGetError();
+    switch (e) {
+    case GL_NO_ERROR: return Error::OK;
+    case GL_OUT_OF_MEMORY: return Error::OutOfMemory;
+    case GL_INVALID_ENUM: return Error::InvalidParameter;
+    case GL_INVALID_VALUE: return Error::InvalidParameter;
+    case GL_INVALID_OPERATION: return Error::InvalidOperation;
+    }
+    return Error::Unknown;
+}
+
 void GraphicsDeviceOpenGL::sync()
 {
     glFinish();
@@ -90,13 +103,16 @@ Error GraphicsDeviceOpenGL::createTexture(void **dst_tex, int width, int height,
     GLenum gl_itype = 0;
     GetGLTextureType(format, gl_format, gl_type, gl_itype);
 
+    auto ret = Error::OK;
     GLuint tex = 0;
     glGenTextures(1, &tex);
     glBindTexture(GL_TEXTURE_2D, tex);
     glTexImage2D(GL_TEXTURE_2D, 0, gl_itype, width, height, 0, gl_format, gl_type, data);
+    ret = GetGLError();
     glBindTexture(GL_TEXTURE_2D, 0);
+    *(GLuint*)dst_tex = tex;
 
-    return Error::OK;
+    return ret;
 }
 
 void GraphicsDeviceOpenGL::releaseTexture(void *tex_)
@@ -117,10 +133,13 @@ Error GraphicsDeviceOpenGL::readTexture(void *o_buf, size_t, void *tex, int, int
     // glGetTextureImage((GLuint)(size_t)tex, 0, internal_format, internal_type, bufsize, o_buf);
 
     sync();
+
+    auto ret = Error::OK;
     glBindTexture(GL_TEXTURE_2D, (GLuint)(size_t)tex);
     glGetTexImage(GL_TEXTURE_2D, 0, gl_format, gl_type, o_buf);
+    ret = GetGLError();
     glBindTexture(GL_TEXTURE_2D, 0);
-    return Error::OK;
+    return ret;
 }
 
 Error GraphicsDeviceOpenGL::writeTexture(void *o_tex, int width, int height, TextureFormat format, const void *buf, size_t)
@@ -133,10 +152,12 @@ Error GraphicsDeviceOpenGL::writeTexture(void *o_tex, int width, int height, Tex
     // available OpenGL 4.5 or later
     // glTextureSubImage2D((GLuint)(size_t)o_tex, 0, 0, 0, width, height, internal_format, internal_type, buf);
 
+    auto ret = Error::OK;
     glBindTexture(GL_TEXTURE_2D, (GLuint)(size_t)o_tex);
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, gl_format, gl_type, buf);
+    ret = GetGLError();
     glBindTexture(GL_TEXTURE_2D, 0);
-    return Error::OK;
+    return ret;
 }
 
 
@@ -171,14 +192,16 @@ Error GraphicsDeviceOpenGL::createBuffer(void **dst_buf, size_t size, BufferType
         glusage = GL_STREAM_DRAW;
     }
 
+    auto ret = Error::OK;
     GLuint buf = 0;
     glGenBuffers(1, &buf);
     glBindBuffer(gltype, buf);
     glBufferData(gltype, size, data, glusage);
+    ret = GetGLError();
     glBindBuffer(gltype, 0);
 
     *(GLuint*)dst_buf = buf;
-    return Error::OK;
+    return ret;
 }
 
 void GraphicsDeviceOpenGL::releaseBuffer(void *buf_)
@@ -200,7 +223,7 @@ Error GraphicsDeviceOpenGL::readBuffer(void *dst, const void *src_buf, size_t re
         glUnmapBuffer(gltype);
     }
     else {
-        ret = Error::Unknown;
+        ret = GetGLError();
     }
     glBindBuffer(gltype, 0);
 
@@ -220,7 +243,7 @@ Error GraphicsDeviceOpenGL::writeBuffer(void *dst_buf, const void *src, size_t w
         glUnmapBuffer(gltype);
     }
     else {
-        ret = Error::Unknown;
+        ret = GetGLError();
     }
     glBindBuffer(gltype, 0);
 

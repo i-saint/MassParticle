@@ -19,8 +19,8 @@ enum class Error
     Unknown,
     NotAvailable,
     InvalidParameter,
+    InvalidOperation,
     OutOfMemory,
-    InaccesibleFromCPU,
 };
 
 enum class TextureFormat

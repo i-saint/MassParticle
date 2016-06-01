@@ -29,7 +29,7 @@ void PrintResult(R r, int line, const char *exp)
     printf("%s %d: %s\n", t, line, exp);
 #ifdef _WIN32
     // reset text color
-    SetConsoleTextAttribute(console, 0);
+    SetConsoleTextAttribute(console, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
 #endif
 }
 
@@ -97,6 +97,7 @@ void TestImpl::testMain()
             Test(data.back() == ret.back());
             dev->releaseTexture(wtexture);
         }
+        printf("\n");
         {
             void *rwtexture = nullptr;
             std::vector<float4> ret(num_texels);
@@ -106,7 +107,6 @@ void TestImpl::testMain()
             Test(data.back() == ret.back());
             dev->releaseTexture(rwtexture);
         }
-        printf("\n");
     }
 
     printf("\n");
