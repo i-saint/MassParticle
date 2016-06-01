@@ -10,6 +10,7 @@
 #include <mutex>
 
 #ifdef _WIN32
+    #define GLEW_STATIC
     #include <d3d9.h>
     #include <d3d11.h>
     #include <d3d12.h>

@@ -52,10 +52,12 @@ GraphicsDevice* CreateGraphicsDevice(DeviceType type, void *device_ptr)
 #ifdef gdSupportOpenGL
     case DeviceType::OpenGL:
         g_gfx_device = CreateGraphicsDeviceOpenGL(device_ptr);
+        break;
 #endif
 #ifdef gdSupportVulkan
     case DeviceType::Vulkan:
         g_gfx_device = CreateGraphicsDeviceVulkan(device_ptr);
+        break;
 #endif
     }
     return g_gfx_device;

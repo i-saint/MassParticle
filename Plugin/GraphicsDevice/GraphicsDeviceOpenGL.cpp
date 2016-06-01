@@ -154,7 +154,7 @@ static GLenum GetGLBufferType(BufferType type)
         gltype = GL_UNIFORM_BUFFER;
         break;
     case BufferType::Compute:
-        gltype = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
+        gltype = GL_SHADER_STORAGE_BUFFER;
         break;
     }
     return gltype;
