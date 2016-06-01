@@ -5,9 +5,36 @@
 #include "TestGraphicsDevice.h"
 #include "../GraphicsDevice/GraphicsDevice.h"
 
-#define Test(exp) { gd::Error e = exp; printf("%d: " #exp "\n", (int)e); }
-
 struct float4 { float x, y, z, w; };
+static inline bool operator==(const float4& a, const float4& b) { return memcmp(&a, &b, sizeof(float4)) == 0; }
+
+const char* TranslateResult(gd::Error v) {
+    return v == gd::Error::OK ? "ok" : "ng";
+}
+const char* TranslateResult(bool v) {
+    return v ? "ok" : "ng";
+}
+
+
+template<class R>
+void PrintResult(R r, int line, const char *exp)
+{
+    auto t = TranslateResult(r);
+
+#ifdef _WIN32
+    // set text color
+    auto console = GetStdHandle(STD_OUTPUT_HANDLE);
+    SetConsoleTextAttribute(console, t[0] == 'o' ? FOREGROUND_GREEN : FOREGROUND_RED);
+#endif
+    printf("%s %d: %s\n", t, line, exp);
+#ifdef _WIN32
+    // reset text color
+    SetConsoleTextAttribute(console, 0);
+#endif
+}
+
+#define Test(exp) PrintResult(exp, __LINE__, #exp)
+
 
 void TestImpl::testMain()
 {
@@ -31,11 +58,9 @@ void TestImpl::testMain()
         const int data_size = width * height * 16;
         gd::TextureFormat format = gd::TextureFormat::RGBAf32;
 
-        std::vector<float4> data, ret, wret, rwret;
+        std::vector<float4> data, ret;
         data.resize(num_texels);
         ret.resize(num_texels);
-        wret.resize(num_texels);
-        rwret.resize(num_texels);
 
         for (size_t i = 0; i < data.size(); ++i) {
             float f = (float)i;
@@ -43,23 +68,38 @@ void TestImpl::testMain()
         }
 
         void *texture = nullptr;
+        void *rtexture = nullptr;
         void *wtexture = nullptr;
         void *rwtexture = nullptr;
 
         Test(dev->createTexture(&texture, width, height, format, nullptr, gd::CPUAccessFlag::None));
-        Test(dev->createTexture(&wtexture, width, height, format, nullptr, gd::CPUAccessFlag::W));
-        Test(dev->createTexture(&rwtexture, width, height, format, nullptr, gd::CPUAccessFlag::RW));
-
         Test(dev->writeTexture(texture, width, height, format, data.data(), data_size));
-        Test(dev->writeTexture(wtexture, width, height, format, data.data(), data_size));
-        Test(dev->writeTexture(rwtexture, width, height, format, data.data(), data_size));
-
         Test(dev->readTexture(ret.data(), data_size, texture, width, height, format));
-        Test(dev->readTexture(wret.data(), data_size, wtexture, width, height, format));
-        Test(dev->readTexture(rwret.data(), data_size, rwtexture, width, height, format));
-
+        Test(data.back() == ret.back());
         dev->releaseTexture(texture);
+
+        printf("\n");
+
+        Test(dev->createTexture(&rtexture, width, height, format, nullptr, gd::CPUAccessFlag::R));
+        Test(dev->writeTexture(rtexture, width, height, format, data.data(), data_size));
+        Test(dev->readTexture(ret.data(), data_size, rtexture, width, height, format));
+        Test(data.back() == ret.back());
+        dev->releaseTexture(rtexture);
+
+        printf("\n");
+
+        Test(dev->createTexture(&wtexture, width, height, format, nullptr, gd::CPUAccessFlag::W));
+        Test(dev->writeTexture(wtexture, width, height, format, data.data(), data_size));
+        Test(dev->readTexture(ret.data(), data_size, wtexture, width, height, format));
+        Test(data.back() == ret.back());
         dev->releaseTexture(wtexture);
+
+        printf("\n");
+
+        Test(dev->createTexture(&rwtexture, width, height, format, nullptr, gd::CPUAccessFlag::RW));
+        Test(dev->writeTexture(rwtexture, width, height, format, data.data(), data_size));
+        Test(dev->readTexture(ret.data(), data_size, rwtexture, width, height, format));
+        Test(data.back() == ret.back());
         dev->releaseTexture(rwtexture);
     }
 }
