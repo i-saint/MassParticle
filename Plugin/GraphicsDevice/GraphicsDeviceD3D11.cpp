@@ -339,49 +339,32 @@ Error GraphicsDeviceD3D11::writeTexture(void *dst_tex_, int width, int height, T
 
 
 
-ID3D11Buffer* GraphicsDeviceD3D11::getStagingBuffer(BufferType type, size_t size_required)
+ID3D11Buffer* GraphicsDeviceD3D11::getStagingBuffer(BufferType type, size_t size)
 {
-    size_t size = 1024 * 1024;
-    while (size < size_required) {
-        size *= 2;
-    }
-
     auto& staging = m_staging_buffers[(int)type];
     size_t current_size = 0;
     if (staging) {
-        CD3D11_BUFFER_DESC desc;
+        D3D11_BUFFER_DESC desc;
         staging->GetDesc(&desc);
         current_size = desc.ByteWidth;
     }
 
 
-    if (size > current_size) {
+    if (current_size != size) {
         if (staging) {
             staging->Release();
             staging = nullptr;
         }
-
-        CD3D11_BUFFER_DESC desc;
+        D3D11_BUFFER_DESC desc = { 0 };
         desc.ByteWidth = (UINT)size;
         desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE | D3D11_CPU_ACCESS_READ;
         desc.Usage = D3D11_USAGE_STAGING;
-        switch (type) {
-        case BufferType::Index:
-            desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
-            break;
-        case BufferType::Vertex:
-            desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-            break;
-        case BufferType::Constant:
-            desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-            break;
-        case BufferType::Compute:
-            desc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
-            break;
-        }
+        desc.BindFlags = 0;
+
         HRESULT hr = m_device->CreateBuffer(&desc, nullptr, &staging);
         if (FAILED(hr)) {
             gdLogError("GraphicsDeviceD3D11::findOrCreateStagingBuffer(): CreateBuffer() failed!\n");
+            return nullptr;
         }
     }
     return staging;
@@ -389,7 +372,7 @@ ID3D11Buffer* GraphicsDeviceD3D11::getStagingBuffer(BufferType type, size_t size
 
 Error GraphicsDeviceD3D11::createBuffer(void **dst_buf, size_t size, BufferType type, const void *data, CPUAccessFlag flags)
 {
-    CD3D11_BUFFER_DESC desc;
+    D3D11_BUFFER_DESC desc = { 0 };
     desc.ByteWidth = (UINT)size;
     desc.Usage = D3D11_USAGE_DEFAULT;
 
@@ -416,6 +399,7 @@ Error GraphicsDeviceD3D11::createBuffer(void **dst_buf, size_t size, BufferType 
     if (flags & CPUAccessFlag::R) {
         desc.Usage = D3D11_USAGE_STAGING;
         desc.CPUAccessFlags |= D3D11_CPU_ACCESS_READ;
+        desc.BindFlags = 0;
     }
 
     ID3D11Buffer *ret = nullptr;
@@ -484,11 +468,10 @@ Error GraphicsDeviceD3D11::writeBuffer(void *dst_buf_, const void *src, size_t w
 
     auto *dst_buf = (ID3D11Buffer*)dst_buf_;
     bool mappable = false;
-    {
-        D3D11_BUFFER_DESC desc;
-        dst_buf->GetDesc(&desc);
-        mappable = (desc.CPUAccessFlags & D3D11_CPU_ACCESS_WRITE) != 0;
-    }
+
+    D3D11_BUFFER_DESC desc = { 0 };
+    dst_buf->GetDesc(&desc);
+    mappable = (desc.CPUAccessFlags & D3D11_CPU_ACCESS_WRITE) != 0;
 
     Error ret = Error::OK;
     if (mappable) {

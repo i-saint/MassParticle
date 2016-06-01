@@ -51,56 +51,121 @@ void TestImpl::testMain()
         return;
     }
 
+    // texture read / write texts
+    printf("texture read / write texts\n");
     {
         const int width = 1024;
         const int height = 1024;
         const int num_texels = width * height;
-        const int data_size = width * height * 16;
+        const int data_size = width * height * sizeof(float4);
         gd::TextureFormat format = gd::TextureFormat::RGBAf32;
 
-        std::vector<float4> data, ret;
+        std::vector<float4> data;
         data.resize(num_texels);
-        ret.resize(num_texels);
 
         for (size_t i = 0; i < data.size(); ++i) {
             float f = (float)i;
             data[i] = { f + 0.0f, f + 0.2f, f + 0.4f, f + 0.8f };
         }
 
-        void *texture = nullptr;
-        void *rtexture = nullptr;
-        void *wtexture = nullptr;
-        void *rwtexture = nullptr;
-
-        Test(dev->createTexture(&texture, width, height, format, nullptr, gd::CPUAccessFlag::None));
-        Test(dev->writeTexture(texture, width, height, format, data.data(), data_size));
-        Test(dev->readTexture(ret.data(), data_size, texture, width, height, format));
-        Test(data.back() == ret.back());
-        dev->releaseTexture(texture);
-
+        {
+            void *texture = nullptr;
+            std::vector<float4> ret(num_texels);
+            Test(dev->createTexture(&texture, width, height, format, nullptr, gd::CPUAccessFlag::None));
+            Test(dev->writeTexture(texture, width, height, format, data.data(), data_size));
+            Test(dev->readTexture(ret.data(), data_size, texture, width, height, format));
+            Test(data.back() == ret.back());
+            dev->releaseTexture(texture);
+        }
         printf("\n");
-
-        Test(dev->createTexture(&rtexture, width, height, format, nullptr, gd::CPUAccessFlag::R));
-        Test(dev->writeTexture(rtexture, width, height, format, data.data(), data_size));
-        Test(dev->readTexture(ret.data(), data_size, rtexture, width, height, format));
-        Test(data.back() == ret.back());
-        dev->releaseTexture(rtexture);
-
+        {
+            void *rtexture = nullptr;
+            std::vector<float4> ret(num_texels);
+            Test(dev->createTexture(&rtexture, width, height, format, nullptr, gd::CPUAccessFlag::R));
+            Test(dev->writeTexture(rtexture, width, height, format, data.data(), data_size));
+            Test(dev->readTexture(ret.data(), data_size, rtexture, width, height, format));
+            Test(data.back() == ret.back());
+            dev->releaseTexture(rtexture);
+        }
         printf("\n");
-
-        Test(dev->createTexture(&wtexture, width, height, format, nullptr, gd::CPUAccessFlag::W));
-        Test(dev->writeTexture(wtexture, width, height, format, data.data(), data_size));
-        Test(dev->readTexture(ret.data(), data_size, wtexture, width, height, format));
-        Test(data.back() == ret.back());
-        dev->releaseTexture(wtexture);
-
+        {
+            void *wtexture = nullptr;
+            std::vector<float4> ret(num_texels);
+            Test(dev->createTexture(&wtexture, width, height, format, nullptr, gd::CPUAccessFlag::W));
+            Test(dev->writeTexture(wtexture, width, height, format, data.data(), data_size));
+            Test(dev->readTexture(ret.data(), data_size, wtexture, width, height, format));
+            Test(data.back() == ret.back());
+            dev->releaseTexture(wtexture);
+        }
+        {
+            void *rwtexture = nullptr;
+            std::vector<float4> ret(num_texels);
+            Test(dev->createTexture(&rwtexture, width, height, format, nullptr, gd::CPUAccessFlag::RW));
+            Test(dev->writeTexture(rwtexture, width, height, format, data.data(), data_size));
+            Test(dev->readTexture(ret.data(), data_size, rwtexture, width, height, format));
+            Test(data.back() == ret.back());
+            dev->releaseTexture(rwtexture);
+        }
         printf("\n");
+    }
 
-        Test(dev->createTexture(&rwtexture, width, height, format, nullptr, gd::CPUAccessFlag::RW));
-        Test(dev->writeTexture(rwtexture, width, height, format, data.data(), data_size));
-        Test(dev->readTexture(ret.data(), data_size, rwtexture, width, height, format));
-        Test(data.back() == ret.back());
-        dev->releaseTexture(rwtexture);
+    printf("\n");
+
+    // buffer read / write tests
+    printf("buffer read / write tests\n");
+    {
+        const int num_elements = 1024;
+        const int data_size = num_elements * sizeof(float4);
+        auto format = gd::BufferType::Vertex;
+
+        std::vector<float4> data;
+        data.resize(num_elements);
+
+        for (size_t i = 0; i < data.size(); ++i) {
+            float f = (float)i;
+            data[i] = { f + 0.0f, f + 0.2f, f + 0.4f, f + 0.8f };
+        }
+
+        {
+            void *buffer = nullptr;
+            std::vector<float4> ret(num_elements);
+            Test(dev->createBuffer(&buffer, data_size, format, nullptr, gd::CPUAccessFlag::None));
+            Test(dev->writeBuffer(buffer, data.data(), data_size, format));
+            Test(dev->readBuffer(ret.data(), buffer, data_size, format));
+            Test(data.back() == ret.back());
+            dev->releaseBuffer(buffer);
+        }
+        printf("\n");
+        {
+            void *rbuffer = nullptr;
+            std::vector<float4> ret(num_elements);
+            Test(dev->createBuffer(&rbuffer, data_size, format, nullptr, gd::CPUAccessFlag::R));
+            Test(dev->writeBuffer(rbuffer, data.data(), data_size, format));
+            Test(dev->readBuffer(ret.data(), rbuffer, data_size, format));
+            Test(data.back() == ret.back());
+            dev->releaseBuffer(rbuffer);
+        }
+        printf("\n");
+        {
+            void *wbuffer = nullptr;
+            std::vector<float4> ret(num_elements);
+            Test(dev->createBuffer(&wbuffer, data_size, format, nullptr, gd::CPUAccessFlag::W));
+            Test(dev->writeBuffer(wbuffer, data.data(), data_size, format));
+            Test(dev->readBuffer(ret.data(), wbuffer, data_size, format));
+            Test(data.back() == ret.back());
+            dev->releaseBuffer(wbuffer);
+        }
+        printf("\n");
+        {
+            void *rwbuffer = nullptr;
+            std::vector<float4> ret(num_elements);
+            Test(dev->createBuffer(&rwbuffer, data_size, format, nullptr, gd::CPUAccessFlag::RW));
+            Test(dev->writeBuffer(rwbuffer, data.data(), data_size, format));
+            Test(dev->readBuffer(ret.data(), rwbuffer, data_size, format));
+            Test(data.back() == ret.back());
+            dev->releaseBuffer(rwbuffer);
+
+        }
     }
 }
 
