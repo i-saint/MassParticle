@@ -66,15 +66,74 @@ void GraphicsDeviceD3D12::sync()
 
 }
 
+static DXGI_FORMAT GetInternalFormatD3D12(TextureFormat fmt)
+{
+    switch (fmt)
+    {
+    case TextureFormat::RGBAu8:  return DXGI_FORMAT_R8G8B8A8_TYPELESS;
+
+    case TextureFormat::RGBAf16: return DXGI_FORMAT_R16G16B16A16_FLOAT;
+    case TextureFormat::RGf16:   return DXGI_FORMAT_R16G16_FLOAT;
+    case TextureFormat::Rf16:    return DXGI_FORMAT_R16_FLOAT;
+
+    case TextureFormat::RGBAf32: return DXGI_FORMAT_R32G32B32A32_FLOAT;
+    case TextureFormat::RGf32:   return DXGI_FORMAT_R32G32_FLOAT;
+    case TextureFormat::Rf32:    return DXGI_FORMAT_R32_FLOAT;
+
+    case TextureFormat::RGBAi32: return DXGI_FORMAT_R32G32B32A32_SINT;
+    case TextureFormat::RGi32:   return DXGI_FORMAT_R32G32_SINT;
+    case TextureFormat::Ri32:    return DXGI_FORMAT_R32_SINT;
+    }
+    return DXGI_FORMAT_UNKNOWN;
+}
+
+static Error TranslateReturnCode(HRESULT hr)
+{
+    switch (hr) {
+    case S_OK: return Error::OK;
+    case E_OUTOFMEMORY: return Error::OutOfMemory;
+    case E_INVALIDARG: return Error::InvalidParameter;
+    }
+    return Error::Unknown;
+}
 
 Error GraphicsDeviceD3D12::createTexture(void **dst_tex, int width, int height, TextureFormat format, const void *data, CPUAccessFlag flags)
 {
-    return Error::NotAvailable;
+    D3D12_HEAP_PROPERTIES heap = {};
+    heap.Type                   = D3D12_HEAP_TYPE_DEFAULT;
+    heap.CPUPageProperty        = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+    heap.MemoryPoolPreference   = D3D12_MEMORY_POOL_UNKNOWN;
+    heap.CreationNodeMask       = 1;
+    heap.VisibleNodeMask        = 1;
+
+    D3D12_RESOURCE_DESC desc = {};
+    desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+    desc.Alignment = 0;
+    desc.Width              = (UINT64)width;
+    desc.Height             = (UINT)height;
+    desc.DepthOrArraySize   = 1;
+    desc.MipLevels          = 1;
+    desc.Format             = GetInternalFormatD3D12(format);
+    desc.SampleDesc.Count   = 1;
+    desc.SampleDesc.Quality = 0;
+    desc.Layout             = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+    desc.Flags              = D3D12_RESOURCE_FLAG_NONE;
+
+    ID3D12Resource *tex = nullptr;
+    auto hr = m_device->CreateCommittedResource(
+        &heap, D3D12_HEAP_FLAG_NONE, &desc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&tex) );
+    if ( FAILED( hr ) )
+    {
+        return TranslateReturnCode(hr);
+    }
+    *dst_tex = tex;
+    return Error::OK;
 }
 
-void GraphicsDeviceD3D12::releaseTexture(void *tex)
+void GraphicsDeviceD3D12::releaseTexture(void *tex_)
 {
-
+    auto *tex = (ID3D12Resource*)tex_;
+    tex->Release();
 }
 
 Error GraphicsDeviceD3D12::readTexture(void *dst, size_t dstsize, void *src_tex_, int width, int height, TextureFormat format)
@@ -90,14 +149,44 @@ Error GraphicsDeviceD3D12::writeTexture(void *dst_tex_, int width, int height, T
 }
 
 
+
 Error GraphicsDeviceD3D12::createBuffer(void **dst_buf, size_t size, BufferType type, const void *data, CPUAccessFlag flags)
 {
-    return Error::NotAvailable;
+     D3D12_HEAP_PROPERTIES heap = {};
+     heap.Type                 = D3D12_HEAP_TYPE_UPLOAD;
+     heap.CPUPageProperty      = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+     heap.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+     heap.CreationNodeMask     = 1;
+     heap.VisibleNodeMask      = 1;
+
+     D3D12_RESOURCE_DESC desc = {};
+     desc.Dimension          = D3D12_RESOURCE_DIMENSION_BUFFER;
+     desc.Alignment          = 0;
+     desc.Width              = (UINT64)size;
+     desc.Height             = 1;
+     desc.DepthOrArraySize   = 1;
+     desc.MipLevels          = 1;
+     desc.Format             = DXGI_FORMAT_UNKNOWN;
+     desc.SampleDesc.Count   = 1;
+     desc.SampleDesc.Quality = 0;
+     desc.Layout             = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+     desc.Flags              = D3D12_RESOURCE_FLAG_NONE;
+
+     ID3D12Resource *buf = nullptr;
+     auto hr = m_device->CreateCommittedResource(
+         &heap, D3D12_HEAP_FLAG_NONE, &desc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&buf) );
+     if (FAILED(hr))
+     {
+         return TranslateReturnCode(hr);
+     }
+     *dst_buf = buf;
+     return Error::OK;
 }
 
-void GraphicsDeviceD3D12::releaseBuffer(void *buf)
+void GraphicsDeviceD3D12::releaseBuffer(void *buf_)
 {
-
+    auto *buf = (ID3D12Resource*)buf_;
+    buf->Release();
 }
 
 Error GraphicsDeviceD3D12::readBuffer(void *dst, const void *src_buf, size_t read_size, BufferType type)
