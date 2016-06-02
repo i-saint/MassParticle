@@ -193,26 +193,12 @@ Error GraphicsDeviceD3D9::readTexture2D(void *o_buf, size_t bufsize, void *tex_,
         hr = surf_dst->LockRect(&locked, nullptr, D3DLOCK_READONLY);
         if (SUCCEEDED(hr))
         {
-            char *wpixels = (char*)o_buf;
-            int wpitch = width * GetTexelSize(format);
-            const char *rpixels = (const char*)locked.pBits;
-            int rpitch = locked.Pitch;
+            auto *dst_pixels = (char*)o_buf;
+            auto *src_pixels = (const char*)locked.pBits;
+            int dst_pitch = width * GetTexelSize(format);
+            int src_pitch = locked.Pitch;
+            CopyRegion(dst_pixels, dst_pitch, src_pixels, src_pitch, height);
 
-            // D3D11 と同様表向き解像度と内部解像度が違うケースを考慮
-            // (しかし、少なくとも手元の環境では常に wpitch == rpitch っぽい)
-            if (wpitch == rpitch)
-            {
-                memcpy(wpixels, rpixels, bufsize);
-            }
-            else
-            {
-                for (int i = 0; i < height; ++i)
-                {
-                    memcpy(wpixels, rpixels, wpitch);
-                    wpixels += wpitch;
-                    rpixels += rpitch;
-                }
-            }
             surf_dst->UnlockRect();
 
             // D3D9 の ARGB32 のピクセルの並びは BGRA になっているので並べ替える

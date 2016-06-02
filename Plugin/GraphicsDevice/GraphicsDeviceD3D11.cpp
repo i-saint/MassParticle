@@ -289,7 +289,6 @@ Error GraphicsDeviceD3D11::writeTexture2D(void *dst_tex_, int width, int height,
             hr = m_context->Map(dst_tex, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
         }
         if (FAILED(hr)) {
-            gdLogError("GraphicsDeviceD3D11::writeTexture2D(): Map() failed.\n");
             ret = TranslateReturnCode(hr);
         }
         else {
@@ -297,21 +296,8 @@ Error GraphicsDeviceD3D11::writeTexture2D(void *dst_tex_, int width, int height,
             auto *src_pixels = (const char*)src;
             int dst_pitch = mapped.RowPitch;
             int src_pitch = width * GetTexelSize(format);
+            CopyRegion(dst_pixels, dst_pitch, src_pixels, src_pitch, height);
 
-            // pitch may not be same with (width * size_of_texel)
-            if (dst_pitch == src_pitch)
-            {
-                memcpy(dst_pixels, src_pixels, write_size);
-            }
-            else
-            {
-                for (int i = 0; i < height; ++i)
-                {
-                    memcpy(dst_pixels, src_pixels, dst_pitch);
-                    dst_pixels += dst_pitch;
-                    src_pixels += src_pitch;
-                }
-            }
             m_context->Unmap(dst_tex, 0);
         }
     }

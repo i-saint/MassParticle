@@ -29,11 +29,11 @@ public:
     Error writeBuffer(void *dst_buf, const void *src, size_t write_size, BufferType type) override;
 
 private:
-    enum class BufferFlags {
+    enum class StagingFlag {
         Upload,
         Readback,
     };
-    ID3D12Resource* createStagingBuffer(size_t size, BufferFlags flags);
+    ID3D12Resource* createStagingBuffer(size_t size, StagingFlag flags);
 
     // Body: [](ID3D12GraphicsCommandList *clist) -> void
     template<class Body> HRESULT executeCommands(const Body& body);
@@ -69,8 +69,6 @@ GraphicsDeviceD3D12::GraphicsDeviceD3D12(void *device)
     // create command allocator & list
     {
         auto hr = m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_calloc));
-        if (SUCCEEDED(hr)) {
-        }
     }
 
     // create signal
@@ -163,36 +161,36 @@ static Error TranslateReturnCode(HRESULT hr)
     return Error::Unknown;
 }
 
-ID3D12Resource* GraphicsDeviceD3D12::createStagingBuffer(size_t size, BufferFlags flags)
+ID3D12Resource* GraphicsDeviceD3D12::createStagingBuffer(size_t size, StagingFlag flags)
 {
     D3D12_RESOURCE_STATES state = D3D12_RESOURCE_STATE_GENERIC_READ;
 
-    D3D12_HEAP_PROPERTIES heap;
-    heap.Type = D3D12_HEAP_TYPE_DEFAULT;
-    heap.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-    heap.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-    heap.CreationNodeMask = 0;
-    heap.VisibleNodeMask = 0;
-    if (flags == BufferFlags::Upload) {
+    D3D12_HEAP_PROPERTIES heap = {};
+    heap.Type                   = D3D12_HEAP_TYPE_DEFAULT;
+    heap.CPUPageProperty        = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+    heap.MemoryPoolPreference   = D3D12_MEMORY_POOL_UNKNOWN;
+    heap.CreationNodeMask       = 0;
+    heap.VisibleNodeMask        = 0;
+    if (flags == StagingFlag::Upload) {
         heap.Type = D3D12_HEAP_TYPE_UPLOAD;
     }
-    if (flags == BufferFlags::Readback) {
+    if (flags == StagingFlag::Readback) {
         state = D3D12_RESOURCE_STATE_COPY_DEST;
         heap.Type = D3D12_HEAP_TYPE_READBACK;
     }
 
-    D3D12_RESOURCE_DESC desc;
-    desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-    desc.Alignment = 0;
-    desc.Width = size;
-    desc.Height = 1;
-    desc.DepthOrArraySize = 1;
-    desc.MipLevels = 1;
-    desc.Format = DXGI_FORMAT_UNKNOWN;
-    desc.SampleDesc.Count = 1;
+    D3D12_RESOURCE_DESC desc = {};
+    desc.Dimension          = D3D12_RESOURCE_DIMENSION_BUFFER;
+    desc.Alignment          = 0;
+    desc.Width              = size;
+    desc.Height             = 1;
+    desc.DepthOrArraySize   = 1;
+    desc.MipLevels          = 1;
+    desc.Format             = DXGI_FORMAT_UNKNOWN;
+    desc.SampleDesc.Count   = 1;
     desc.SampleDesc.Quality = 0;
-    desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-    desc.Flags = D3D12_RESOURCE_FLAG_NONE;
+    desc.Layout             = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+    desc.Flags              = D3D12_RESOURCE_FLAG_NONE;
 
     ID3D12Resource *ret = nullptr;
     m_device->CreateCommittedResource(&heap, D3D12_HEAP_FLAG_NONE, &desc, state, nullptr, IID_PPV_ARGS(&ret));
@@ -254,24 +252,16 @@ Error GraphicsDeviceD3D12::readTexture2D(void *dst, size_t read_size, void *src_
     UINT64 src_required_size;
     m_device->GetCopyableFootprints(&src_desc, 0, 1, 0, &src_layout, &src_num_rows, &src_row_size, &src_required_size);
 
-    ComPtr<ID3D12Resource> staging = createStagingBuffer(src_required_size, BufferFlags::Readback);
+    ComPtr<ID3D12Resource> staging = createStagingBuffer(src_required_size, StagingFlag::Readback);
     if (!staging) { return Error::OutOfMemory; }
 
-    D3D12_TEXTURE_COPY_LOCATION src_region;
-    src_region.pResource = src_tex;
-    src_region.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-    src_region.SubresourceIndex = 0;
-
-    D3D12_TEXTURE_COPY_LOCATION dst_region;
-    dst_region.pResource = staging.Get();
-    dst_region.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
-    dst_region.PlacedFootprint.Offset = 0;
-    dst_region.PlacedFootprint.Footprint = src_layout.Footprint;
-
     auto hr = executeCommands([&](ID3D12GraphicsCommandList *clist) {
-        clist->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(src_tex, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_COPY_SOURCE));
+        CD3DX12_TEXTURE_COPY_LOCATION dst_region(staging.Get(), src_layout);
+        CD3DX12_TEXTURE_COPY_LOCATION src_region(src_tex, 0);
+
+        clist->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(src_tex, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COPY_SOURCE));
         clist->CopyTextureRegion(&dst_region, 0, 0, 0, &src_region, nullptr);
-        clist->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(src_tex, D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE));
+        clist->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(src_tex, D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_COMMON));
     });
     if (FAILED(hr)) { return TranslateReturnCode(hr); }
 
@@ -297,25 +287,38 @@ Error GraphicsDeviceD3D12::writeTexture2D(void *dst_tex_, int width, int height,
 
     auto *dst_tex = (ID3D12Resource*)dst_tex_;
 
-    auto staging_size = GetRequiredIntermediateSize(dst_tex, 0, 1);
-    ComPtr<ID3D12Resource> staging = createStagingBuffer(staging_size, BufferFlags::Upload);
+    D3D12_RESOURCE_DESC dst_desc = dst_tex->GetDesc();
+    D3D12_PLACED_SUBRESOURCE_FOOTPRINT dst_layout;
+    UINT dst_num_rows;
+    UINT64 dst_row_size;
+    UINT64 dst_required_size;
+    m_device->GetCopyableFootprints(&dst_desc, 0, 1, 0, &dst_layout, &dst_num_rows, &dst_row_size, &dst_required_size);
+
+    ComPtr<ID3D12Resource> staging = createStagingBuffer(dst_required_size, StagingFlag::Upload);
     if (!staging) { return Error::OutOfMemory; }
 
-    size_t texel_size = GetTexelSize(format);
-    D3D12_SUBRESOURCE_DATA subr = {
-        src,
-        width * (UINT)texel_size,
-        width * height * (UINT)texel_size,
-    };
+    char *mapped_data = nullptr;
+    auto hr = staging->Map(0, nullptr, (void**)&mapped_data);
+    if (FAILED(hr)) { return TranslateReturnCode(hr); }
+    {
+        int dst_pitch = dst_layout.Footprint.RowPitch;
+        int src_pitch = width * GetTexelSize(format);
+        int num_rows = std::min<int>(height, (int)dst_layout.Footprint.Height);
+        CopyRegion(mapped_data, dst_pitch, src, src_pitch, num_rows);
+    }
+    staging->Unmap(0, nullptr);
 
-    UINT64 ret;
-    executeCommands([&](auto *clist) {
-        ret = UpdateSubresources(clist, dst_tex, staging.Get(), 0, 0, 1, &subr);
+    hr = executeCommands([&](ID3D12GraphicsCommandList *clist) {
+        CD3DX12_TEXTURE_COPY_LOCATION dst_region(dst_tex, 0);
+        CD3DX12_TEXTURE_COPY_LOCATION src_region(staging.Get(), dst_layout);
+
+        clist->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(dst_tex, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COPY_DEST));
+        clist->CopyTextureRegion(&dst_region, 0, 0, 0, &src_region, nullptr);
+        clist->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(dst_tex, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_COMMON));
     });
+    if (FAILED(hr)) { return TranslateReturnCode(hr); }
 
-    sync();
-
-    return ret != 0 ? Error::OK : Error::Unknown;
+    return Error::OK;
 }
 
 
@@ -372,15 +375,12 @@ Error GraphicsDeviceD3D12::readBuffer(void *dst, const void *src_buf, size_t rea
 
     auto *buf = (ID3D12Resource*)src_buf;
     void *mapped_data = nullptr;
-    D3D12_RANGE range = { 0, read_size };
 
-    auto hr = buf->Map(0, &range, &mapped_data);
-    if (FAILED(hr)) {
-        return TranslateReturnCode(hr);
-    }
-
+    auto hr = buf->Map(0, nullptr, &mapped_data);
+    if (FAILED(hr)) { return TranslateReturnCode(hr); }
     memcpy(dst, mapped_data, read_size);
     buf->Unmap(0, nullptr);
+
     return Error::OK;
 }
 
@@ -391,15 +391,12 @@ Error GraphicsDeviceD3D12::writeBuffer(void *dst_buf, const void *src, size_t wr
 
     auto *buf = (ID3D12Resource*)dst_buf;
     void *mapped_data = nullptr;
-    D3D12_RANGE range = { 0, write_size };
 
     auto hr = buf->Map(0, nullptr, &mapped_data);
-    if (FAILED(hr)) {
-        return TranslateReturnCode(hr);
-    }
-
+    if (FAILED(hr)) { return TranslateReturnCode(hr); }
     memcpy(mapped_data, src, write_size);
-    buf->Unmap(0, &range);
+    buf->Unmap(0, nullptr);
+
     return Error::OK;
 }
 
