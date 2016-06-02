@@ -35,10 +35,19 @@ private:
         Upload,
         Readback,
     };
-    Error createStagingBuffer(size_t size, StagingFlag flag, VkBuffer &buffer, VkDeviceMemory &memory);
+    VkResult createStagingBuffer(size_t size, StagingFlag flag, VkBuffer &buffer, VkDeviceMemory &memory);
+
+    template<class Body> // [](VkBuffer staging_buffer, VkDeviceMemory staging_memory) -> void
+    Error useStagingBuffer(size_t size, StagingFlag flag, const Body& body);
+
+    // Body: [](VkCommandBuffer *clist) -> void
+    template<class Body>
+    VkResult executeCommands(const Body& body);
 
 private:
     VkDevice m_device = nullptr;
+    VkQueue m_cqueue = nullptr;
+    VkCommandPool m_cpool = nullptr;
 };
 
 
@@ -51,6 +60,14 @@ GraphicsDevice* CreateGraphicsDeviceVulkan(void *device)
 GraphicsDeviceVulkan::GraphicsDeviceVulkan(void *device)
     : m_device((VkDevice)device)
 {
+    uint32_t graphicsQueueIndex = 0;
+    vkGetDeviceQueue(m_device, graphicsQueueIndex, 0, &m_cqueue);
+
+    VkCommandPoolCreateInfo info = {};
+    info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    info.queueFamilyIndex = 0;
+    info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+    vkCreateCommandPool(m_device, &info, nullptr, &m_cpool);
 }
 
 GraphicsDeviceVulkan::~GraphicsDeviceVulkan()
@@ -94,7 +111,7 @@ static uint32_t GetMemoryType(uint32_t typeBits, VkMemoryPropertyFlags propertie
     return 0;
 }
 
-Error GraphicsDeviceVulkan::createStagingBuffer(size_t size, StagingFlag flag, VkBuffer &buffer, VkDeviceMemory &memory)
+VkResult GraphicsDeviceVulkan::createStagingBuffer(size_t size, StagingFlag flag, VkBuffer &buffer, VkDeviceMemory &memory)
 {
     VkBufferCreateInfo info = {};
     info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -108,7 +125,7 @@ Error GraphicsDeviceVulkan::createStagingBuffer(size_t size, StagingFlag flag, V
     }
 
     auto vr = vkCreateBuffer(m_device, &info, nullptr, &buffer);
-    if(vr != VK_SUCCESS) { return TranslateReturnCode(vr); }
+    if(vr != VK_SUCCESS) { return vr; }
 
     VkMemoryRequirements mem_required;
     vkGetBufferMemoryRequirements(m_device, buffer, &mem_required);
@@ -119,12 +136,46 @@ Error GraphicsDeviceVulkan::createStagingBuffer(size_t size, StagingFlag flag, V
     mem_info.memoryTypeIndex = GetMemoryType(mem_required.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
 
     vr = vkAllocateMemory(m_device, &mem_info, nullptr, &memory);
-    if (vr != VK_SUCCESS) { return TranslateReturnCode(vr); }
+    if (vr != VK_SUCCESS) { return vr; }
 
     vr = vkBindBufferMemory(m_device, buffer, memory, 0);
+    if (vr != VK_SUCCESS) { return vr; }
+
+    return VK_SUCCESS;
+}
+
+template<class Body>
+Error GraphicsDeviceVulkan::useStagingBuffer(size_t size, StagingFlag flag, const Body& body)
+{
+    VkBuffer staging_buffer;
+    VkDeviceMemory staging_memory;
+    auto vr = createStagingBuffer(size, flag, staging_buffer, staging_memory);
     if (vr != VK_SUCCESS) { return TranslateReturnCode(vr); }
 
+    body(staging_buffer, staging_memory);
+
+    vkFreeMemory(m_device, staging_memory, nullptr);
+    vkDestroyBuffer(m_device, staging_buffer, nullptr);
     return Error::OK;
+}
+
+template<class Body>
+VkResult GraphicsDeviceVulkan::executeCommands(const Body& body)
+{
+    VkCommandBufferAllocateInfo info = {};
+    info.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    info.commandPool        = m_cpool;
+    info.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    info.commandBufferCount = 1;
+
+    VkCommandBuffer clist;
+    auto vr = vkAllocateCommandBuffers(m_device, &info, &clist);
+    if (vr != VK_SUCCESS) { return vr; }
+
+    body(clist);
+
+    vkFreeCommandBuffers(m_device, m_cpool, 1, &clist);
+    return VK_SUCCESS;
 }
 
 
@@ -135,29 +186,108 @@ void GraphicsDeviceVulkan::sync()
 }
 
 
+static VkFormat TranslateFormat(TextureFormat format)
+{
+    switch (format)
+    {
+    case TextureFormat::RGBAu8:  return VK_FORMAT_R8G8B8A8_UNORM;
+
+    case TextureFormat::RGBAf16: return VK_FORMAT_R16G16B16A16_SFLOAT;
+    case TextureFormat::RGf16:   return VK_FORMAT_R16G16_SFLOAT;
+    case TextureFormat::Rf16:    return VK_FORMAT_R16_SFLOAT;
+
+    case TextureFormat::RGBAf32: return VK_FORMAT_R32G32B32A32_SFLOAT;
+    case TextureFormat::RGf32:   return VK_FORMAT_R32G32_SFLOAT;
+    case TextureFormat::Rf32:    return VK_FORMAT_R32_SFLOAT;
+
+    case TextureFormat::RGBAi32: return VK_FORMAT_R32G32B32A32_SINT;
+    case TextureFormat::RGi32:   return VK_FORMAT_R32G32_SINT;
+    case TextureFormat::Ri32:    return VK_FORMAT_R32_SINT;
+    }
+    return VK_FORMAT_UNDEFINED;
+}
+
 Error GraphicsDeviceVulkan::createTexture2D(void **dst_tex, int width, int height, TextureFormat format, const void *data, ResourceFlags flags)
 {
+    VkImageCreateInfo info = {};
+    info.sType          = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+    info.imageType      = VK_IMAGE_TYPE_2D;
+    info.format         = TranslateFormat(format);
+    info.mipLevels      = 1;
+    info.arrayLayers    = 1;
+    info.samples        = VK_SAMPLE_COUNT_1_BIT;
+    info.tiling         = VK_IMAGE_TILING_OPTIMAL;
+    info.usage          = VK_IMAGE_USAGE_SAMPLED_BIT;
+    info.sharingMode    = VK_SHARING_MODE_EXCLUSIVE;
+    info.initialLayout  = VK_IMAGE_LAYOUT_PREINITIALIZED;
+    info.extent         = { (uint32_t)width, (uint32_t)height, 1 };
+    info.usage          = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+    info.flags          = 0;
+
+    VkImage ret = nullptr;
+    auto vr = vkCreateImage(m_device, &info, nullptr, &ret);
+    if (vr != VK_SUCCESS) { return TranslateReturnCode(vr); }
+
+    VkMemoryRequirements mem_required;
+    vkGetImageMemoryRequirements(m_device, ret, &mem_required);
+
+    VkMemoryAllocateInfo mem_info = {};
+    mem_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    mem_info.allocationSize = mem_required.size;
+    mem_info.memoryTypeIndex = GetMemoryType(mem_required.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+    VkDeviceMemory memory;
+    vr = vkAllocateMemory(m_device, &mem_info, nullptr, &memory);
+    if (vr != VK_SUCCESS) { return TranslateReturnCode(vr); }
+
+    vr = vkBindImageMemory(m_device, ret, memory, 0);
+    if (vr != VK_SUCCESS) { return TranslateReturnCode(vr); }
+
+    //// todo: upload if needed
+    //VkImageSubresourceRange subresourceRange = {};
+    //subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    //subresourceRange.baseMipLevel = 0;
+    //subresourceRange.levelCount = 1;
+    //subresourceRange.layerCount = 1;
+
+    *dst_tex = ret;
+
+    return Error::OK;
+}
+
+void GraphicsDeviceVulkan::releaseTexture2D(void *tex_)
+{
+    if (!tex_) { return; }
+
+    auto tex = (VkImage)tex_;
+    vkDestroyImage(m_device, tex, nullptr);
+}
+
+Error GraphicsDeviceVulkan::readTexture2D(void *dst, size_t read_size, void *src_tex_, int width, int height, TextureFormat format)
+{
+    if (read_size == 0) { return Error::OK; }
+    if (!dst || !src_tex_) { return Error::InvalidParameter; }
+
+    auto *src_tex = (VkImage*)src_tex_;
+
     return Error::NotAvailable;
 }
 
-void GraphicsDeviceVulkan::releaseTexture2D(void *tex)
+Error GraphicsDeviceVulkan::writeTexture2D(void *dst_tex_, int width, int height, TextureFormat format, const void *src, size_t write_size)
 {
+    if (write_size == 0) { return Error::OK; }
+    if (!dst_tex_ || !src) { return Error::InvalidParameter; }
 
-}
+    auto *dst_tex = (VkImage*)dst_tex_;
 
-Error GraphicsDeviceVulkan::readTexture2D(void *o_buf, size_t bufsize, void *tex, int width, int height, TextureFormat format)
-{
-    return Error::NotAvailable;
-}
-
-Error GraphicsDeviceVulkan::writeTexture2D(void *o_tex, int width, int height, TextureFormat format, const void *buf, size_t bufsize)
-{
     return Error::NotAvailable;
 }
 
 
 Error GraphicsDeviceVulkan::createBuffer(void **dst_buf, size_t size, BufferType type, const void *data, ResourceFlags flags)
 {
+    if (!dst_buf) { return Error::InvalidParameter; }
+
     VkBufferCreateInfo info = {};
     info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     info.size = size;
@@ -202,18 +332,33 @@ Error GraphicsDeviceVulkan::createBuffer(void **dst_buf, size_t size, BufferType
     return Error::OK;
 }
 
-void GraphicsDeviceVulkan::releaseBuffer(void *buf)
+void GraphicsDeviceVulkan::releaseBuffer(void *buf_)
 {
+    if (!buf_) { return; }
 
+    auto buf = (VkBuffer)buf_;
+    vkDestroyBuffer(m_device, buf, nullptr);
 }
 
 Error GraphicsDeviceVulkan::readBuffer(void *dst, const void *src_buf, size_t read_size, BufferType type)
 {
+    if (read_size == 0) { return Error::OK; }
+    if (!dst || !src_buf) { return Error::InvalidParameter; }
+
+    auto buf = (VkBuffer)src_buf;
     return Error::NotAvailable;
 }
 
 Error GraphicsDeviceVulkan::writeBuffer(void *dst_buf, const void *src, size_t write_size, BufferType type)
 {
+    if (write_size == 0) { return Error::OK; }
+    if (!dst_buf || !src) { return Error::InvalidParameter; }
+
+    auto buf = (VkBuffer)dst_buf;
+    useStagingBuffer(write_size, StagingFlag::Upload, [&](VkBuffer staging_buffer, VkDeviceMemory staging_memory) {
+        executeCommands([&](VkCommandBuffer clist) {
+        });
+    });
     return Error::NotAvailable;
 }
 
