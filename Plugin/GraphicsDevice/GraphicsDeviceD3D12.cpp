@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "gdInternal.h"
 #include <d3d12.h>
+#include <d3dx12.h>
 
 using Microsoft::WRL::ComPtr;
 
@@ -28,7 +29,11 @@ public:
     Error writeBuffer(void *dst_buf, const void *src, size_t write_size, BufferType type) override;
 
 private:
-    ID3D12Resource* createStagingBuffer(size_t size);
+    enum class BufferFlags {
+        Upload,
+        Readback,
+    };
+    ID3D12Resource* createStagingBuffer(size_t size, BufferFlags flags);
     void flush();
 
 private:
@@ -136,14 +141,20 @@ static Error TranslateReturnCode(HRESULT hr)
     return Error::Unknown;
 }
 
-ID3D12Resource* GraphicsDeviceD3D12::createStagingBuffer(size_t size)
+ID3D12Resource* GraphicsDeviceD3D12::createStagingBuffer(size_t size, BufferFlags flags)
 {
     D3D12_HEAP_PROPERTIES heap;
-    heap.Type = D3D12_HEAP_TYPE_UPLOAD;
+    heap.Type = D3D12_HEAP_TYPE_DEFAULT;
     heap.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
     heap.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
     heap.CreationNodeMask = 1;
     heap.VisibleNodeMask = 1;
+    if (flags == BufferFlags::Upload) {
+        heap.Type = D3D12_HEAP_TYPE_UPLOAD;
+    }
+    if (flags == BufferFlags::Readback) {
+        heap.Type = D3D12_HEAP_TYPE_READBACK;
+    }
 
     D3D12_RESOURCE_DESC desc;
     desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
@@ -163,10 +174,9 @@ ID3D12Resource* GraphicsDeviceD3D12::createStagingBuffer(size_t size)
     return ret;
 }
 
-
 Error GraphicsDeviceD3D12::createTexture2D(void **dst_tex, int width, int height, TextureFormat format, const void *data, ResourceFlags flags)
 {
-    D3D12_HEAP_PROPERTIES heap = {};
+    D3D12_HEAP_PROPERTIES heap  = {};
     heap.Type                   = D3D12_HEAP_TYPE_DEFAULT;
     heap.CPUPageProperty        = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
     heap.MemoryPoolPreference   = D3D12_MEMORY_POOL_UNKNOWN;
@@ -174,8 +184,8 @@ Error GraphicsDeviceD3D12::createTexture2D(void **dst_tex, int width, int height
     heap.VisibleNodeMask        = 1;
 
     D3D12_RESOURCE_DESC desc = {};
-    desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-    desc.Alignment = 0;
+    desc.Dimension          = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+    desc.Alignment          = 0;
     desc.Width              = (UINT64)width;
     desc.Height             = (UINT)height;
     desc.DepthOrArraySize   = 1;
@@ -211,7 +221,13 @@ Error GraphicsDeviceD3D12::readTexture2D(void *dst, size_t read_size, void *src_
     if (!dst || !src_tex_) { return Error::InvalidParameter; }
 
     auto *src_tex = (ID3D12Resource*)src_tex_;
-    return Error::NotAvailable;
+
+    size_t texel_size = GetTexelSize(format);
+    ComPtr<ID3D12Resource> staging = createStagingBuffer(read_size, BufferFlags::Readback);
+
+    // todo: 
+
+    return Error::Unknown;
 }
 
 Error GraphicsDeviceD3D12::writeTexture2D(void *dst_tex_, int width, int height, TextureFormat format, const void *src, size_t write_size)
@@ -220,7 +236,19 @@ Error GraphicsDeviceD3D12::writeTexture2D(void *dst_tex_, int width, int height,
     if (!dst_tex_ || !src) { return Error::InvalidParameter; }
 
     auto *dst_tex = (ID3D12Resource*)dst_tex_;
-    return Error::NotAvailable;
+
+    size_t texel_size = GetTexelSize(format);
+    ComPtr<ID3D12Resource> staging = createStagingBuffer(write_size, BufferFlags::Upload);
+    D3D12_SUBRESOURCE_DATA subr = {
+        src,
+        width * (UINT)texel_size,
+        width * height * (UINT)texel_size,
+    };
+    auto ret = UpdateSubresources(m_clist.Get(), dst_tex, staging.Get(), 0, 0, 1, &subr);
+
+    // todo: execute command
+
+    return ret != 0 ? Error::OK : Error::Unknown;
 }
 
 
