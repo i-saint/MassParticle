@@ -33,7 +33,7 @@ private:
         Upload,
         Readback,
     };
-    ID3D12Resource* createStagingBuffer(size_t size, StagingFlag flags);
+    ID3D12Resource* createStagingBuffer(size_t size, StagingFlag flag);
 
     // Body: [](ID3D12GraphicsCommandList *clist) -> void
     template<class Body> HRESULT executeCommands(const Body& body);
@@ -161,7 +161,7 @@ static Error TranslateReturnCode(HRESULT hr)
     return Error::Unknown;
 }
 
-ID3D12Resource* GraphicsDeviceD3D12::createStagingBuffer(size_t size, StagingFlag flags)
+ID3D12Resource* GraphicsDeviceD3D12::createStagingBuffer(size_t size, StagingFlag flag)
 {
     D3D12_RESOURCE_STATES state = D3D12_RESOURCE_STATE_GENERIC_READ;
 
@@ -171,10 +171,10 @@ ID3D12Resource* GraphicsDeviceD3D12::createStagingBuffer(size_t size, StagingFla
     heap.MemoryPoolPreference   = D3D12_MEMORY_POOL_UNKNOWN;
     heap.CreationNodeMask       = 0;
     heap.VisibleNodeMask        = 0;
-    if (flags == StagingFlag::Upload) {
+    if (flag == StagingFlag::Upload) {
         heap.Type = D3D12_HEAP_TYPE_UPLOAD;
     }
-    if (flags == StagingFlag::Readback) {
+    if (flag == StagingFlag::Readback) {
         state = D3D12_RESOURCE_STATE_COPY_DEST;
         heap.Type = D3D12_HEAP_TYPE_READBACK;
     }
@@ -266,8 +266,8 @@ Error GraphicsDeviceD3D12::readTexture2D(void *dst, size_t read_size, void *src_
     if (FAILED(hr)) { return TranslateReturnCode(hr); }
 
 
-    char *mapped_data = nullptr;
-    hr = staging->Map(0, nullptr, (void**)&mapped_data);
+    void *mapped_data = nullptr;
+    hr = staging->Map(0, nullptr, &mapped_data);
     if (FAILED(hr)) { return TranslateReturnCode(hr); }
     {
         int dst_pitch = width * GetTexelSize(format);
@@ -297,8 +297,8 @@ Error GraphicsDeviceD3D12::writeTexture2D(void *dst_tex_, int width, int height,
     ComPtr<ID3D12Resource> staging = createStagingBuffer(dst_required_size, StagingFlag::Upload);
     if (!staging) { return Error::OutOfMemory; }
 
-    char *mapped_data = nullptr;
-    auto hr = staging->Map(0, nullptr, (void**)&mapped_data);
+    void *mapped_data = nullptr;
+    auto hr = staging->Map(0, nullptr, &mapped_data);
     if (FAILED(hr)) { return TranslateReturnCode(hr); }
     {
         int dst_pitch = dst_layout.Footprint.RowPitch;
