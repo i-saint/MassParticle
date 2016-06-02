@@ -17,12 +17,12 @@ public:
     DeviceType getDeviceType() override;
     void sync() override;
 
-    Error createTexture(void **dst_tex, int width, int height, TextureFormat format, const void *data, CPUAccessFlag flags) override;
+    Error createTexture(void **dst_tex, int width, int height, TextureFormat format, const void *data, ResourceFlags flags) override;
     void releaseTexture(void *tex) override;
-    Error readTexture(void *o_buf, size_t bufsize, void *tex, int width, int height, TextureFormat format) override;
-    Error writeTexture(void *o_tex, int width, int height, TextureFormat format, const void *buf, size_t bufsize) override;
+    Error readTexture(void *o_buf, size_t read_size, void *tex, int width, int height, TextureFormat format) override;
+    Error writeTexture(void *o_tex, int width, int height, TextureFormat format, const void *buf, size_t write_size) override;
 
-    Error createBuffer(void **dst_buf, size_t size, BufferType type, const void *data, CPUAccessFlag flags) override;
+    Error createBuffer(void **dst_buf, size_t size, BufferType type, const void *data, ResourceFlags flags) override;
     void releaseBuffer(void *buf) override;
     Error readBuffer(void *dst, const void *src_buf, size_t read_size, BufferType type) override;
     Error writeBuffer(void *dst_buf, const void *src, size_t write_size, BufferType type) override;
@@ -169,7 +169,7 @@ static Error TranslateReturnCode(HRESULT hr)
     return Error::Unknown;
 }
 
-Error GraphicsDeviceD3D11::createTexture(void **dst_tex, int width, int height, TextureFormat format, const void *data, CPUAccessFlag flags)
+Error GraphicsDeviceD3D11::createTexture(void **dst_tex, int width, int height, TextureFormat format, const void *data, ResourceFlags flags)
 {
     size_t texel_size = GetTexelSize(format);
     DXGI_FORMAT internal_format = GetInternalFormatD3D11(format);
@@ -178,11 +178,11 @@ Error GraphicsDeviceD3D11::createTexture(void **dst_tex, int width, int height, 
         (UINT)width, (UINT)height, 1, 1, internal_format, { 1, 0 },
         D3D11_USAGE_DEFAULT, D3D11_BIND_SHADER_RESOURCE, 0, 0
     };
-    if (flags & CPUAccessFlag::W) {
+    if (flags & ResourceFlags::CPU_Write) {
         desc.Usage = D3D11_USAGE_DYNAMIC;
         desc.CPUAccessFlags |= D3D11_CPU_ACCESS_WRITE;
     }
-    if (flags & CPUAccessFlag::R) {
+    if (flags & ResourceFlags::CPU_Read) {
         desc.Usage = D3D11_USAGE_STAGING;
         desc.CPUAccessFlags |= D3D11_CPU_ACCESS_READ;
         desc.BindFlags = 0;
@@ -211,9 +211,11 @@ void GraphicsDeviceD3D11::releaseTexture(void *tex)
     }
 }
 
-Error GraphicsDeviceD3D11::readTexture(void *dst, size_t dst_size, void *src_tex_, int width, int height, TextureFormat format)
+Error GraphicsDeviceD3D11::readTexture(void *dst, size_t read_size, void *src_tex_, int width, int height, TextureFormat format)
 {
+    if (read_size == 0) { return Error::OK; }
     if (m_context == nullptr || src_tex_ == nullptr) { return Error::InvalidParameter; }
+
     int psize = GetTexelSize(format);
 
     auto *src_tex = (ID3D11Texture2D*)src_tex_;
@@ -259,7 +261,7 @@ Error GraphicsDeviceD3D11::readTexture(void *dst, size_t dst_size, void *src_tex
 
     if (mappable) {
         // read buffer data directly
-        proc_read(dst, dst_size, src_tex, width, height, format);
+        proc_read(dst, read_size, src_tex, width, height, format);
     }
     else {
         // copy texture data to staging texture and read from it
@@ -267,15 +269,17 @@ Error GraphicsDeviceD3D11::readTexture(void *dst, size_t dst_size, void *src_tex
         m_context->CopyResource(staging, src_tex);
         // Map() doesn't wait completion of above CopyResource(). manual synchronization is required.
         sync();
-        proc_read(dst, dst_size, staging, width, height, format);
+        proc_read(dst, read_size, staging, width, height, format);
     }
 
     return ret;
 }
 
-Error GraphicsDeviceD3D11::writeTexture(void *dst_tex_, int width, int height, TextureFormat format, const void *src, size_t src_size)
+Error GraphicsDeviceD3D11::writeTexture(void *dst_tex_, int width, int height, TextureFormat format, const void *src, size_t write_size)
 {
+    if (write_size == 0) { return Error::OK; }
     if (!dst_tex_ || !src) { return Error::InvalidParameter; }
+
     auto *dst_tex = (ID3D11Texture2D*)dst_tex_;
     bool mappable = false;
     {
@@ -286,7 +290,7 @@ Error GraphicsDeviceD3D11::writeTexture(void *dst_tex_, int width, int height, T
 
     int psize = GetTexelSize(format);
     int pitch = psize * width;
-    const size_t num_pixels = src_size / psize;
+    const size_t num_pixels = write_size / psize;
 
     Error ret = Error::OK;
     if (mappable) {
@@ -308,7 +312,7 @@ Error GraphicsDeviceD3D11::writeTexture(void *dst_tex_, int width, int height, T
             // pitch may not be same with (width * size_of_texel)
             if (dst_pitch == src_pitch)
             {
-                memcpy(dst_pixels, src_pixels, src_size);
+                memcpy(dst_pixels, src_pixels, write_size);
             }
             else
             {
@@ -368,7 +372,7 @@ ID3D11Buffer* GraphicsDeviceD3D11::getStagingBuffer(BufferType type, size_t size
     return staging;
 }
 
-Error GraphicsDeviceD3D11::createBuffer(void **dst_buf, size_t size, BufferType type, const void *data, CPUAccessFlag flags)
+Error GraphicsDeviceD3D11::createBuffer(void **dst_buf, size_t size, BufferType type, const void *data, ResourceFlags flags)
 {
     D3D11_BUFFER_DESC desc = { 0 };
     desc.ByteWidth = (UINT)size;
@@ -390,11 +394,11 @@ Error GraphicsDeviceD3D11::createBuffer(void **dst_buf, size_t size, BufferType 
     }
 
     desc.CPUAccessFlags = 0;
-    if (flags & CPUAccessFlag::W) {
+    if (flags & ResourceFlags::CPU_Write) {
         desc.Usage = D3D11_USAGE_DYNAMIC;
         desc.CPUAccessFlags |= D3D11_CPU_ACCESS_WRITE;
     }
-    if (flags & CPUAccessFlag::R) {
+    if (flags & ResourceFlags::CPU_Read) {
         desc.Usage = D3D11_USAGE_STAGING;
         desc.CPUAccessFlags |= D3D11_CPU_ACCESS_READ;
         desc.BindFlags = 0;

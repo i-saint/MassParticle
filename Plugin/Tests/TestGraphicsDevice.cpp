@@ -71,7 +71,7 @@ void TestImpl::testMain()
         {
             void *texture = nullptr;
             std::vector<float4> ret(num_texels);
-            Test(dev->createTexture(&texture, width, height, format, nullptr, gd::CPUAccessFlag::None));
+            Test(dev->createTexture(&texture, width, height, format, nullptr, gd::ResourceFlags::None));
             Test(dev->writeTexture(texture, width, height, format, data.data(), data_size));
             Test(dev->readTexture(ret.data(), data_size, texture, width, height, format));
             Test(data.back() == ret.back());
@@ -81,7 +81,7 @@ void TestImpl::testMain()
         {
             void *rtexture = nullptr;
             std::vector<float4> ret(num_texels);
-            Test(dev->createTexture(&rtexture, width, height, format, nullptr, gd::CPUAccessFlag::R));
+            Test(dev->createTexture(&rtexture, width, height, format, nullptr, gd::ResourceFlags::CPU_Read));
             Test(dev->writeTexture(rtexture, width, height, format, data.data(), data_size));
             Test(dev->readTexture(ret.data(), data_size, rtexture, width, height, format));
             Test(data.back() == ret.back());
@@ -91,7 +91,7 @@ void TestImpl::testMain()
         {
             void *wtexture = nullptr;
             std::vector<float4> ret(num_texels);
-            Test(dev->createTexture(&wtexture, width, height, format, nullptr, gd::CPUAccessFlag::W));
+            Test(dev->createTexture(&wtexture, width, height, format, nullptr, gd::ResourceFlags::CPU_Write));
             Test(dev->writeTexture(wtexture, width, height, format, data.data(), data_size));
             Test(dev->readTexture(ret.data(), data_size, wtexture, width, height, format));
             Test(data.back() == ret.back());
@@ -101,7 +101,7 @@ void TestImpl::testMain()
         {
             void *rwtexture = nullptr;
             std::vector<float4> ret(num_texels);
-            Test(dev->createTexture(&rwtexture, width, height, format, nullptr, gd::CPUAccessFlag::RW));
+            Test(dev->createTexture(&rwtexture, width, height, format, nullptr, gd::ResourceFlags::CPU_ReadWrite));
             Test(dev->writeTexture(rwtexture, width, height, format, data.data(), data_size));
             Test(dev->readTexture(ret.data(), data_size, rwtexture, width, height, format));
             Test(data.back() == ret.back());
@@ -129,7 +129,7 @@ void TestImpl::testMain()
         {
             void *buffer = nullptr;
             std::vector<float4> ret(num_elements);
-            Test(dev->createBuffer(&buffer, data_size, format, nullptr, gd::CPUAccessFlag::None));
+            Test(dev->createBuffer(&buffer, data_size, format, nullptr, gd::ResourceFlags::None));
             Test(dev->writeBuffer(buffer, data.data(), data_size, format));
             Test(dev->readBuffer(ret.data(), buffer, data_size, format));
             Test(data.back() == ret.back());
@@ -139,7 +139,7 @@ void TestImpl::testMain()
         {
             void *rbuffer = nullptr;
             std::vector<float4> ret(num_elements);
-            Test(dev->createBuffer(&rbuffer, data_size, format, nullptr, gd::CPUAccessFlag::R));
+            Test(dev->createBuffer(&rbuffer, data_size, format, nullptr, gd::ResourceFlags::CPU_Read));
             Test(dev->writeBuffer(rbuffer, data.data(), data_size, format));
             Test(dev->readBuffer(ret.data(), rbuffer, data_size, format));
             Test(data.back() == ret.back());
@@ -149,7 +149,7 @@ void TestImpl::testMain()
         {
             void *wbuffer = nullptr;
             std::vector<float4> ret(num_elements);
-            Test(dev->createBuffer(&wbuffer, data_size, format, nullptr, gd::CPUAccessFlag::W));
+            Test(dev->createBuffer(&wbuffer, data_size, format, nullptr, gd::ResourceFlags::CPU_Write));
             Test(dev->writeBuffer(wbuffer, data.data(), data_size, format));
             Test(dev->readBuffer(ret.data(), wbuffer, data_size, format));
             Test(data.back() == ret.back());
@@ -159,7 +159,7 @@ void TestImpl::testMain()
         {
             void *rwbuffer = nullptr;
             std::vector<float4> ret(num_elements);
-            Test(dev->createBuffer(&rwbuffer, data_size, format, nullptr, gd::CPUAccessFlag::RW));
+            Test(dev->createBuffer(&rwbuffer, data_size, format, nullptr, gd::ResourceFlags::CPU_ReadWrite));
             Test(dev->writeBuffer(rwbuffer, data.data(), data_size, format));
             Test(dev->readBuffer(ret.data(), rwbuffer, data_size, format));
             Test(data.back() == ret.back());

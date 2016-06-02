@@ -15,12 +15,12 @@ public:
     DeviceType getDeviceType() override;
     void sync() override;
 
-    Error createTexture(void **dst_tex, int width, int height, TextureFormat format, const void *data, CPUAccessFlag flags) override;
+    Error createTexture(void **dst_tex, int width, int height, TextureFormat format, const void *data, ResourceFlags flags) override;
     void releaseTexture(void *tex) override;
     Error readTexture(void *o_buf, size_t bufsize, void *tex, int width, int height, TextureFormat format) override;
     Error writeTexture(void *o_tex, int width, int height, TextureFormat format, const void *buf, size_t bufsize) override;
 
-    Error createBuffer(void **dst_buf, size_t size, BufferType type, const void *data, CPUAccessFlag flags) override;
+    Error createBuffer(void **dst_buf, size_t size, BufferType type, const void *data, ResourceFlags flags) override;
     void releaseBuffer(void *buf) override;
     Error readBuffer(void *dst, const void *src_buf, size_t read_size, BufferType type) override;
     Error writeBuffer(void *dst_buf, const void *src, size_t write_size, BufferType type) override;
@@ -97,7 +97,7 @@ static Error TranslateReturnCode(HRESULT hr)
     return Error::Unknown;
 }
 
-Error GraphicsDeviceD3D12::createTexture(void **dst_tex, int width, int height, TextureFormat format, const void *data, CPUAccessFlag flags)
+Error GraphicsDeviceD3D12::createTexture(void **dst_tex, int width, int height, TextureFormat format, const void *data, ResourceFlags flags)
 {
     D3D12_HEAP_PROPERTIES heap = {};
     heap.Type                   = D3D12_HEAP_TYPE_DEFAULT;
@@ -136,23 +136,31 @@ void GraphicsDeviceD3D12::releaseTexture(void *tex_)
     tex->Release();
 }
 
-Error GraphicsDeviceD3D12::readTexture(void *dst, size_t dstsize, void *src_tex_, int width, int height, TextureFormat format)
+Error GraphicsDeviceD3D12::readTexture(void *dst, size_t read_size, void *src_tex_, int width, int height, TextureFormat format)
 {
+    if (read_size == 0) { return Error::OK; }
+    if (!dst || !src_tex_) { return Error::InvalidParameter; }
+
     auto *src_tex = (ID3D12Resource*)src_tex_;
     return Error::NotAvailable;
 }
 
-Error GraphicsDeviceD3D12::writeTexture(void *dst_tex_, int width, int height, TextureFormat format, const void *src, size_t srcsize)
+Error GraphicsDeviceD3D12::writeTexture(void *dst_tex_, int width, int height, TextureFormat format, const void *src, size_t write_size)
 {
+    if (write_size == 0) { return Error::OK; }
+    if (!dst_tex_ || !src) { return Error::InvalidParameter; }
+
     auto *dst_tex = (ID3D12Resource*)dst_tex_;
     return Error::NotAvailable;
 }
 
 
 
-Error GraphicsDeviceD3D12::createBuffer(void **dst_buf, size_t size, BufferType type, const void *data, CPUAccessFlag flags)
+Error GraphicsDeviceD3D12::createBuffer(void **dst_buf, size_t size, BufferType type, const void *data, ResourceFlags flags)
 {
-     D3D12_HEAP_PROPERTIES heap = {};
+    if (!dst_buf) { return Error::InvalidParameter; }
+    
+    D3D12_HEAP_PROPERTIES heap = {};
      heap.Type                 = D3D12_HEAP_TYPE_UPLOAD;
      heap.CPUPageProperty      = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
      heap.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
@@ -169,7 +177,7 @@ Error GraphicsDeviceD3D12::createBuffer(void **dst_buf, size_t size, BufferType 
      desc.Format             = DXGI_FORMAT_UNKNOWN;
      desc.SampleDesc.Count   = 1;
      desc.SampleDesc.Quality = 0;
-     desc.Layout             = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+     desc.Layout             = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
      desc.Flags              = D3D12_RESOURCE_FLAG_NONE;
 
      ID3D12Resource *buf = nullptr;
@@ -191,12 +199,40 @@ void GraphicsDeviceD3D12::releaseBuffer(void *buf_)
 
 Error GraphicsDeviceD3D12::readBuffer(void *dst, const void *src_buf, size_t read_size, BufferType type)
 {
-    return Error::NotAvailable;
+    if (read_size == 0) { return Error::OK; }
+    if (!dst || !src_buf) { return Error::InvalidParameter; }
+
+    auto *buf = (ID3D12Resource*)src_buf;
+    void *mapped_data = nullptr;
+    D3D12_RANGE range = { 0, read_size };
+
+    auto hr = buf->Map(0, &range, &mapped_data);
+    if (FAILED(hr)) {
+        return TranslateReturnCode(hr);
+    }
+
+    memcpy(dst, mapped_data, read_size);
+    buf->Unmap(0, nullptr);
+    return Error::OK;
 }
 
 Error GraphicsDeviceD3D12::writeBuffer(void *dst_buf, const void *src, size_t write_size, BufferType type)
 {
-    return Error::NotAvailable;
+    if (write_size == 0) { return Error::OK; }
+    if (!dst_buf || !src) { return Error::InvalidParameter; }
+
+    auto *buf = (ID3D12Resource*)dst_buf;
+    void *mapped_data = nullptr;
+    D3D12_RANGE range = { 0, write_size };
+
+    auto hr = buf->Map(0, nullptr, &mapped_data);
+    if (FAILED(hr)) {
+        return TranslateReturnCode(hr);
+    }
+
+    memcpy(mapped_data, src, write_size);
+    buf->Unmap(0, &range);
+    return Error::OK;
 }
 
 } // namespace gd

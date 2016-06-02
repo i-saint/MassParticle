@@ -20,12 +20,12 @@ public:
     DeviceType getDeviceType() override;
     void sync() override;
 
-    Error createTexture(void **dst_tex, int width, int height, TextureFormat format, const void *data, CPUAccessFlag flags) override;
+    Error createTexture(void **dst_tex, int width, int height, TextureFormat format, const void *data, ResourceFlags flags) override;
     void releaseTexture(void *tex) override;
     Error readTexture(void *o_buf, size_t bufsize, void *tex, int width, int height, TextureFormat format) override;
     Error writeTexture(void *o_tex, int width, int height, TextureFormat format, const void *buf, size_t bufsize) override;
 
-    Error createBuffer(void **dst_buf, size_t size, BufferType type, const void *data, CPUAccessFlag flags) override;
+    Error createBuffer(void **dst_buf, size_t size, BufferType type, const void *data, ResourceFlags flags) override;
     void releaseBuffer(void *buf) override;
     Error readBuffer(void *dst, const void *src_buf, size_t read_size, BufferType type) override;
     Error writeBuffer(void *dst_buf, const void *src, size_t write_size, BufferType type) override;
@@ -71,7 +71,7 @@ void GraphicsDeviceVulkan::sync()
 }
 
 
-Error GraphicsDeviceVulkan::createTexture(void **dst_tex, int width, int height, TextureFormat format, const void *data, CPUAccessFlag flags)
+Error GraphicsDeviceVulkan::createTexture(void **dst_tex, int width, int height, TextureFormat format, const void *data, ResourceFlags flags)
 {
     return Error::NotAvailable;
 }
@@ -92,7 +92,7 @@ Error GraphicsDeviceVulkan::writeTexture(void *o_tex, int width, int height, Tex
 }
 
 
-Error GraphicsDeviceVulkan::createBuffer(void **dst_buf, size_t size, BufferType type, const void *data, CPUAccessFlag flags)
+Error GraphicsDeviceVulkan::createBuffer(void **dst_buf, size_t size, BufferType type, const void *data, ResourceFlags flags)
 {
     return Error::NotAvailable;
 }
