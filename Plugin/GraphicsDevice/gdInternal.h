@@ -49,4 +49,22 @@ inline IntType ceildiv(IntType a, IntType b)
 
 static inline bool operator&(ResourceFlags a, ResourceFlags b) { return ((int)a & (int)b) != 0; }
 
+
+inline void CopyRegion(void *dst, int dst_pitch, const void *src, int src_pitch, int num_rows)
+{
+    if (dst_pitch == src_pitch) {
+        memcpy(dst, src, dst_pitch * num_rows);
+    }
+    else {
+        auto *tdst = (char*)dst;
+        auto *tsrc = (const char*)src;
+        int copy_size = std::min<int>(dst_pitch, src_pitch);
+        for (int ri = 0; ri < num_rows; ++ri) {
+            memcpy(tdst, tsrc, copy_size);
+            tdst += dst_pitch;
+            tsrc += src_pitch;
+        }
+    }
+}
+
 } // namespace gd
