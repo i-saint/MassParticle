@@ -2,6 +2,8 @@
 #include "gdInternal.h"
 #include <d3d12.h>
 
+using Microsoft::WRL::ComPtr;
+
 namespace gd {
 
 class GraphicsDeviceD3D12 : public GraphicsDevice
@@ -16,17 +18,25 @@ public:
     void sync() override;
 
     Error createTexture2D(void **dst_tex, int width, int height, TextureFormat format, const void *data, ResourceFlags flags) override;
-    void releaseTexture2D(void *tex) override;
+    void  releaseTexture2D(void *tex) override;
     Error readTexture2D(void *o_buf, size_t bufsize, void *tex, int width, int height, TextureFormat format) override;
     Error writeTexture2D(void *o_tex, int width, int height, TextureFormat format, const void *buf, size_t bufsize) override;
 
     Error createBuffer(void **dst_buf, size_t size, BufferType type, const void *data, ResourceFlags flags) override;
-    void releaseBuffer(void *buf) override;
+    void  releaseBuffer(void *buf) override;
     Error readBuffer(void *dst, const void *src_buf, size_t read_size, BufferType type) override;
     Error writeBuffer(void *dst_buf, const void *src, size_t write_size, BufferType type) override;
 
 private:
-    ID3D12Device *m_device = nullptr;
+    ID3D12Resource* createStagingBuffer(size_t size);
+    void flush();
+
+private:
+    ComPtr<ID3D12Device> m_device;
+    ComPtr<ID3D12CommandQueue> m_cqueue;
+    ComPtr<ID3D12CommandAllocator> m_calloc;
+    ComPtr<ID3D12GraphicsCommandList> m_clist;
+    ComPtr<ID3D12Fence> m_fence;
 };
 
 
@@ -40,6 +50,26 @@ GraphicsDevice* CreateGraphicsDeviceD3D12(void *device)
 GraphicsDeviceD3D12::GraphicsDeviceD3D12(void *device)
     : m_device((ID3D12Device*)device)
 {
+    // create command queue
+    {
+        D3D12_COMMAND_QUEUE_DESC desc;
+        ZeroMemory(&desc, sizeof(desc));
+        desc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
+        desc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
+        auto hr = m_device->CreateCommandQueue(&desc, IID_PPV_ARGS(&m_cqueue));
+    }
+
+    // create command allocator & list
+    {
+        auto hr = m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_calloc));
+        if (SUCCEEDED(hr)) {
+            hr = m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_calloc.Get(), nullptr, IID_PPV_ARGS(&m_clist));
+            if (SUCCEEDED(hr)) {
+                m_clist->Close();
+            }
+        }
+    }
+
 }
 
 GraphicsDeviceD3D12::~GraphicsDeviceD3D12()
@@ -61,9 +91,18 @@ DeviceType GraphicsDeviceD3D12::getDeviceType()
     return DeviceType::D3D12;
 }
 
+
+void GraphicsDeviceD3D12::flush()
+{
+    m_cqueue->ExecuteCommandLists(1, (ID3D12CommandList**)m_clist.GetAddressOf());
+    //m_cqueue->Signal(m_fence, m_NextFenceValue);
+
+}
+
+
 void GraphicsDeviceD3D12::sync()
 {
-
+    flush();
 }
 
 static DXGI_FORMAT GetInternalFormatD3D12(TextureFormat fmt)
@@ -97,6 +136,34 @@ static Error TranslateReturnCode(HRESULT hr)
     return Error::Unknown;
 }
 
+ID3D12Resource* GraphicsDeviceD3D12::createStagingBuffer(size_t size)
+{
+    D3D12_HEAP_PROPERTIES heap;
+    heap.Type = D3D12_HEAP_TYPE_UPLOAD;
+    heap.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+    heap.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+    heap.CreationNodeMask = 1;
+    heap.VisibleNodeMask = 1;
+
+    D3D12_RESOURCE_DESC desc;
+    desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+    desc.Alignment = 0;
+    desc.Width = size;
+    desc.Height = 1;
+    desc.DepthOrArraySize = 1;
+    desc.MipLevels = 1;
+    desc.Format = DXGI_FORMAT_UNKNOWN;
+    desc.SampleDesc.Count = 1;
+    desc.SampleDesc.Quality = 0;
+    desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+    desc.Flags = D3D12_RESOURCE_FLAG_NONE;
+
+    ID3D12Resource *ret = nullptr;
+    m_device->CreateCommittedResource(&heap, D3D12_HEAP_FLAG_NONE, &desc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&ret));
+    return ret;
+}
+
+
 Error GraphicsDeviceD3D12::createTexture2D(void **dst_tex, int width, int height, TextureFormat format, const void *data, ResourceFlags flags)
 {
     D3D12_HEAP_PROPERTIES heap = {};
@@ -121,7 +188,7 @@ Error GraphicsDeviceD3D12::createTexture2D(void **dst_tex, int width, int height
 
     ID3D12Resource *tex = nullptr;
     auto hr = m_device->CreateCommittedResource(
-        &heap, D3D12_HEAP_FLAG_NONE, &desc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&tex) );
+        &heap, D3D12_HEAP_FLAG_NONE, &desc, D3D12_RESOURCE_STATE_COMMON, nullptr, IID_PPV_ARGS(&tex) );
     if ( FAILED( hr ) )
     {
         return TranslateReturnCode(hr);
@@ -132,6 +199,8 @@ Error GraphicsDeviceD3D12::createTexture2D(void **dst_tex, int width, int height
 
 void GraphicsDeviceD3D12::releaseTexture2D(void *tex_)
 {
+    if (!tex_) { return; }
+
     auto *tex = (ID3D12Resource*)tex_;
     tex->Release();
 }
@@ -180,9 +249,11 @@ Error GraphicsDeviceD3D12::createBuffer(void **dst_buf, size_t size, BufferType 
      desc.Layout             = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
      desc.Flags              = D3D12_RESOURCE_FLAG_NONE;
 
+     D3D12_RESOURCE_STATES state = D3D12_RESOURCE_STATE_GENERIC_READ;
+
      ID3D12Resource *buf = nullptr;
      auto hr = m_device->CreateCommittedResource(
-         &heap, D3D12_HEAP_FLAG_NONE, &desc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&buf) );
+         &heap, D3D12_HEAP_FLAG_NONE, &desc, state, nullptr, IID_PPV_ARGS(&buf) );
      if (FAILED(hr))
      {
          return TranslateReturnCode(hr);
@@ -193,6 +264,8 @@ Error GraphicsDeviceD3D12::createBuffer(void **dst_buf, size_t size, BufferType 
 
 void GraphicsDeviceD3D12::releaseBuffer(void *buf_)
 {
+    if (!buf_) { return; }
+
     auto *buf = (ID3D12Resource*)buf_;
     buf->Release();
 }

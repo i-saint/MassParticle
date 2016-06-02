@@ -11,6 +11,7 @@
 
 #ifdef _WIN32
     #define GLEW_STATIC
+    #include <wrl.h>
     #include <d3d9.h>
     #include <d3d11.h>
     #include <d3d12.h>

@@ -2,6 +2,8 @@
 #include "gdInternal.h"
 #include <d3d11.h>
 
+using Microsoft::WRL::ComPtr;
+
 namespace gd {
 
 const int D3D11MaxStagingTextures = 32;
@@ -34,11 +36,11 @@ private:
     ID3D11Buffer* getStagingBuffer(BufferType type, size_t size);
 
 private:
-    ID3D11Device *m_device = nullptr;
-    ID3D11DeviceContext *m_context = nullptr;
-    ID3D11Query *m_query_event = nullptr;
-    std::map<uint64_t, ID3D11Texture2D*> m_staging_textures;
-    std::array<ID3D11Buffer*, (int)BufferType::End> m_staging_buffers;
+    ComPtr<ID3D11Device> m_device = nullptr;
+    ComPtr<ID3D11DeviceContext> m_context = nullptr;
+    ComPtr<ID3D11Query> m_query_event = nullptr;
+    std::map<uint64_t, ComPtr<ID3D11Texture2D>> m_staging_textures;
+    std::array<ComPtr<ID3D11Buffer>, (int)BufferType::End> m_staging_buffers;
 };
 
 
@@ -65,15 +67,6 @@ GraphicsDeviceD3D11::~GraphicsDeviceD3D11()
 {
     clearStagingTextures();
     clearStagingBuffers();
-
-    if (m_context != nullptr)
-    {
-        m_context->Release();
-        m_context = nullptr;
-
-        m_query_event->Release();
-        m_query_event = nullptr;
-    }
 }
 
 void GraphicsDeviceD3D11::release()
@@ -83,27 +76,23 @@ void GraphicsDeviceD3D11::release()
 
 void GraphicsDeviceD3D11::clearStagingTextures()
 {
-    for (auto& pair : m_staging_textures) { pair.second->Release(); }
     m_staging_textures.clear();
 }
 
 void GraphicsDeviceD3D11::clearStagingBuffers()
 {
     for (auto& buf : m_staging_buffers) {
-        if (buf) {
-            buf->Release();
-            buf = nullptr;
-        }
+        buf.Reset();
     }
 }
 
-void* GraphicsDeviceD3D11::getDevicePtr() { return m_device; }
+void* GraphicsDeviceD3D11::getDevicePtr() { return m_device.Get(); }
 DeviceType GraphicsDeviceD3D11::getDeviceType() { return DeviceType::D3D11; }
 
 void GraphicsDeviceD3D11::sync()
 {
-    m_context->End(m_query_event);
-    while (m_context->GetData(m_query_event, nullptr, 0, 0) == S_FALSE) {
+    m_context->End(m_query_event.Get());
+    while (m_context->GetData(m_query_event.Get(), nullptr, 0, 0) == S_FALSE) {
         std::this_thread::sleep_for(std::chrono::microseconds(100));
     }
 }
@@ -142,7 +131,7 @@ ID3D11Texture2D* GraphicsDeviceD3D11::getStagingTexture(int width, int height, T
         auto it = m_staging_textures.find(hash);
         if (it != m_staging_textures.end())
         {
-            return it->second;
+            return it->second.Get();
         }
     }
 
@@ -353,10 +342,8 @@ ID3D11Buffer* GraphicsDeviceD3D11::getStagingBuffer(BufferType type, size_t size
 
 
     if (current_size != size) {
-        if (staging) {
-            staging->Release();
-            staging = nullptr;
-        }
+        staging.Reset();
+
         D3D11_BUFFER_DESC desc = { 0 };
         desc.ByteWidth = (UINT)size;
         desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE | D3D11_CPU_ACCESS_READ;
@@ -369,7 +356,7 @@ ID3D11Buffer* GraphicsDeviceD3D11::getStagingBuffer(BufferType type, size_t size
             return nullptr;
         }
     }
-    return staging;
+    return staging.Get();
 }
 
 Error GraphicsDeviceD3D11::createBuffer(void **dst_buf, size_t size, BufferType type, const void *data, ResourceFlags flags)

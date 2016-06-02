@@ -6,10 +6,11 @@
     #define WithD3D12
     #define WithOpenGL
     #define WithVulkan
+
+    #include <wrl.h>
+    using Microsoft::WRL::ComPtr;
 #else
 #endif
-
-#define SafeRelease(v) if(v) { v->Release(); v = nullptr; }
 
 
 
@@ -25,17 +26,16 @@ class TestImplD3D9 : public TestImpl
 public:
     ~TestImplD3D9() override;
     TestType getType() const override { return TestType::D3D9; }
-    void* getDevice() const override { return m_device; }
+    void* getDevice() const override { return m_device.Get(); }
     void onInit(void *hwnd) override;
 
 private:
-    IDirect3D9 *m_d3d9 = nullptr;
-    IDirect3DDevice9 *m_device = nullptr;
+    ComPtr<IDirect3D9> m_d3d9;
+    ComPtr<IDirect3DDevice9> m_device;
 };
 
 TestImplD3D9::~TestImplD3D9()
 {
-    SafeRelease(m_device);
 }
 
 void TestImplD3D9::onInit(void *hwnd)
@@ -72,20 +72,17 @@ class TestImplD3D11 : public TestImpl
 public:
     ~TestImplD3D11() override;
     TestType getType() const override { return TestType::D3D11; }
-    void* getDevice() const override { return m_device; }
+    void* getDevice() const override { return m_device.Get(); }
     void onInit(void *hwnd) override;
 
 private:
-    IDXGISwapChain *m_swapchain = nullptr;
-    ID3D11Device *m_device = nullptr;
-    ID3D11DeviceContext *m_context = nullptr;
+    ComPtr<IDXGISwapChain> m_swapchain = nullptr;
+    ComPtr<ID3D11Device> m_device = nullptr;
+    ComPtr<ID3D11DeviceContext> m_context = nullptr;
 };
 
 TestImplD3D11::~TestImplD3D11()
 {
-    SafeRelease(m_context);
-    SafeRelease(m_device);
-    SafeRelease(m_swapchain);
 }
 
 void TestImplD3D11::onInit(void *hwnd)
@@ -144,25 +141,22 @@ class TestImplD3D12 : public TestImpl
 public:
     ~TestImplD3D12() override;
     TestType getType() const override { return TestType::D3D12; }
-    void* getDevice() const override { return m_device; }
+    void* getDevice() const override { return m_device.Get(); }
     void onInit(void *hwnd) override;
 
 private:
-    ID3D12Device *m_device = nullptr;
-    ID3D12CommandQueue *m_queue = nullptr;
-    IDXGISwapChain1 *m_swapchain = nullptr;
+    ComPtr<ID3D12Device> m_device;
+    ComPtr<ID3D12CommandQueue> m_queue;
+    ComPtr<IDXGISwapChain1> m_swapchain;
 };
 
 TestImplD3D12::~TestImplD3D12()
 {
-    SafeRelease(m_swapchain);
-    SafeRelease(m_queue);
-    SafeRelease(m_device);
 }
 
 void TestImplD3D12::onInit(void *hwnd)
 {
-    IDXGIFactory4 *factory = nullptr;
+    ComPtr<IDXGIFactory4> factory;
     CreateDXGIFactory1(IID_PPV_ARGS(&factory));
 
     IDXGIAdapter1 *adapter;
@@ -195,7 +189,7 @@ void TestImplD3D12::onInit(void *hwnd)
     swapChainDesc.SampleDesc.Count = 1;
 
     factory->CreateSwapChainForHwnd(
-        m_queue,		// Swap chain needs the queue so that it can force a flush on it.
+        m_queue.Get(), // Swap chain needs the queue so that it can force a flush on it.
         (HWND)hwnd,
         &swapChainDesc,
         nullptr,
@@ -205,9 +199,6 @@ void TestImplD3D12::onInit(void *hwnd)
 
     // This sample does not support fullscreen transitions.
     factory->MakeWindowAssociation((HWND)hwnd, DXGI_MWA_NO_ALT_ENTER);
-
-
-    SafeRelease(factory);
 }
 
 TestImpl* CreateTestD3D12() { return new TestImplD3D12(); }

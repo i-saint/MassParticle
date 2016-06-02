@@ -2,6 +2,8 @@
 #include "gdInternal.h"
 #include <d3d9.h>
 
+using Microsoft::WRL::ComPtr;
+
 namespace gd {
 
 const int D3D9MaxStagingTextures = 32;
@@ -32,9 +34,9 @@ private:
     IDirect3DSurface9* findOrCreateStagingTexture(int width, int height, TextureFormat format);
 
 private:
-    IDirect3DDevice9 *m_device = nullptr;
-    IDirect3DQuery9 *m_query_event = nullptr;
-    std::map<uint64_t, IDirect3DSurface9*> m_staging_textures;
+    ComPtr<IDirect3DDevice9> m_device;
+    ComPtr<IDirect3DQuery9> m_query_event;
+    std::map<uint64_t, ComPtr<IDirect3DSurface9>> m_staging_textures;
 };
 
 
@@ -65,16 +67,12 @@ void GraphicsDeviceD3D9::release()
     delete this;
 }
 
-void* GraphicsDeviceD3D9::getDevicePtr() { return m_device; }
+void* GraphicsDeviceD3D9::getDevicePtr() { return m_device.Get(); }
 DeviceType GraphicsDeviceD3D9::getDeviceType() { return DeviceType::D3D9; }
 
 
 void GraphicsDeviceD3D9::clearStagingTextures()
 {
-    for (auto& pair : m_staging_textures)
-    {
-        pair.second->Release();
-    }
     m_staging_textures.clear();
 }
 
@@ -111,7 +109,7 @@ IDirect3DSurface9* GraphicsDeviceD3D9::findOrCreateStagingTexture(int width, int
         auto it = m_staging_textures.find(hash);
         if (it != m_staging_textures.end())
         {
-            return it->second;
+            return it->second.Get();
         }
     }
 
@@ -181,14 +179,14 @@ Error GraphicsDeviceD3D9::readTexture2D(void *o_buf, size_t bufsize, void *tex_,
     IDirect3DSurface9 *surf_dst = findOrCreateStagingTexture(width, height, format);
     if (surf_dst == nullptr) { return Error::Unknown; }
 
-    IDirect3DSurface9* surf_src = nullptr;
+    ComPtr<IDirect3DSurface9> surf_src;
     hr = tex->GetSurfaceLevel(0, &surf_src);
     if (FAILED(hr)){ return Error::Unknown; }
 
     sync();
 
     Error ret = Error::Unknown;
-    hr = m_device->GetRenderTargetData(surf_src, surf_dst);
+    hr = m_device->GetRenderTargetData(surf_src.Get(), surf_dst);
     if (SUCCEEDED(hr))
     {
         D3DLOCKED_RECT locked;
@@ -225,7 +223,6 @@ Error GraphicsDeviceD3D9::readTexture2D(void *o_buf, size_t bufsize, void *tex_,
         }
     }
 
-    surf_src->Release();
     return ret;
 }
 
