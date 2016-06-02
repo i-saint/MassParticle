@@ -71,41 +71,41 @@ void TestImpl::testMain()
         {
             void *texture = nullptr;
             std::vector<float4> ret(num_texels);
-            Test(dev->createTexture(&texture, width, height, format, nullptr, gd::ResourceFlags::None));
-            Test(dev->writeTexture(texture, width, height, format, data.data(), data_size));
-            Test(dev->readTexture(ret.data(), data_size, texture, width, height, format));
+            Test(dev->createTexture2D(&texture, width, height, format, nullptr, gd::ResourceFlags::None));
+            Test(dev->writeTexture2D(texture, width, height, format, data.data(), data_size));
+            Test(dev->readTexture2D(ret.data(), data_size, texture, width, height, format));
             Test(data.back() == ret.back());
-            dev->releaseTexture(texture);
+            dev->releaseTexture2D(texture);
         }
         printf("\n");
         {
             void *rtexture = nullptr;
             std::vector<float4> ret(num_texels);
-            Test(dev->createTexture(&rtexture, width, height, format, nullptr, gd::ResourceFlags::CPU_Read));
-            Test(dev->writeTexture(rtexture, width, height, format, data.data(), data_size));
-            Test(dev->readTexture(ret.data(), data_size, rtexture, width, height, format));
+            Test(dev->createTexture2D(&rtexture, width, height, format, nullptr, gd::ResourceFlags::CPU_Read));
+            Test(dev->writeTexture2D(rtexture, width, height, format, data.data(), data_size));
+            Test(dev->readTexture2D(ret.data(), data_size, rtexture, width, height, format));
             Test(data.back() == ret.back());
-            dev->releaseTexture(rtexture);
+            dev->releaseTexture2D(rtexture);
         }
         printf("\n");
         {
             void *wtexture = nullptr;
             std::vector<float4> ret(num_texels);
-            Test(dev->createTexture(&wtexture, width, height, format, nullptr, gd::ResourceFlags::CPU_Write));
-            Test(dev->writeTexture(wtexture, width, height, format, data.data(), data_size));
-            Test(dev->readTexture(ret.data(), data_size, wtexture, width, height, format));
+            Test(dev->createTexture2D(&wtexture, width, height, format, nullptr, gd::ResourceFlags::CPU_Write));
+            Test(dev->writeTexture2D(wtexture, width, height, format, data.data(), data_size));
+            Test(dev->readTexture2D(ret.data(), data_size, wtexture, width, height, format));
             Test(data.back() == ret.back());
-            dev->releaseTexture(wtexture);
+            dev->releaseTexture2D(wtexture);
         }
         printf("\n");
         {
             void *rwtexture = nullptr;
             std::vector<float4> ret(num_texels);
-            Test(dev->createTexture(&rwtexture, width, height, format, nullptr, gd::ResourceFlags::CPU_ReadWrite));
-            Test(dev->writeTexture(rwtexture, width, height, format, data.data(), data_size));
-            Test(dev->readTexture(ret.data(), data_size, rwtexture, width, height, format));
+            Test(dev->createTexture2D(&rwtexture, width, height, format, nullptr, gd::ResourceFlags::CPU_ReadWrite));
+            Test(dev->writeTexture2D(rwtexture, width, height, format, data.data(), data_size));
+            Test(dev->readTexture2D(ret.data(), data_size, rwtexture, width, height, format));
             Test(data.back() == ret.back());
-            dev->releaseTexture(rwtexture);
+            dev->releaseTexture2D(rwtexture);
         }
     }
 

@@ -17,10 +17,10 @@ public:
     DeviceType getDeviceType() override;
     void sync() override;
 
-    Error createTexture(void **dst_tex, int width, int height, TextureFormat format, const void *data, ResourceFlags flags) override;
-    void releaseTexture(void *tex) override;
-    Error readTexture(void *o_buf, size_t read_size, void *tex, int width, int height, TextureFormat format) override;
-    Error writeTexture(void *o_tex, int width, int height, TextureFormat format, const void *buf, size_t write_size) override;
+    Error createTexture2D(void **dst_tex, int width, int height, TextureFormat format, const void *data, ResourceFlags flags) override;
+    void releaseTexture2D(void *tex) override;
+    Error readTexture2D(void *o_buf, size_t read_size, void *tex, int width, int height, TextureFormat format) override;
+    Error writeTexture2D(void *o_tex, int width, int height, TextureFormat format, const void *buf, size_t write_size) override;
 
     Error createBuffer(void **dst_buf, size_t size, BufferType type, const void *data, ResourceFlags flags) override;
     void releaseBuffer(void *buf) override;
@@ -169,7 +169,7 @@ static Error TranslateReturnCode(HRESULT hr)
     return Error::Unknown;
 }
 
-Error GraphicsDeviceD3D11::createTexture(void **dst_tex, int width, int height, TextureFormat format, const void *data, ResourceFlags flags)
+Error GraphicsDeviceD3D11::createTexture2D(void **dst_tex, int width, int height, TextureFormat format, const void *data, ResourceFlags flags)
 {
     size_t texel_size = GetTexelSize(format);
     DXGI_FORMAT internal_format = GetInternalFormatD3D11(format);
@@ -204,14 +204,14 @@ Error GraphicsDeviceD3D11::createTexture(void **dst_tex, int width, int height, 
     return Error::OK;
 }
 
-void GraphicsDeviceD3D11::releaseTexture(void *tex)
+void GraphicsDeviceD3D11::releaseTexture2D(void *tex)
 {
     if (tex) {
         ((ID3D11Texture2D*)tex)->Release();
     }
 }
 
-Error GraphicsDeviceD3D11::readTexture(void *dst, size_t read_size, void *src_tex_, int width, int height, TextureFormat format)
+Error GraphicsDeviceD3D11::readTexture2D(void *dst, size_t read_size, void *src_tex_, int width, int height, TextureFormat format)
 {
     if (read_size == 0) { return Error::OK; }
     if (m_context == nullptr || src_tex_ == nullptr) { return Error::InvalidParameter; }
@@ -231,7 +231,7 @@ Error GraphicsDeviceD3D11::readTexture(void *dst, size_t read_size, void *src_te
         D3D11_MAPPED_SUBRESOURCE mapped = { 0 };
         auto hr = m_context->Map(tex, 0, D3D11_MAP_READ, 0, &mapped);
         if (FAILED(hr)) {
-            gdLogError("GraphicsDeviceD3D11::readTexture(): Map() failed.\n");
+            gdLogError("GraphicsDeviceD3D11::readTexture2D(): Map() failed.\n");
             ret = TranslateReturnCode(hr);
         }
         else {
@@ -275,7 +275,7 @@ Error GraphicsDeviceD3D11::readTexture(void *dst, size_t read_size, void *src_te
     return ret;
 }
 
-Error GraphicsDeviceD3D11::writeTexture(void *dst_tex_, int width, int height, TextureFormat format, const void *src, size_t write_size)
+Error GraphicsDeviceD3D11::writeTexture2D(void *dst_tex_, int width, int height, TextureFormat format, const void *src, size_t write_size)
 {
     if (write_size == 0) { return Error::OK; }
     if (!dst_tex_ || !src) { return Error::InvalidParameter; }
@@ -300,7 +300,7 @@ Error GraphicsDeviceD3D11::writeTexture(void *dst_tex_, int width, int height, T
             hr = m_context->Map(dst_tex, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
         }
         if (FAILED(hr)) {
-            gdLogError("GraphicsDeviceD3D11::writeTexture(): Map() failed.\n");
+            gdLogError("GraphicsDeviceD3D11::writeTexture2D(): Map() failed.\n");
             ret = TranslateReturnCode(hr);
         }
         else {

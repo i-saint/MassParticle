@@ -20,10 +20,10 @@ public:
     DeviceType getDeviceType() override;
     void sync() override;
 
-    Error createTexture(void **dst_tex, int width, int height, TextureFormat format, const void *data, ResourceFlags flags) override;
-    void releaseTexture(void *tex) override;
-    Error readTexture(void *o_buf, size_t bufsize, void *tex, int width, int height, TextureFormat format) override;
-    Error writeTexture(void *o_tex, int width, int height, TextureFormat format, const void *buf, size_t bufsize) override;
+    Error createTexture2D(void **dst_tex, int width, int height, TextureFormat format, const void *data, ResourceFlags flags) override;
+    void releaseTexture2D(void *tex) override;
+    Error readTexture2D(void *o_buf, size_t bufsize, void *tex, int width, int height, TextureFormat format) override;
+    Error writeTexture2D(void *o_tex, int width, int height, TextureFormat format, const void *buf, size_t bufsize) override;
 
     Error createBuffer(void **dst_buf, size_t size, BufferType type, const void *data, ResourceFlags flags) override;
     void releaseBuffer(void *buf) override;
@@ -71,22 +71,22 @@ void GraphicsDeviceVulkan::sync()
 }
 
 
-Error GraphicsDeviceVulkan::createTexture(void **dst_tex, int width, int height, TextureFormat format, const void *data, ResourceFlags flags)
+Error GraphicsDeviceVulkan::createTexture2D(void **dst_tex, int width, int height, TextureFormat format, const void *data, ResourceFlags flags)
 {
     return Error::NotAvailable;
 }
 
-void GraphicsDeviceVulkan::releaseTexture(void *tex)
+void GraphicsDeviceVulkan::releaseTexture2D(void *tex)
 {
 
 }
 
-Error GraphicsDeviceVulkan::readTexture(void *o_buf, size_t bufsize, void *tex, int width, int height, TextureFormat format)
+Error GraphicsDeviceVulkan::readTexture2D(void *o_buf, size_t bufsize, void *tex, int width, int height, TextureFormat format)
 {
     return Error::NotAvailable;
 }
 
-Error GraphicsDeviceVulkan::writeTexture(void *o_tex, int width, int height, TextureFormat format, const void *buf, size_t bufsize)
+Error GraphicsDeviceVulkan::writeTexture2D(void *o_tex, int width, int height, TextureFormat format, const void *buf, size_t bufsize)
 {
     return Error::NotAvailable;
 }

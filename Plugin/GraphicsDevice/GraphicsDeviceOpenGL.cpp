@@ -21,10 +21,10 @@ public:
     DeviceType getDeviceType() override;
     void sync() override;
 
-    Error createTexture(void **dst_tex, int width, int height, TextureFormat format, const void *data, ResourceFlags flags) override;
-    void releaseTexture(void *tex) override;
-    Error readTexture(void *o_buf, size_t bufsize, void *tex, int width, int height, TextureFormat format) override;
-    Error writeTexture(void *o_tex, int width, int height, TextureFormat format, const void *buf, size_t bufsize) override;
+    Error createTexture2D(void **dst_tex, int width, int height, TextureFormat format, const void *data, ResourceFlags flags) override;
+    void releaseTexture2D(void *tex) override;
+    Error readTexture2D(void *o_buf, size_t bufsize, void *tex, int width, int height, TextureFormat format) override;
+    Error writeTexture2D(void *o_tex, int width, int height, TextureFormat format, const void *buf, size_t bufsize) override;
 
     Error createBuffer(void **dst_buf, size_t size, BufferType type, const void *data, ResourceFlags flags) override;
     void releaseBuffer(void *buf) override;
@@ -96,7 +96,7 @@ void GraphicsDeviceOpenGL::sync()
     glFinish();
 }
 
-Error GraphicsDeviceOpenGL::createTexture(void **dst_tex, int width, int height, TextureFormat format, const void *data, ResourceFlags flags)
+Error GraphicsDeviceOpenGL::createTexture2D(void **dst_tex, int width, int height, TextureFormat format, const void *data, ResourceFlags flags)
 {
     GLenum gl_format = 0;
     GLenum gl_type = 0;
@@ -115,14 +115,14 @@ Error GraphicsDeviceOpenGL::createTexture(void **dst_tex, int width, int height,
     return ret;
 }
 
-void GraphicsDeviceOpenGL::releaseTexture(void *tex_)
+void GraphicsDeviceOpenGL::releaseTexture2D(void *tex_)
 {
     GLuint tex = (GLuint)(size_t)tex_;
     glDeleteTextures(1, &tex);
 
 }
 
-Error GraphicsDeviceOpenGL::readTexture(void *o_buf, size_t, void *tex, int, int, TextureFormat format)
+Error GraphicsDeviceOpenGL::readTexture2D(void *o_buf, size_t, void *tex, int, int, TextureFormat format)
 {
     GLenum gl_format = 0;
     GLenum gl_type = 0;
@@ -142,7 +142,7 @@ Error GraphicsDeviceOpenGL::readTexture(void *o_buf, size_t, void *tex, int, int
     return ret;
 }
 
-Error GraphicsDeviceOpenGL::writeTexture(void *o_tex, int width, int height, TextureFormat format, const void *buf, size_t)
+Error GraphicsDeviceOpenGL::writeTexture2D(void *o_tex, int width, int height, TextureFormat format, const void *buf, size_t)
 {
     GLenum gl_format = 0;
     GLenum gl_type = 0;
