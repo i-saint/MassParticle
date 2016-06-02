@@ -36,14 +36,14 @@ private:
     ID3D12Resource* createStagingBuffer(size_t size, BufferFlags flags);
 
     // Body: [](ID3D12GraphicsCommandList *clist) -> void
-    template<class Body> void executeCommands(const Body& body);
+    template<class Body> HRESULT executeCommands(const Body& body);
 
 private:
     ComPtr<ID3D12Device> m_device;
     ComPtr<ID3D12CommandQueue> m_cqueue;
     ComPtr<ID3D12CommandAllocator> m_calloc;
-    ComPtr<ID3D12GraphicsCommandList> m_clist;
     ComPtr<ID3D12Fence> m_fence;
+    HANDLE m_fence_event;
 };
 
 
@@ -70,14 +70,21 @@ GraphicsDeviceD3D12::GraphicsDeviceD3D12(void *device)
     {
         auto hr = m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_calloc));
         if (SUCCEEDED(hr)) {
-            hr = m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_calloc.Get(), nullptr, IID_PPV_ARGS(&m_clist));
         }
     }
 
+    // create signal
+    m_device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_fence));
+    m_fence->Signal(1);
+
+    m_fence_event = CreateEvent(nullptr, false, false, nullptr);
 }
 
 GraphicsDeviceD3D12::~GraphicsDeviceD3D12()
 {
+    if (m_fence_event) {
+        CloseHandle(m_fence_event);
+    }
 }
 
 void GraphicsDeviceD3D12::release()
@@ -97,21 +104,32 @@ DeviceType GraphicsDeviceD3D12::getDeviceType()
 
 // Body: [](ID3D12GraphicsCommandList *clist) -> void
 template<class Body>
-void GraphicsDeviceD3D12::executeCommands(const Body& body)
+HRESULT GraphicsDeviceD3D12::executeCommands(const Body& body)
 {
-    m_clist->Reset(m_calloc.Get(), nullptr);
-    body(m_clist.Get());
-    m_clist->Close();
+    HRESULT hr;
 
-    m_cqueue->ExecuteCommandLists(1, (ID3D12CommandList**)m_clist.GetAddressOf());
-    //m_cqueue->Signal(m_fence, m_NextFenceValue);
+    ComPtr<ID3D12GraphicsCommandList> clist;
+    hr = m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_calloc.Get(), nullptr, IID_PPV_ARGS(&clist));
+    if (FAILED(hr)) { return hr; }
+
+    body(clist.Get());
+
+    hr = clist->Close();
+    if (FAILED(hr)) { return hr; }
+
+    m_cqueue->ExecuteCommandLists(1, (ID3D12CommandList**)clist.GetAddressOf());
+    hr = m_cqueue->Signal(m_fence.Get(), 1);
+    if (FAILED(hr)) { return hr; }
 
     sync();
+    return S_OK;
 }
 
 
 void GraphicsDeviceD3D12::sync()
 {
+    m_fence->SetEventOnCompletion(1, m_fence_event);
+    WaitForSingleObject(m_fence_event, INFINITE);
 }
 
 static DXGI_FORMAT GetInternalFormatD3D12(TextureFormat fmt)
@@ -237,6 +255,7 @@ Error GraphicsDeviceD3D12::readTexture2D(void *dst, size_t read_size, void *src_
     m_device->GetCopyableFootprints(&src_desc, 0, 1, 0, &src_layout, &src_num_rows, &src_row_size, &src_required_size);
 
     ComPtr<ID3D12Resource> staging = createStagingBuffer(src_required_size, BufferFlags::Readback);
+    if (!staging) { return Error::OutOfMemory; }
 
     D3D12_TEXTURE_COPY_LOCATION src_region;
     src_region.pResource = src_tex;
@@ -249,18 +268,17 @@ Error GraphicsDeviceD3D12::readTexture2D(void *dst, size_t read_size, void *src_
     dst_region.PlacedFootprint.Offset = 0;
     dst_region.PlacedFootprint.Footprint = src_layout.Footprint;
 
-    executeCommands([&](auto *clist) {
+    auto hr = executeCommands([&](ID3D12GraphicsCommandList *clist) {
         clist->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(src_tex, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_COPY_SOURCE));
         clist->CopyTextureRegion(&dst_region, 0, 0, 0, &src_region, nullptr);
         clist->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(src_tex, D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE));
     });
+    if (FAILED(hr)) { return TranslateReturnCode(hr); }
 
 
     char *mapped_data = nullptr;
-    auto hr = staging->Map(0, nullptr, (void**)&mapped_data);
-    if (FAILED(hr)) {
-        return TranslateReturnCode(hr);
-    }
+    hr = staging->Map(0, nullptr, (void**)&mapped_data);
+    if (FAILED(hr)) { return TranslateReturnCode(hr); }
     {
         int dst_pitch = width * GetTexelSize(format);
         int src_pitch = src_layout.Footprint.RowPitch;
@@ -269,7 +287,7 @@ Error GraphicsDeviceD3D12::readTexture2D(void *dst, size_t read_size, void *src_
     }
     staging->Unmap(0, nullptr);
 
-    return Error::Unknown;
+    return Error::OK;
 }
 
 Error GraphicsDeviceD3D12::writeTexture2D(void *dst_tex_, int width, int height, TextureFormat format, const void *src, size_t write_size)
@@ -281,6 +299,7 @@ Error GraphicsDeviceD3D12::writeTexture2D(void *dst_tex_, int width, int height,
 
     auto staging_size = GetRequiredIntermediateSize(dst_tex, 0, 1);
     ComPtr<ID3D12Resource> staging = createStagingBuffer(staging_size, BufferFlags::Upload);
+    if (!staging) { return Error::OutOfMemory; }
 
     size_t texel_size = GetTexelSize(format);
     D3D12_SUBRESOURCE_DATA subr = {
@@ -288,7 +307,11 @@ Error GraphicsDeviceD3D12::writeTexture2D(void *dst_tex_, int width, int height,
         width * (UINT)texel_size,
         width * height * (UINT)texel_size,
     };
-    auto ret = UpdateSubresources(m_clist.Get(), dst_tex, staging.Get(), 0, 0, 1, &subr);
+
+    UINT64 ret;
+    executeCommands([&](auto *clist) {
+        ret = UpdateSubresources(clist, dst_tex, staging.Get(), 0, 0, 1, &subr);
+    });
 
     sync();
 
