@@ -27,7 +27,7 @@ public:
 
     Result createBuffer(void **dst_buf, size_t size, BufferType type, const void *data, ResourceFlags flags) override;
     void  releaseBuffer(void *buf) override;
-    Result readBuffer(void *dst, const void *src_buf, size_t read_size, BufferType type) override;
+    Result readBuffer(void *dst, void *src_buf, size_t read_size, BufferType type) override;
     Result writeBuffer(void *dst_buf, const void *src, size_t write_size, BufferType type) override;
 
 private:
@@ -132,37 +132,6 @@ void GraphicsInterfaceD3D12::sync()
     WaitForSingleObject(m_fence_event, INFINITE);
 }
 
-static DXGI_FORMAT GetInternalFormatD3D12(TextureFormat fmt)
-{
-    switch (fmt)
-    {
-    case TextureFormat::RGBAu8:  return DXGI_FORMAT_R8G8B8A8_TYPELESS;
-
-    case TextureFormat::RGBAf16: return DXGI_FORMAT_R16G16B16A16_FLOAT;
-    case TextureFormat::RGf16:   return DXGI_FORMAT_R16G16_FLOAT;
-    case TextureFormat::Rf16:    return DXGI_FORMAT_R16_FLOAT;
-
-    case TextureFormat::RGBAf32: return DXGI_FORMAT_R32G32B32A32_FLOAT;
-    case TextureFormat::RGf32:   return DXGI_FORMAT_R32G32_FLOAT;
-    case TextureFormat::Rf32:    return DXGI_FORMAT_R32_FLOAT;
-
-    case TextureFormat::RGBAi32: return DXGI_FORMAT_R32G32B32A32_SINT;
-    case TextureFormat::RGi32:   return DXGI_FORMAT_R32G32_SINT;
-    case TextureFormat::Ri32:    return DXGI_FORMAT_R32_SINT;
-    }
-    return DXGI_FORMAT_UNKNOWN;
-}
-
-static Result TranslateReturnCode(HRESULT hr)
-{
-    switch (hr) {
-    case S_OK: return Result::OK;
-    case E_OUTOFMEMORY: return Result::OutOfMemory;
-    case E_INVALIDARG: return Result::InvalidParameter;
-    }
-    return Result::Unknown;
-}
-
 ComPtr<ID3D12Resource> GraphicsInterfaceD3D12::createStagingBuffer(size_t size, StagingFlag flag)
 {
     D3D12_RESOURCE_STATES state = D3D12_RESOURCE_STATE_GENERIC_READ;
@@ -215,7 +184,7 @@ Result GraphicsInterfaceD3D12::createTexture2D(void **dst_tex, int width, int he
     desc.Height             = (UINT)height;
     desc.DepthOrArraySize   = 1;
     desc.MipLevels          = 1;
-    desc.Format             = GetInternalFormatD3D12(format);
+    desc.Format             = GetDXGIFormat(format);
     desc.SampleDesc.Count   = 1;
     desc.SampleDesc.Quality = 0;
     desc.Layout             = D3D12_TEXTURE_LAYOUT_UNKNOWN;
@@ -370,7 +339,7 @@ void GraphicsInterfaceD3D12::releaseBuffer(void *buf_)
     buf->Release();
 }
 
-Result GraphicsInterfaceD3D12::readBuffer(void *dst, const void *src_buf, size_t read_size, BufferType type)
+Result GraphicsInterfaceD3D12::readBuffer(void *dst, void *src_buf, size_t read_size, BufferType type)
 {
     if (read_size == 0) { return Result::OK; }
     if (!dst || !src_buf) { return Result::InvalidParameter; }

@@ -67,4 +67,9 @@ inline void CopyRegion(void *dst, int dst_pitch, const void *src, int src_pitch,
     }
 }
 
+#ifdef _WIN32
+DXGI_FORMAT GetDXGIFormat(TextureFormat fmt);
+Result TranslateReturnCode(HRESULT hr);
+#endif
+
 } // namespace gi

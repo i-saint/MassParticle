@@ -29,7 +29,7 @@ public:
 
     Result createBuffer(void **dst_buf, size_t size, BufferType type, const void *data, ResourceFlags flags) override;
     void releaseBuffer(void *buf) override;
-    Result readBuffer(void *dst, const void *src_buf, size_t read_size, BufferType type) override;
+    Result readBuffer(void *dst, void *src_buf, size_t read_size, BufferType type) override;
     Result writeBuffer(void *dst_buf, const void *src, size_t write_size, BufferType type) override;
 };
 
@@ -211,7 +211,7 @@ void GraphicsInterfaceOpenGL::releaseBuffer(void *buf_)
     glDeleteBuffers(1, &buf);
 }
 
-Result GraphicsInterfaceOpenGL::readBuffer(void *dst, const void *src_buf, size_t read_size, BufferType type)
+Result GraphicsInterfaceOpenGL::readBuffer(void *dst, void *src_buf, size_t read_size, BufferType type)
 {
     GLuint buf = (GLuint)(size_t)src_buf;
     GLenum gltype = GetGLBufferType(type);

@@ -26,7 +26,7 @@ public:
 
     Result createBuffer(void **dst_buf, size_t size, BufferType type, const void *data, ResourceFlags flags) override;
     void releaseBuffer(void *buf) override;
-    Result readBuffer(void *dst, const void *src_buf, size_t read_size, BufferType type) override;
+    Result readBuffer(void *dst, void *src_buf, size_t read_size, BufferType type) override;
     Result writeBuffer(void *dst_buf, const void *src, size_t write_size, BufferType type) override;
 
 private:
@@ -83,37 +83,6 @@ void GraphicsInterfaceD3D11::sync()
 }
 
 
-static DXGI_FORMAT GetInternalFormatD3D11(TextureFormat fmt)
-{
-    switch (fmt)
-    {
-    case TextureFormat::RGBAu8:  return DXGI_FORMAT_R8G8B8A8_TYPELESS;
-
-    case TextureFormat::RGBAf16: return DXGI_FORMAT_R16G16B16A16_FLOAT;
-    case TextureFormat::RGf16:   return DXGI_FORMAT_R16G16_FLOAT;
-    case TextureFormat::Rf16:    return DXGI_FORMAT_R16_FLOAT;
-
-    case TextureFormat::RGBAf32: return DXGI_FORMAT_R32G32B32A32_FLOAT;
-    case TextureFormat::RGf32:   return DXGI_FORMAT_R32G32_FLOAT;
-    case TextureFormat::Rf32:    return DXGI_FORMAT_R32_FLOAT;
-
-    case TextureFormat::RGBAi32: return DXGI_FORMAT_R32G32B32A32_SINT;
-    case TextureFormat::RGi32:   return DXGI_FORMAT_R32G32_SINT;
-    case TextureFormat::Ri32:    return DXGI_FORMAT_R32_SINT;
-    }
-    return DXGI_FORMAT_UNKNOWN;
-}
-
-static Result TranslateReturnCode(HRESULT hr)
-{
-    switch (hr) {
-    case S_OK: return Result::OK;
-    case E_OUTOFMEMORY: return Result::OutOfMemory;
-    case E_INVALIDARG: return Result::InvalidParameter;
-    }
-    return Result::Unknown;
-}
-
 ComPtr<ID3D11Texture2D> GraphicsInterfaceD3D11::createStagingTexture(int width, int height, TextureFormat format, StagingFlag flag)
 {
     D3D11_TEXTURE2D_DESC desc = {};
@@ -121,7 +90,7 @@ ComPtr<ID3D11Texture2D> GraphicsInterfaceD3D11::createStagingTexture(int width, 
     desc.Height = (UINT)height;
     desc.MipLevels = 1;
     desc.ArraySize = 1;
-    desc.Format = GetInternalFormatD3D11(format);
+    desc.Format = GetDXGIFormat(format);
     desc.SampleDesc = { 1, 0 };
     desc.Usage = D3D11_USAGE_STAGING;
     if (flag == StagingFlag::Upload) {
@@ -156,7 +125,7 @@ ComPtr<ID3D11Buffer> GraphicsInterfaceD3D11::createStagingBuffer(size_t size, St
 Result GraphicsInterfaceD3D11::createTexture2D(void **dst_tex, int width, int height, TextureFormat format, const void *data, ResourceFlags flags)
 {
     size_t texel_size = GetTexelSize(format);
-    DXGI_FORMAT internal_format = GetInternalFormatD3D11(format);
+    DXGI_FORMAT internal_format = GetDXGIFormat(format);
 
     D3D11_TEXTURE2D_DESC desc = {
         (UINT)width, (UINT)height, 1, 1, internal_format, { 1, 0 },
@@ -198,7 +167,7 @@ void GraphicsInterfaceD3D11::releaseTexture2D(void *tex)
 Result GraphicsInterfaceD3D11::readTexture2D(void *dst, size_t read_size, void *src_tex_, int width, int height, TextureFormat format)
 {
     if (read_size == 0) { return Result::OK; }
-    if (m_context == nullptr || src_tex_ == nullptr) { return Result::InvalidParameter; }
+    if (!dst || !src_tex_) { return Result::InvalidParameter; }
 
     int psize = GetTexelSize(format);
 
@@ -345,7 +314,7 @@ void GraphicsInterfaceD3D11::releaseBuffer(void *buf)
     }
 }
 
-Result GraphicsInterfaceD3D11::readBuffer(void *dst, const void *src_buf_, size_t read_size, BufferType type)
+Result GraphicsInterfaceD3D11::readBuffer(void *dst, void *src_buf_, size_t read_size, BufferType type)
 {
     if (read_size == 0) { return Result::OK; }
     if (!dst || !src_buf_) { return Result::InvalidParameter; }

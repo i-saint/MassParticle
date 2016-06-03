@@ -44,5 +44,8 @@
     <ClCompile Include="GraphicsInterface\giUnityPluginImpl.cpp">
       <Filter>GraphicsInterface</Filter>
     </ClCompile>
+    <ClCompile Include="GraphicsInterface\giInternal.cpp">
+      <Filter>GraphicsInterface</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

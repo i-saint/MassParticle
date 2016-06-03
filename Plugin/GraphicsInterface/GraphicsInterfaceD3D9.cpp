@@ -8,8 +8,6 @@ using Microsoft::WRL::ComPtr;
 
 namespace gi {
 
-const int D3D9MaxStagingTextures = 32;
-
 class GraphicsInterfaceD3D9 : public GraphicsInterface
 {
 public:
@@ -23,22 +21,20 @@ public:
 
     Result createTexture2D(void **dst_tex, int width, int height, TextureFormat format, const void *data, ResourceFlags flags) override;
     void releaseTexture2D(void *tex) override;
-    Result readTexture2D(void *o_buf, size_t bufsize, void *tex, int width, int height, TextureFormat format) override;
-    Result writeTexture2D(void *o_tex, int width, int height, TextureFormat format, const void *buf, size_t bufsize) override;
+    Result readTexture2D(void *dst, size_t read_size, void *src_tex, int width, int height, TextureFormat format) override;
+    Result writeTexture2D(void *dst_tex, int width, int height, TextureFormat format, const void *src, size_t write_size) override;
 
     Result createBuffer(void **dst_buf, size_t size, BufferType type, const void *data, ResourceFlags flags) override;
     void releaseBuffer(void *buf) override;
-    Result readBuffer(void *dst, const void *src_buf, size_t read_size, BufferType type) override;
+    Result readBuffer(void *dst, void *src_buf, size_t read_size, BufferType type) override;
     Result writeBuffer(void *dst_buf, const void *src, size_t write_size, BufferType type) override;
 
 private:
-    void clearStagingTextures();
-    IDirect3DSurface9* findOrCreateStagingTexture(int width, int height, TextureFormat format);
+    ComPtr<IDirect3DSurface9> createStagingTexture(int width, int height, TextureFormat format);
 
 private:
     ComPtr<IDirect3DDevice9> m_device;
     ComPtr<IDirect3DQuery9> m_query_event;
-    std::map<uint64_t, ComPtr<IDirect3DSurface9>> m_staging_textures;
 };
 
 
@@ -61,7 +57,6 @@ GraphicsInterfaceD3D9::GraphicsInterfaceD3D9(void *device)
 
 GraphicsInterfaceD3D9::~GraphicsInterfaceD3D9()
 {
-    clearStagingTextures();
 }
 
 void GraphicsInterfaceD3D9::release()
@@ -71,12 +66,6 @@ void GraphicsInterfaceD3D9::release()
 
 void* GraphicsInterfaceD3D9::getDevicePtr() { return m_device.Get(); }
 DeviceType GraphicsInterfaceD3D9::getDeviceType() { return DeviceType::D3D9; }
-
-
-void GraphicsInterfaceD3D9::clearStagingTextures()
-{
-    m_staging_textures.clear();
-}
 
 
 
@@ -97,30 +86,13 @@ static D3DFORMAT GetInternalFormatD3D9(TextureFormat fmt)
     return D3DFMT_UNKNOWN;
 }
 
-IDirect3DSurface9* GraphicsInterfaceD3D9::findOrCreateStagingTexture(int width, int height, TextureFormat format)
+ComPtr<IDirect3DSurface9> GraphicsInterfaceD3D9::createStagingTexture(int width, int height, TextureFormat format)
 {
-    if (m_staging_textures.size() >= D3D9MaxStagingTextures) {
-        clearStagingTextures();
-    }
-
     D3DFORMAT internal_format = GetInternalFormatD3D9(format);
     if (internal_format == D3DFMT_UNKNOWN) { return nullptr; }
 
-    uint64_t hash = width + (height << 16) + ((uint64_t)internal_format << 32);
-    {
-        auto it = m_staging_textures.find(hash);
-        if (it != m_staging_textures.end())
-        {
-            return it->second.Get();
-        }
-    }
-
     IDirect3DSurface9 *ret = nullptr;
-    HRESULT hr = m_device->CreateOffscreenPlainSurface(width, height, internal_format, D3DPOOL_SYSTEMMEM, &ret, NULL);
-    if (SUCCEEDED(hr))
-    {
-        m_staging_textures.insert(std::make_pair(hash, ret));
-    }
+    auto hr = m_device->CreateOffscreenPlainSurface(width, height, internal_format, D3DPOOL_SYSTEMMEM, &ret, nullptr);
     return ret;
 }
 
@@ -163,23 +135,29 @@ void GraphicsInterfaceD3D9::sync()
 
 Result GraphicsInterfaceD3D9::createTexture2D(void **dst_tex, int width, int height, TextureFormat format, const void *data, ResourceFlags flags)
 {
+    if (!dst_tex) { return Result::InvalidParameter; }
+
     return Result::NotAvailable;
 }
 
 void GraphicsInterfaceD3D9::releaseTexture2D(void *tex)
 {
-
+    if (!tex) { return; }
+    ((IUnknown*)tex)->Release();
 }
 
-Result GraphicsInterfaceD3D9::readTexture2D(void *o_buf, size_t bufsize, void *tex_, int width, int height, TextureFormat format)
+Result GraphicsInterfaceD3D9::readTexture2D(void *dst, size_t read_size, void *src_tex, int width, int height, TextureFormat format)
 {
+    if (read_size == 0) { return Result::OK; }
+    if (!dst || !src_tex) { return Result::InvalidParameter; }
+
     HRESULT hr;
-    IDirect3DTexture9 *tex = (IDirect3DTexture9*)tex_;
+    IDirect3DTexture9 *tex = (IDirect3DTexture9*)src_tex;
 
     // D3D11 と同様 render target の内容は CPU からはアクセス不可能になっている。
     // staging texture を用意してそれに内容を移し、CPU はそれ経由でデータを読む。
-    IDirect3DSurface9 *surf_dst = findOrCreateStagingTexture(width, height, format);
-    if (surf_dst == nullptr) { return Result::Unknown; }
+    auto staging = createStagingTexture(width, height, format);
+    if (staging == nullptr) { return Result::Unknown; }
 
     ComPtr<IDirect3DSurface9> surf_src;
     hr = tex->GetSurfaceLevel(0, &surf_src);
@@ -188,24 +166,24 @@ Result GraphicsInterfaceD3D9::readTexture2D(void *o_buf, size_t bufsize, void *t
     sync();
 
     Result ret = Result::Unknown;
-    hr = m_device->GetRenderTargetData(surf_src.Get(), surf_dst);
+    hr = m_device->GetRenderTargetData(surf_src.Get(), staging.Get());
     if (SUCCEEDED(hr))
     {
         D3DLOCKED_RECT locked;
-        hr = surf_dst->LockRect(&locked, nullptr, D3DLOCK_READONLY);
+        hr = staging->LockRect(&locked, nullptr, D3DLOCK_READONLY);
         if (SUCCEEDED(hr))
         {
-            auto *dst_pixels = (char*)o_buf;
+            auto *dst_pixels = (char*)dst;
             auto *src_pixels = (const char*)locked.pBits;
             int dst_pitch = width * GetTexelSize(format);
             int src_pitch = locked.Pitch;
             CopyRegion(dst_pixels, dst_pitch, src_pixels, src_pitch, height);
 
-            surf_dst->UnlockRect();
+            staging->UnlockRect();
 
             // D3D9 の ARGB32 のピクセルの並びは BGRA になっているので並べ替える
             if (format == TextureFormat::RGBAu8) {
-                BGRA_RGBA_conversion((RGBA<uint8_t>*)o_buf, int(bufsize / 4));
+                BGRA_RGBA_conversion((RGBA<uint8_t>*)dst, int(read_size / 4));
             }
             ret = Result::OK;
         }
@@ -214,18 +192,20 @@ Result GraphicsInterfaceD3D9::readTexture2D(void *o_buf, size_t bufsize, void *t
     return ret;
 }
 
-Result GraphicsInterfaceD3D9::writeTexture2D(void *o_tex, int width, int height, TextureFormat format, const void *buf, size_t bufsize)
+Result GraphicsInterfaceD3D9::writeTexture2D(void *dst_tex, int width, int height, TextureFormat format, const void *src, size_t write_size)
 {
+    if (write_size == 0) { return Result::OK; }
+    if (!dst_tex || !src) { return Result::InvalidParameter; }
+
     int psize = GetTexelSize(format);
     int pitch = psize * width;
-    const size_t num_pixels = bufsize / psize;
+    const size_t num_pixels = write_size / psize;
 
     HRESULT hr;
-    IDirect3DTexture9 *tex = (IDirect3DTexture9*)o_tex;
+    IDirect3DTexture9 *tex = (IDirect3DTexture9*)dst_tex;
 
-    // D3D11 と違い、D3D9 では書き込みも staging texture を経由する必要がある。
-    IDirect3DSurface9 *surf_src = findOrCreateStagingTexture(width, height, format);
-    if (surf_src == nullptr) { return Result::Unknown; }
+    auto staging = createStagingTexture(width, height, format);
+    if (staging == nullptr) { return Result::Unknown; }
 
     IDirect3DSurface9* surf_dst = nullptr;
     hr = tex->GetSurfaceLevel(0, &surf_dst);
@@ -233,25 +213,25 @@ Result GraphicsInterfaceD3D9::writeTexture2D(void *o_tex, int width, int height,
 
     Result ret = Result::Unknown;
     D3DLOCKED_RECT locked;
-    hr = surf_src->LockRect(&locked, nullptr, D3DLOCK_DISCARD);
+    hr = staging->LockRect(&locked, nullptr, D3DLOCK_DISCARD);
     if (SUCCEEDED(hr))
     {
-        const char *rpixels = (const char*)buf;
-        int rpitch = psize * width;
-        char *wpixels = (char*)locked.pBits;
-        int wpitch = locked.Pitch;
+        auto *dst_pixels = (char*)locked.pBits;
+        auto *src_pixels = (const char*)src;
+        int dst_pitch = locked.Pitch;
+        int src_pitch = psize * width;
 
         // こちらも ARGB32 の場合 BGRA に並べ替える必要がある
         if (format == TextureFormat::RGBAu8) {
-            copy_with_BGRA_RGBA_conversion((RGBA<uint8_t>*)wpixels, (RGBA<uint8_t>*)rpixels, int(bufsize / 4));
+            copy_with_BGRA_RGBA_conversion((RGBA<uint8_t>*)dst_pixels, (RGBA<uint8_t>*)src_pixels, int(write_size / 4));
         }
         else {
-            memcpy(wpixels, rpixels, bufsize);
+            CopyRegion(dst_pixels, dst_pitch, src_pixels, src_pitch, height);
         }
-        surf_src->UnlockRect();
+        staging->UnlockRect();
 
-        hr = m_device->UpdateSurface(surf_src, nullptr, surf_dst, nullptr);
-        if (SUCCEEDED(hr)) {
+        hr = m_device->UpdateSurface(staging.Get(), nullptr, surf_dst, nullptr);
+        if (FAILED(hr)) {
             ret = Result::Unknown;
         }
     }
@@ -261,24 +241,93 @@ Result GraphicsInterfaceD3D9::writeTexture2D(void *o_tex, int width, int height,
 }
 
 
+enum class MapMpde {
+    Read,
+    Write,
+};
+// Body: [](void *mapped_data) -> void
+template<class Body>
+static HRESULT MapBuffer(void *buf_, BufferType type, MapMpde mode, const Body& body)
+{
+    if (type == BufferType::Index) {
+        auto *buf = (IDirect3DIndexBuffer9*)buf_;
+
+        void *mapped_data;
+        auto hr = buf->Lock(0, 0, &mapped_data, 0);
+        if (FAILED(hr)) { return hr; }
+        body(mapped_data);
+        buf->Unlock();
+        return S_OK;
+    }
+    else if (type == BufferType::Vertex) {
+        auto *buf = (IDirect3DVertexBuffer9*)buf_;
+
+        void *mapped_data;
+        auto hr = buf->Lock(0, 0, &mapped_data, 0);
+        if (FAILED(hr)) { return hr; }
+        body(mapped_data);
+        buf->Unlock();
+        return S_OK;
+    }
+    return E_UNEXPECTED;
+}
+
 Result GraphicsInterfaceD3D9::createBuffer(void **dst_buf, size_t size, BufferType type, const void *data, ResourceFlags flags)
 {
-    return Result::NotAvailable;
+    if (!dst_buf) { return Result::InvalidParameter; }
+
+    *dst_buf = nullptr;
+    if (type == BufferType::Index) {
+        IDirect3DIndexBuffer9 *ret;
+        auto hr = m_device->CreateIndexBuffer(UINT(size), 0, D3DFMT_INDEX32, D3DPOOL_MANAGED, &ret, nullptr);
+        if (FAILED(hr)) { return TranslateReturnCode(hr); }
+        *dst_buf = ret;
+    }
+    else if (type == BufferType::Vertex) {
+        IDirect3DVertexBuffer9 *ret;
+        auto hr = m_device->CreateVertexBuffer((UINT)size, 0, 0, D3DPOOL_MANAGED, &ret, nullptr);
+        if (FAILED(hr)) { return TranslateReturnCode(hr); }
+        *dst_buf = ret;
+    }
+
+    if (!*dst_buf) {
+        return Result::Unknown;
+    }
+    if (data) {
+        MapBuffer(dst_buf, type, MapMpde::Write, [&](void *mapped_data) {
+            memcpy(mapped_data, data, size);
+        });
+    }
+
+    return Result::OK;
 }
 
 void GraphicsInterfaceD3D9::releaseBuffer(void *buf)
 {
-
+    if (!buf) { return; }
+    ((IUnknown*)buf)->Release();
 }
 
-Result GraphicsInterfaceD3D9::readBuffer(void *dst, const void *src_buf, size_t read_size, BufferType type)
+Result GraphicsInterfaceD3D9::readBuffer(void *dst, void *src_buf, size_t read_size, BufferType type)
 {
-    return Result::NotAvailable;
+    if (read_size == 0) { return Result::OK; }
+    if (!dst || !src_buf) { return Result::InvalidParameter; }
+
+    auto hr = MapBuffer(src_buf, type, MapMpde::Read, [&](void *mapped_data) {
+        memcpy(dst, mapped_data, read_size);
+    });
+    return TranslateReturnCode(hr);
 }
 
 Result GraphicsInterfaceD3D9::writeBuffer(void *dst_buf, const void *src, size_t write_size, BufferType type)
 {
-    return Result::NotAvailable;
+    if (write_size == 0) { return Result::OK; }
+    if (!dst_buf || !src) { return Result::InvalidParameter; }
+
+    auto hr = MapBuffer(dst_buf, type, MapMpde::Write, [&](void *mapped_data) {
+        memcpy(mapped_data, src, write_size);
+    });
+    return TranslateReturnCode(hr);
 }
 
 } // namespace gi

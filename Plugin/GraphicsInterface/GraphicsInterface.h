@@ -83,7 +83,7 @@ public:
 
     virtual Result  createBuffer(void **dst_buf, size_t size, BufferType type, const void *data, ResourceFlags flags = ResourceFlags::None) = 0;
     virtual void    releaseBuffer(void *buf) = 0;
-    virtual Result  readBuffer(void *dst, const void *src_buf, size_t read_size, BufferType type) = 0;
+    virtual Result  readBuffer(void *dst, void *src_buf, size_t read_size, BufferType type) = 0;
     virtual Result  writeBuffer(void *dst_buf, const void *src, size_t write_size, BufferType type) = 0;
 
     static int GetTexelSize(TextureFormat format);

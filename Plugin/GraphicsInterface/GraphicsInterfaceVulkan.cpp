@@ -69,7 +69,7 @@ public:
 
     Result createBuffer(void **dst_buf, size_t size, BufferType type, const void *data, ResourceFlags flags) override;
     void releaseBuffer(void *buf) override;
-    Result readBuffer(void *dst, const void *src_buf, size_t read_size, BufferType type) override;
+    Result readBuffer(void *dst, void *src_buf, size_t read_size, BufferType type) override;
     Result writeBuffer(void *dst_buf, const void *src, size_t write_size, BufferType type) override;
 
 private:
@@ -488,7 +488,7 @@ void GraphicsInterfaceVulkan::releaseBuffer(void *buf_)
     vkDestroyBuffer(m_device, buf, nullptr);
 }
 
-Result GraphicsInterfaceVulkan::readBuffer(void *dst, const void *src_buf, size_t read_size, BufferType type)
+Result GraphicsInterfaceVulkan::readBuffer(void *dst, void *src_buf, size_t read_size, BufferType type)
 {
     if (read_size == 0) { return Result::OK; }
     if (!dst || !src_buf) { return Result::InvalidParameter; }

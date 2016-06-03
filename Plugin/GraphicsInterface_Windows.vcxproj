@@ -25,6 +25,7 @@
     <ClInclude Include="GraphicsInterface\pch.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="GraphicsInterface\giInternal.cpp" />
     <ClCompile Include="GraphicsInterface\giUnityPluginImpl.cpp" />
     <ClCompile Include="GraphicsInterface\GraphicsInterface.cpp" />
     <ClCompile Include="GraphicsInterface\GraphicsInterfaceD3D11.cpp" />
