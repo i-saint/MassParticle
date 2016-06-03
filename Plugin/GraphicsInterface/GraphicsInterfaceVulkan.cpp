@@ -23,8 +23,8 @@ public:
 
     Result createTexture2D(void **dst_tex, int width, int height, TextureFormat format, const void *data, ResourceFlags flags) override;
     void releaseTexture2D(void *tex) override;
-    Result readTexture2D(void *o_buf, size_t bufsize, void *tex, int width, int height, TextureFormat format) override;
-    Result writeTexture2D(void *o_tex, int width, int height, TextureFormat format, const void *buf, size_t bufsize) override;
+    Result readTexture2D(void *dst, size_t read_size, void *tex, int width, int height, TextureFormat format) override;
+    Result writeTexture2D(void *dst_tex, int width, int height, TextureFormat format, const void *buf, size_t bufsize) override;
 
     Result createBuffer(void **dst_buf, size_t size, BufferType type, const void *data, ResourceFlags flags) override;
     void releaseBuffer(void *buf) override;
@@ -48,7 +48,7 @@ private:
     template<class Body> VkResult map(VkDeviceMemory device_memory, const Body& body);
 
     // Body: [](VkCommandBuffer *clist) -> void
-    template<class Body> VkResult submitCommands(const Body& body);
+    template<class Body> VkResult executeCommands(const Body& body);
 
 private:
     VkPhysicalDevice m_physical_device = nullptr;
@@ -236,7 +236,7 @@ VkResult GraphicsInterfaceVulkan::map(VkDeviceMemory device_memory, const Body& 
 }
 
 template<class Body>
-VkResult GraphicsInterfaceVulkan::submitCommands(const Body& body)
+VkResult GraphicsInterfaceVulkan::executeCommands(const Body& body)
 {
     VkResult vr;
     VkCommandBuffer clist = nullptr;
@@ -378,7 +378,7 @@ Result GraphicsInterfaceVulkan::readTexture2D(void *dst, size_t read_size, void 
 
     VkResult vr;
     vr = staging(src_tex, StagingFlag::Readback, [&](VkBuffer staging_buffer, VkDeviceMemory staging_memory) {
-        vr = submitCommands([&](VkCommandBuffer clist) {
+        vr = executeCommands([&](VkCommandBuffer clist) {
             VkBufferImageCopy region = {};
             region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
             region.imageSubresource.mipLevel = 0;
@@ -416,7 +416,7 @@ Result GraphicsInterfaceVulkan::writeTexture2D(void *dst_tex_, int width, int he
         });
         if (vr != VK_SUCCESS) { res = TranslateReturnCode(vr); return; }
 
-        vr = submitCommands([&](VkCommandBuffer clist) {
+        vr = executeCommands([&](VkCommandBuffer clist) {
             VkBufferImageCopy region = {};
             region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
             region.imageSubresource.mipLevel = 0;
@@ -508,7 +508,7 @@ Result GraphicsInterfaceVulkan::readBuffer(void *dst, const void *src_buf, size_
 
     VkResult vr;
     vr = staging(buf, StagingFlag::Readback, [&](VkBuffer staging_buffer, VkDeviceMemory staging_memory) {
-        vr = submitCommands([&](VkCommandBuffer clist) {
+        vr = executeCommands([&](VkCommandBuffer clist) {
             VkBufferCopy region = { 0, 0, read_size };
             vkCmdCopyBuffer(clist, buf, staging_buffer, 1, &region);
         });
@@ -539,7 +539,7 @@ Result GraphicsInterfaceVulkan::writeBuffer(void *dst_buf, const void *src, size
         });
         if (vr != VK_SUCCESS) { res = TranslateReturnCode(vr); return; }
 
-        vr = submitCommands([&](VkCommandBuffer clist) {
+        vr = executeCommands([&](VkCommandBuffer clist) {
             VkBufferCopy region = {0, 0, write_size };
             vkCmdCopyBuffer(clist, staging_buffer, buf, 1, &region);
         });

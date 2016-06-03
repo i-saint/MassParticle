@@ -3,6 +3,10 @@
 
 namespace gi {
 
+GraphicsInterface::~GraphicsInterface()
+{
+}
+
 int GraphicsInterface::GetTexelSize(TextureFormat format)
 {
     switch (format)

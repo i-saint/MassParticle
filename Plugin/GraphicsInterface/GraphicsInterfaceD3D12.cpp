@@ -35,7 +35,7 @@ private:
         Upload,
         Readback,
     };
-    ID3D12Resource* createStagingBuffer(size_t size, StagingFlag flag);
+    ComPtr<ID3D12Resource> createStagingBuffer(size_t size, StagingFlag flag);
 
     // Body: [](ID3D12GraphicsCommandList *clist) -> void
     template<class Body> HRESULT executeCommands(const Body& body);
@@ -163,7 +163,7 @@ static Result TranslateReturnCode(HRESULT hr)
     return Result::Unknown;
 }
 
-ID3D12Resource* GraphicsInterfaceD3D12::createStagingBuffer(size_t size, StagingFlag flag)
+ComPtr<ID3D12Resource> GraphicsInterfaceD3D12::createStagingBuffer(size_t size, StagingFlag flag)
 {
     D3D12_RESOURCE_STATES state = D3D12_RESOURCE_STATE_GENERIC_READ;
 
@@ -254,7 +254,7 @@ Result GraphicsInterfaceD3D12::readTexture2D(void *dst, size_t read_size, void *
     UINT64 src_required_size;
     m_device->GetCopyableFootprints(&src_desc, 0, 1, 0, &src_layout, &src_num_rows, &src_row_size, &src_required_size);
 
-    ComPtr<ID3D12Resource> staging = createStagingBuffer(src_required_size, StagingFlag::Readback);
+    auto staging = createStagingBuffer(src_required_size, StagingFlag::Readback);
     if (!staging) { return Result::OutOfMemory; }
 
     auto hr = executeCommands([&](ID3D12GraphicsCommandList *clist) {
@@ -296,7 +296,7 @@ Result GraphicsInterfaceD3D12::writeTexture2D(void *dst_tex_, int width, int hei
     UINT64 dst_required_size;
     m_device->GetCopyableFootprints(&dst_desc, 0, 1, 0, &dst_layout, &dst_num_rows, &dst_row_size, &dst_required_size);
 
-    ComPtr<ID3D12Resource> staging = createStagingBuffer(dst_required_size, StagingFlag::Upload);
+    auto staging = createStagingBuffer(dst_required_size, StagingFlag::Upload);
     if (!staging) { return Result::OutOfMemory; }
 
     void *mapped_data = nullptr;

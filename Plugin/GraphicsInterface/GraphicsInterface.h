@@ -63,26 +63,14 @@ enum class ResourceFlags
 inline ResourceFlags operator|(ResourceFlags a, ResourceFlags b) { return ResourceFlags((int)a | (int)b); }
 
 
-struct Texture2DInfo
-{
-    int width;
-    int height;
-    TextureFormat format;
-    ResourceFlags flags;
-};
-
-struct BufferInfo
-{
-    int size;
-    ResourceFlags flags;
-};
-
-
 class GraphicsInterface
 {
-public:
-    virtual ~GraphicsInterface() {}
+protected:
+    friend void ReleaseGraphicsInterface();
+    virtual ~GraphicsInterface();
     virtual void release() = 0;
+
+public:
     virtual void* getDevicePtr() = 0;
     virtual DeviceType getDeviceType() = 0;
 

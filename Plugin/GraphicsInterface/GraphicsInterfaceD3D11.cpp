@@ -32,17 +32,17 @@ public:
     Result writeBuffer(void *dst_buf, const void *src, size_t write_size, BufferType type) override;
 
 private:
-    void clearStagingTextures();
-    void clearStagingBuffers();
-    ID3D11Texture2D* getStagingTexture(int width, int height, TextureFormat format);
-    ID3D11Buffer* getStagingBuffer(BufferType type, size_t size);
+    enum class StagingFlag {
+        Upload,
+        Readback,
+    };
+    ComPtr<ID3D11Texture2D> createStagingTexture(int width, int height, TextureFormat format, StagingFlag flag);
+    ComPtr<ID3D11Buffer> createStagingBuffer(size_t size, StagingFlag flag);
 
 private:
     ComPtr<ID3D11Device> m_device = nullptr;
     ComPtr<ID3D11DeviceContext> m_context = nullptr;
     ComPtr<ID3D11Query> m_query_event = nullptr;
-    std::map<uint64_t, ComPtr<ID3D11Texture2D>> m_staging_textures;
-    std::array<ComPtr<ID3D11Buffer>, (int)BufferType::End> m_staging_buffers;
 };
 
 
@@ -55,7 +55,6 @@ GraphicsInterface* CreateGraphicsInterfaceD3D11(void *device)
 GraphicsInterfaceD3D11::GraphicsInterfaceD3D11(void *device)
     : m_device((ID3D11Device*)device)
 {
-    std::fill(m_staging_buffers.begin(), m_staging_buffers.end(), nullptr);
     if (m_device != nullptr)
     {
         m_device->GetImmediateContext(&m_context);
@@ -67,25 +66,11 @@ GraphicsInterfaceD3D11::GraphicsInterfaceD3D11(void *device)
 
 GraphicsInterfaceD3D11::~GraphicsInterfaceD3D11()
 {
-    clearStagingTextures();
-    clearStagingBuffers();
 }
 
 void GraphicsInterfaceD3D11::release()
 {
     delete this;
-}
-
-void GraphicsInterfaceD3D11::clearStagingTextures()
-{
-    m_staging_textures.clear();
-}
-
-void GraphicsInterfaceD3D11::clearStagingBuffers()
-{
-    for (auto& buf : m_staging_buffers) {
-        buf.Reset();
-    }
 }
 
 void* GraphicsInterfaceD3D11::getDevicePtr() { return m_device.Get(); }
@@ -121,35 +106,6 @@ static DXGI_FORMAT GetInternalFormatD3D11(TextureFormat fmt)
     return DXGI_FORMAT_UNKNOWN;
 }
 
-ID3D11Texture2D* GraphicsInterfaceD3D11::getStagingTexture(int width, int height, TextureFormat format)
-{
-    if (m_staging_textures.size() >= D3D11MaxStagingTextures) {
-        clearStagingTextures();
-    }
-
-    DXGI_FORMAT internal_format = GetInternalFormatD3D11(format);
-    uint64_t hash = width + (height << 16) + ((uint64_t)internal_format << 32);
-    {
-        auto it = m_staging_textures.find(hash);
-        if (it != m_staging_textures.end())
-        {
-            return it->second.Get();
-        }
-    }
-
-    D3D11_TEXTURE2D_DESC desc = {
-        (UINT)width, (UINT)height, 1, 1, internal_format, { 1, 0 },
-        D3D11_USAGE_STAGING, 0, D3D11_CPU_ACCESS_READ | D3D11_CPU_ACCESS_WRITE, 0
-    };
-    ID3D11Texture2D *ret = nullptr;
-    HRESULT hr = m_device->CreateTexture2D(&desc, nullptr, &ret);
-    if (SUCCEEDED(hr))
-    {
-        m_staging_textures.insert(std::make_pair(hash, ret));
-    }
-    return ret;
-}
-
 static Result TranslateReturnCode(HRESULT hr)
 {
     switch (hr) {
@@ -158,6 +114,45 @@ static Result TranslateReturnCode(HRESULT hr)
     case E_INVALIDARG: return Result::InvalidParameter;
     }
     return Result::Unknown;
+}
+
+ComPtr<ID3D11Texture2D> GraphicsInterfaceD3D11::createStagingTexture(int width, int height, TextureFormat format, StagingFlag flag)
+{
+    D3D11_TEXTURE2D_DESC desc = {};
+    desc.Width = (UINT)width;
+    desc.Height = (UINT)height;
+    desc.MipLevels = 1;
+    desc.ArraySize = 1;
+    desc.Format = GetInternalFormatD3D11(format);
+    desc.SampleDesc = { 1, 0 };
+    desc.Usage = D3D11_USAGE_STAGING;
+    if (flag == StagingFlag::Upload) {
+        desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+    }
+    if (flag == StagingFlag::Readback) {
+        desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+    }
+
+    ID3D11Texture2D *ret = nullptr;
+    auto hr = m_device->CreateTexture2D(&desc, nullptr, &ret);
+    return ret;
+}
+
+ComPtr<ID3D11Buffer> GraphicsInterfaceD3D11::createStagingBuffer(size_t size, StagingFlag flag)
+{
+    D3D11_BUFFER_DESC desc = {};
+    desc.ByteWidth = (UINT)size;
+    desc.Usage = D3D11_USAGE_STAGING;
+    if (flag == StagingFlag::Upload) {
+        desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+    }
+    if (flag == StagingFlag::Readback) {
+        desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+    }
+
+    ID3D11Buffer *ret = nullptr;
+    auto hr = m_device->CreateBuffer(&desc, nullptr, &ret);
+    return ret;
 }
 
 Result GraphicsInterfaceD3D11::createTexture2D(void **dst_tex, int width, int height, TextureFormat format, const void *data, ResourceFlags flags)
@@ -230,21 +225,7 @@ Result GraphicsInterfaceD3D11::readTexture2D(void *dst, size_t read_size, void *
             auto *src_pixels = (const char*)mapped.pData;
             int dst_pitch = width * GetTexelSize(format);
             int src_pitch = mapped.RowPitch;
-
-            // pitch may not be same with (width * size_of_texel)
-            if (dst_pitch == src_pitch)
-            {
-                memcpy(dst_pixels, src_pixels, dst_size);
-            }
-            else
-            {
-                for (int i = 0; i < height; ++i)
-                {
-                    memcpy(dst_pixels, src_pixels, dst_pitch);
-                    dst_pixels += dst_pitch;
-                    src_pixels += src_pitch;
-                }
-            }
+            CopyRegion(dst_pixels, dst_pitch, src_pixels, src_pitch, height);
 
             m_context->Unmap(tex, 0);
         }
@@ -256,11 +237,11 @@ Result GraphicsInterfaceD3D11::readTexture2D(void *dst, size_t read_size, void *
     }
     else {
         // copy texture data to staging texture and read from it
-        auto *staging = getStagingTexture(width, height, format);
-        m_context->CopyResource(staging, src_tex);
+        auto staging = createStagingTexture(width, height, format, StagingFlag::Readback);
+        m_context->CopyResource(staging.Get(), src_tex);
         // Map() doesn't wait completion of above CopyResource(). manual synchronization is required.
         sync();
-        proc_read(dst, read_size, staging, width, height, format);
+        proc_read(dst, read_size, staging.Get(), width, height, format);
     }
 
     return ret;
@@ -317,35 +298,6 @@ Result GraphicsInterfaceD3D11::writeTexture2D(void *dst_tex_, int width, int hei
 }
 
 
-
-ID3D11Buffer* GraphicsInterfaceD3D11::getStagingBuffer(BufferType type, size_t size)
-{
-    auto& staging = m_staging_buffers[(int)type];
-    size_t current_size = 0;
-    if (staging) {
-        D3D11_BUFFER_DESC desc;
-        staging->GetDesc(&desc);
-        current_size = desc.ByteWidth;
-    }
-
-
-    if (current_size != size) {
-        staging.Reset();
-
-        D3D11_BUFFER_DESC desc = { 0 };
-        desc.ByteWidth = (UINT)size;
-        desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE | D3D11_CPU_ACCESS_READ;
-        desc.Usage = D3D11_USAGE_STAGING;
-        desc.BindFlags = 0;
-
-        HRESULT hr = m_device->CreateBuffer(&desc, nullptr, &staging);
-        if (FAILED(hr)) {
-            giLogError("GraphicsInterfaceD3D11::findOrCreateStagingBuffer(): CreateBuffer() failed!\n");
-            return nullptr;
-        }
-    }
-    return staging.Get();
-}
 
 Result GraphicsInterfaceD3D11::createBuffer(void **dst_buf, size_t size, BufferType type, const void *data, ResourceFlags flags)
 {
@@ -429,10 +381,10 @@ Result GraphicsInterfaceD3D11::readBuffer(void *dst, const void *src_buf_, size_
     }
     else {
         // copy buffer data to staging buffer and read from it
-        auto *staging_buf = getStagingBuffer(type, read_size);
-        m_context->CopyResource(staging_buf, src_buf);
+        auto staging = createStagingBuffer(read_size, StagingFlag::Readback);
+        m_context->CopyResource(staging.Get(), src_buf);
         sync();
-        proc_read(dst, staging_buf, read_size);
+        proc_read(dst, staging.Get(), read_size);
     }
 
     return ret;
