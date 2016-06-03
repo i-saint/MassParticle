@@ -8,8 +8,6 @@ using Microsoft::WRL::ComPtr;
 
 namespace gi {
 
-const int D3D11MaxStagingTextures = 32;
-
 class GraphicsInterfaceD3D11 : public GraphicsInterface
 {
 public:

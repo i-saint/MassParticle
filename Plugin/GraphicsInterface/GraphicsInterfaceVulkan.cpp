@@ -10,6 +10,47 @@
 
 namespace gi {
 
+template<class T> class unique_handle;
+
+#define Def(Type, Deleter)\
+    template<> class unique_handle<Type>\
+    {\
+    public:\
+        unique_handle(VkDevice dev, Type h = nullptr) : m_device(dev), m_handle(h) {}\
+        ~unique_handle() { if (m_handle) { Deleter(m_device, m_handle, nullptr); } }\
+        void detach() { m_handle = nullptr; }\
+        Type get() { return m_handle; }\
+        Type* addr() { return &m_handle; }\
+        Type& ref() { return m_handle; }\
+    private:\
+        VkDevice m_device;\
+        Type m_handle;\
+    };
+
+Def(VkDeviceMemory, vkFreeMemory)
+Def(VkBuffer, vkDestroyBuffer)
+Def(VkImage, vkDestroyImage)
+Def(VkCommandPool, vkDestroyCommandPool);
+
+#undef Def
+
+template<> class unique_handle<VkCommandBuffer>
+{
+public:
+    unique_handle(VkDevice dev, VkCommandPool pool, VkCommandBuffer h = nullptr) : m_device(dev), m_pool(pool), m_handle(h) {}
+    ~unique_handle() { if (m_handle) { vkFreeCommandBuffers(m_device, m_pool, 1, &m_handle); } }
+    void detach() { m_handle = nullptr; }
+    VkCommandBuffer get() { return m_handle; }
+    VkCommandBuffer* addr() { return &m_handle; }
+    VkCommandBuffer& ref() { return m_handle; }
+private:
+    VkDevice m_device;
+    VkCommandPool m_pool;
+    VkCommandBuffer m_handle;
+};
+
+
+
 class GraphicsInterfaceVulkan : public GraphicsInterface
 {
 public:
@@ -39,10 +80,8 @@ private:
         Readback,
     };
     VkResult createStagingBuffer(size_t size, StagingFlag flag, VkBuffer &buffer, VkDeviceMemory &memory);
-
-    // Body: [](VkBuffer staging_buffer, VkDeviceMemory staging_memory) -> void
-    template<class Body> VkResult staging(VkBuffer target, StagingFlag flag, const Body& body);
-    template<class Body> VkResult staging(VkImage target, StagingFlag flag, const Body& body);
+    VkResult createStagingBuffer(VkBuffer target, StagingFlag flag, VkBuffer &buffer, VkDeviceMemory &memory);
+    VkResult createStagingBuffer(VkImage target, StagingFlag flag, VkBuffer &buffer, VkDeviceMemory &memory);
 
     // Body: [](void *mapped_memory) -> void
     template<class Body> VkResult map(VkDeviceMemory device_memory, const Body& body);
@@ -54,7 +93,7 @@ private:
     VkPhysicalDevice m_physical_device = nullptr;
     VkDevice m_device = nullptr;
     VkQueue m_cqueue = nullptr;
-    VkCommandPool m_cpool = nullptr;
+    unique_handle<VkCommandPool> m_cpool = unique_handle<VkCommandPool>(nullptr);
 
     VkPhysicalDeviceMemoryProperties m_memory_properties;
 };
@@ -83,11 +122,12 @@ GraphicsInterfaceVulkan::GraphicsInterfaceVulkan(void *device)
     uint32_t graphicsQueueIndex = 0;
     vkGetDeviceQueue(m_device, graphicsQueueIndex, 0, &m_cqueue);
 
+    m_cpool = unique_handle<VkCommandPool>(m_device);
     VkCommandPoolCreateInfo info = {};
     info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     info.queueFamilyIndex = 0;
     info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-    vkCreateCommandPool(m_device, &info, nullptr, &m_cpool);
+    vkCreateCommandPool(m_device, &info, nullptr, m_cpool.addr());
 }
 
 GraphicsInterfaceVulkan::~GraphicsInterfaceVulkan()
@@ -135,16 +175,11 @@ uint32_t GraphicsInterfaceVulkan::getMemoryType(uint32_t type_bits, VkMemoryProp
 
 VkResult GraphicsInterfaceVulkan::createStagingBuffer(size_t size, StagingFlag flag, VkBuffer &buffer, VkDeviceMemory &memory)
 {
-    VkResult vr = VK_SUCCESS;
-
     VkBufferCreateInfo buf_info = {};
-    VkMemoryRequirements mem_required = {};
-    VkMemoryAllocateInfo mem_info = {};
-
-    buf_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    buf_info.size = size;
-    buf_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    buf_info.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+    buf_info.sType      = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    buf_info.size       = size;
+    buf_info.sharingMode= VK_SHARING_MODE_EXCLUSIVE;
+    buf_info.usage      = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
     if (flag == StagingFlag::Upload) {
         buf_info.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
     }
@@ -152,69 +187,38 @@ VkResult GraphicsInterfaceVulkan::createStagingBuffer(size_t size, StagingFlag f
         buf_info.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
     }
 
-    vr = vkCreateBuffer(m_device, &buf_info, nullptr, &buffer);
-    if (vr != VK_SUCCESS) { goto on_error; }
+    auto vr = vkCreateBuffer(m_device, &buf_info, nullptr, &buffer);
+    if (vr != VK_SUCCESS) { return vr; }
 
+    VkMemoryRequirements mem_required = {};
     vkGetBufferMemoryRequirements(m_device, buffer, &mem_required);
 
+    VkMemoryAllocateInfo mem_info = {};
     mem_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     mem_info.allocationSize = mem_required.size;
     mem_info.memoryTypeIndex = getMemoryType(mem_required.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
 
     vr = vkAllocateMemory(m_device, &mem_info, nullptr, &memory);
-    if (vr != VK_SUCCESS) { goto on_error; }
+    if (vr != VK_SUCCESS) { return vr; }
 
     vr = vkBindBufferMemory(m_device, buffer, memory, 0);
-    if (vr != VK_SUCCESS) { goto on_error; }
+    if (vr != VK_SUCCESS) { return vr; }
 
     return VK_SUCCESS;
-
-on_error:
-    if (memory) {
-        vkFreeMemory(m_device, memory, nullptr);
-        memory = nullptr;
-    }
-    if (buffer) {
-        vkDestroyBuffer(m_device, buffer, nullptr);
-        buffer = nullptr;
-    }
-    return vr;
 }
 
-template<class Body>
-VkResult GraphicsInterfaceVulkan::staging(VkBuffer target, StagingFlag flag, const Body& body)
+VkResult GraphicsInterfaceVulkan::createStagingBuffer(VkBuffer target, StagingFlag flag, VkBuffer &buffer, VkDeviceMemory &memory)
 {
     VkMemoryRequirements mem_required;
     vkGetBufferMemoryRequirements(m_device, target, &mem_required);
-
-    VkBuffer staging_buffer;
-    VkDeviceMemory staging_memory;
-    auto vr = createStagingBuffer(mem_required.size, flag, staging_buffer, staging_memory);
-    if (vr != VK_SUCCESS) { return vr; }
-
-    body(staging_buffer, staging_memory);
-
-    vkFreeMemory(m_device, staging_memory, nullptr);
-    vkDestroyBuffer(m_device, staging_buffer, nullptr);
-    return VK_SUCCESS;
+    return createStagingBuffer(mem_required.size, flag, buffer, memory);
 }
 
-template<class Body>
-VkResult GraphicsInterfaceVulkan::staging(VkImage target, StagingFlag flag, const Body& body)
+VkResult GraphicsInterfaceVulkan::createStagingBuffer(VkImage target, StagingFlag flag, VkBuffer &buffer, VkDeviceMemory &memory)
 {
     VkMemoryRequirements mem_required;
     vkGetImageMemoryRequirements(m_device, target, &mem_required);
-
-    VkBuffer staging_buffer;
-    VkDeviceMemory staging_memory;
-    auto vr = createStagingBuffer(mem_required.size, flag, staging_buffer, staging_memory);
-    if (vr != VK_SUCCESS) { return vr; }
-
-    body(staging_buffer, staging_memory);
-
-    vkFreeMemory(m_device, staging_memory, nullptr);
-    vkDestroyBuffer(m_device, staging_buffer, nullptr);
-    return VK_SUCCESS;
+    return createStagingBuffer(mem_required.size, flag, buffer, memory);
 }
 
 template<class Body>
@@ -238,42 +242,37 @@ VkResult GraphicsInterfaceVulkan::map(VkDeviceMemory device_memory, const Body& 
 template<class Body>
 VkResult GraphicsInterfaceVulkan::executeCommands(const Body& body)
 {
-    VkResult vr;
-    VkCommandBuffer clist = nullptr;
-    VkCommandBufferAllocateInfo alloc_info = {};
-    VkCommandBufferBeginInfo begin_info = {};
-    VkSubmitInfo submit_info = {};
+    auto clist = unique_handle<VkCommandBuffer>(m_device, m_cpool.get());
 
+    VkCommandBufferAllocateInfo alloc_info = {};
     alloc_info.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    alloc_info.commandPool        = m_cpool;
+    alloc_info.commandPool        = m_cpool.get();
     alloc_info.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
     alloc_info.commandBufferCount = 1;
-    vr = vkAllocateCommandBuffers(m_device, &alloc_info, &clist);
-    if (vr != VK_SUCCESS) { goto on_error; }
+    auto vr = vkAllocateCommandBuffers(m_device, &alloc_info, clist.addr());
+    if (vr != VK_SUCCESS) { return vr; }
 
+    VkCommandBufferBeginInfo begin_info = {};
     begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    vr = vkBeginCommandBuffer(clist, &begin_info);
-    if (vr != VK_SUCCESS) { goto on_error; }
+    vr = vkBeginCommandBuffer(clist.get(), &begin_info);
+    if (vr != VK_SUCCESS) { return vr; }
 
-    body(clist);
+    body(clist.get());
 
-    vr = vkEndCommandBuffer(clist);
-    if (vr != VK_SUCCESS) { goto on_error; }
+    vr = vkEndCommandBuffer(clist.get());
+    if (vr != VK_SUCCESS) { return vr; }
 
+    VkSubmitInfo submit_info = {};
     submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     submit_info.commandBufferCount = 1;
-    submit_info.pCommandBuffers = &clist;
+    submit_info.pCommandBuffers = clist.addr();
     vr = vkQueueSubmit(m_cqueue, 1, &submit_info, VK_NULL_HANDLE);
-    if (vr != VK_SUCCESS) { goto on_error; }
+    if (vr != VK_SUCCESS) { return vr; }
 
     vr = vkQueueWaitIdle(m_cqueue);
-    if (vr != VK_SUCCESS) { goto on_error; }
+    if (vr != VK_SUCCESS) { return vr; }
 
-on_error:
-    if (m_cpool) {
-        vkFreeCommandBuffers(m_device, m_cpool, 1, &clist);
-    }
-    return vr;
+    return VK_SUCCESS;
 }
 
 
@@ -307,14 +306,12 @@ static VkFormat TranslateFormat(TextureFormat format)
 
 Result GraphicsInterfaceVulkan::createTexture2D(void **dst_tex, int width, int height, TextureFormat format, const void *data, ResourceFlags flags)
 {
-    VkResult vr = VK_SUCCESS;
-    VkImage ret = nullptr;
-    VkDeviceMemory memory = nullptr;
+    if (!dst_tex) { return Result::InvalidParameter; }
+
+    auto ret = unique_handle<VkImage>(m_device);
+    auto memory = unique_handle<VkDeviceMemory>(m_device);
 
     VkImageCreateInfo image_info = {};
-    VkMemoryRequirements mem_required = {};
-    VkMemoryAllocateInfo mem_info = {};
-
     image_info.sType          = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
     image_info.imageType      = VK_IMAGE_TYPE_2D;
     image_info.format         = TranslateFormat(format);
@@ -328,36 +325,34 @@ Result GraphicsInterfaceVulkan::createTexture2D(void **dst_tex, int width, int h
     image_info.extent         = { (uint32_t)width, (uint32_t)height, 1 };
     image_info.usage          = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
     image_info.flags          = 0;
+    auto vr = vkCreateImage(m_device, &image_info, nullptr, ret.addr());
+    if (vr != VK_SUCCESS) { return TranslateReturnCode(vr); }
 
-    vr = vkCreateImage(m_device, &image_info, nullptr, &ret);
-    if (vr != VK_SUCCESS) { goto on_error; }
+    VkMemoryRequirements mem_required = {};
+    vkGetImageMemoryRequirements(m_device, ret.get(), &mem_required);
 
-    vkGetImageMemoryRequirements(m_device, ret, &mem_required);
-
+    VkMemoryAllocateInfo mem_info = {};
     mem_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     mem_info.allocationSize = mem_required.size;
     mem_info.memoryTypeIndex = getMemoryType(mem_required.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-    vr = vkAllocateMemory(m_device, &mem_info, nullptr, &memory);
-    if (vr != VK_SUCCESS) { goto on_error; }
+    vr = vkAllocateMemory(m_device, &mem_info, nullptr, memory.addr());
+    if (vr != VK_SUCCESS) { return TranslateReturnCode(vr); }
 
-    vr = vkBindImageMemory(m_device, ret, memory, 0);
-    if (vr != VK_SUCCESS) { goto on_error; }
+    vr = vkBindImageMemory(m_device, ret.get(), memory.get(), 0);
+    if (vr != VK_SUCCESS) { return TranslateReturnCode(vr); }
 
-    //// todo: upload if needed
+    //// todo: upload if data is present
     //VkImageSubresourceRange subresourceRange = {};
     //subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     //subresourceRange.baseMipLevel = 0;
     //subresourceRange.levelCount = 1;
     //subresourceRange.layerCount = 1;
 
-    *dst_tex = ret;
+    *dst_tex = ret.get();
+    ret.detach();
+    memory.detach();
     return Result::OK;
-
-on_error:
-    if (memory) { vkFreeMemory(m_device, memory, nullptr); }
-    if (ret) { vkDestroyImage(m_device, ret, nullptr); }
-    return TranslateReturnCode(vr);
 }
 
 void GraphicsInterfaceVulkan::releaseTexture2D(void *tex_)
@@ -374,31 +369,31 @@ Result GraphicsInterfaceVulkan::readTexture2D(void *dst, size_t read_size, void 
     if (!dst || !src_tex_) { return Result::InvalidParameter; }
 
     auto src_tex = (VkImage)src_tex_;
-    auto res = Result::OK;
 
-    VkResult vr;
-    vr = staging(src_tex, StagingFlag::Readback, [&](VkBuffer staging_buffer, VkDeviceMemory staging_memory) {
-        vr = executeCommands([&](VkCommandBuffer clist) {
-            VkBufferImageCopy region = {};
-            region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-            region.imageSubresource.mipLevel = 0;
-            region.imageSubresource.baseArrayLayer = 0;
-            region.imageSubresource.layerCount = 1;
-            region.imageExtent.width = width;
-            region.imageExtent.height = height;
-            region.imageExtent.depth = 1;
-            vkCmdCopyImageToBuffer(clist, src_tex, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, staging_buffer, 1, &region);
-        });
-        if (vr != VK_SUCCESS) { res = TranslateReturnCode(vr); return; }
+    auto staging_buffer = unique_handle<VkBuffer>(m_device);
+    auto staging_memory = unique_handle<VkDeviceMemory>(m_device);
+    auto vr = createStagingBuffer(src_tex, StagingFlag::Readback, staging_buffer.ref(), staging_memory.ref());
+    if (vr != VK_SUCCESS) { return TranslateReturnCode(vr); }
 
-        vr = map(staging_memory, [&](void *mapped_memory) {
-            memcpy(dst, mapped_memory, read_size);
-        });
-        if (vr != VK_SUCCESS) { res = TranslateReturnCode(vr); return; }
+    vr = executeCommands([&](VkCommandBuffer clist) {
+        VkBufferImageCopy region = {};
+        region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        region.imageSubresource.mipLevel = 0;
+        region.imageSubresource.baseArrayLayer = 0;
+        region.imageSubresource.layerCount = 1;
+        region.imageExtent.width = width;
+        region.imageExtent.height = height;
+        region.imageExtent.depth = 1;
+        vkCmdCopyImageToBuffer(clist, src_tex, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, staging_buffer.get(), 1, &region);
     });
-    if (vr != VK_SUCCESS) { res = TranslateReturnCode(vr); }
+    if (vr != VK_SUCCESS) { return TranslateReturnCode(vr); }
 
-    return res;
+    vr = map(staging_memory.get(), [&](void *mapped_memory) {
+        memcpy(dst, mapped_memory, read_size);
+    });
+    if (vr != VK_SUCCESS) { return TranslateReturnCode(vr); }
+
+    return Result::OK;
 }
 
 Result GraphicsInterfaceVulkan::writeTexture2D(void *dst_tex_, int width, int height, TextureFormat format, const void *src, size_t write_size)
@@ -407,31 +402,31 @@ Result GraphicsInterfaceVulkan::writeTexture2D(void *dst_tex_, int width, int he
     if (!dst_tex_ || !src) { return Result::InvalidParameter; }
 
     auto dst_tex = (VkImage)dst_tex_;
-    auto res = Result::OK;
 
-    VkResult vr;
-    vr = staging(dst_tex, StagingFlag::Upload, [&](VkBuffer staging_buffer, VkDeviceMemory staging_memory) {
-        vr = map(staging_memory, [&](void *mapped_memory) {
-            memcpy(mapped_memory, src, write_size);
-        });
-        if (vr != VK_SUCCESS) { res = TranslateReturnCode(vr); return; }
+    auto staging_buffer = unique_handle<VkBuffer>(m_device);
+    auto staging_memory = unique_handle<VkDeviceMemory>(m_device);
+    auto vr = createStagingBuffer(dst_tex, StagingFlag::Upload, staging_buffer.ref(), staging_memory.ref());
+    if (vr != VK_SUCCESS) { return TranslateReturnCode(vr); }
 
-        vr = executeCommands([&](VkCommandBuffer clist) {
-            VkBufferImageCopy region = {};
-            region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-            region.imageSubresource.mipLevel = 0;
-            region.imageSubresource.baseArrayLayer = 0;
-            region.imageSubresource.layerCount = 1;
-            region.imageExtent.width = width;
-            region.imageExtent.height = height;
-            region.imageExtent.depth = 1;
-            vkCmdCopyBufferToImage(clist, staging_buffer, dst_tex, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
-        });
-        if (vr != VK_SUCCESS) { res = TranslateReturnCode(vr); return; }
+    vr = map(staging_memory.get(), [&](void *mapped_memory) {
+        memcpy(mapped_memory, src, write_size);
     });
-    if (vr != VK_SUCCESS) { res = TranslateReturnCode(vr); }
+    if (vr != VK_SUCCESS) { return TranslateReturnCode(vr); }
 
-    return res;
+    vr = executeCommands([&](VkCommandBuffer clist) {
+        VkBufferImageCopy region = {};
+        region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        region.imageSubresource.mipLevel = 0;
+        region.imageSubresource.baseArrayLayer = 0;
+        region.imageSubresource.layerCount = 1;
+        region.imageExtent.width = width;
+        region.imageExtent.height = height;
+        region.imageExtent.depth = 1;
+        vkCmdCopyBufferToImage(clist, staging_buffer.get(), dst_tex, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+    });
+    if (vr != VK_SUCCESS) { return TranslateReturnCode(vr); }
+
+    return Result::OK;
 }
 
 
@@ -439,14 +434,10 @@ Result GraphicsInterfaceVulkan::createBuffer(void **dst_buf, size_t size, Buffer
 {
     if (!dst_buf) { return Result::InvalidParameter; }
 
-    VkResult vr = VK_SUCCESS;
-    VkBuffer ret = nullptr;
-    VkDeviceMemory memory = nullptr;
+    auto ret = unique_handle<VkBuffer>(m_device);
+    auto memory = unique_handle<VkDeviceMemory>(m_device);
 
     VkBufferCreateInfo buf_info = {};
-    VkMemoryRequirements mem_required = {};
-    VkMemoryAllocateInfo mem_info = {};
-
     buf_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     buf_info.size = size;
     buf_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
@@ -466,28 +457,27 @@ Result GraphicsInterfaceVulkan::createBuffer(void **dst_buf, size_t size, Buffer
         break;
     }
 
-    vr = vkCreateBuffer(m_device, &buf_info, nullptr, &ret);
-    if (vr != VK_SUCCESS) { goto on_error; }
+    auto vr = vkCreateBuffer(m_device, &buf_info, nullptr, ret.addr());
+    if (vr != VK_SUCCESS) { return TranslateReturnCode(vr); }
 
-    vkGetBufferMemoryRequirements(m_device, ret, &mem_required);
+    VkMemoryRequirements mem_required = {};
+    vkGetBufferMemoryRequirements(m_device, ret.get(), &mem_required);
 
+    VkMemoryAllocateInfo mem_info = {};
     mem_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     mem_info.allocationSize = mem_required.size;
     mem_info.memoryTypeIndex = getMemoryType(mem_required.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-    vr = vkAllocateMemory(m_device, &mem_info, nullptr, &memory);
-    if (vr != VK_SUCCESS) { goto on_error; }
+    vr = vkAllocateMemory(m_device, &mem_info, nullptr, memory.addr());
+    if (vr != VK_SUCCESS) { return TranslateReturnCode(vr); }
 
-    vr = vkBindBufferMemory(m_device, ret, memory, 0);
-    if (vr != VK_SUCCESS) { goto on_error; }
+    vr = vkBindBufferMemory(m_device, ret.get(), memory.get(), 0);
+    if (vr != VK_SUCCESS) { return TranslateReturnCode(vr); }
 
-    *dst_buf = ret;
+    *dst_buf = ret.get();
+    ret.detach();
+    memory.detach();
     return Result::OK;
-
-on_error:
-    if (memory) { vkFreeMemory(m_device, memory, nullptr); }
-    if (ret) { vkDestroyBuffer(m_device, ret, nullptr); }
-    return TranslateReturnCode(vr);
 }
 
 void GraphicsInterfaceVulkan::releaseBuffer(void *buf_)
@@ -504,24 +494,24 @@ Result GraphicsInterfaceVulkan::readBuffer(void *dst, const void *src_buf, size_
     if (!dst || !src_buf) { return Result::InvalidParameter; }
 
     auto buf = (VkBuffer)src_buf;
-    auto res = Result::OK;
 
-    VkResult vr;
-    vr = staging(buf, StagingFlag::Readback, [&](VkBuffer staging_buffer, VkDeviceMemory staging_memory) {
-        vr = executeCommands([&](VkCommandBuffer clist) {
-            VkBufferCopy region = { 0, 0, read_size };
-            vkCmdCopyBuffer(clist, buf, staging_buffer, 1, &region);
-        });
-        if (vr != VK_SUCCESS) { res = TranslateReturnCode(vr); return; }
+    auto staging_buffer = unique_handle<VkBuffer>(m_device);
+    auto staging_memory = unique_handle<VkDeviceMemory>(m_device);
+    auto vr = createStagingBuffer(buf, StagingFlag::Readback, staging_buffer.ref(), staging_memory.ref());
+    if (vr != VK_SUCCESS) { return TranslateReturnCode(vr); }
 
-        vr = map(staging_memory, [&](void *mapped_memory) {
-            memcpy(dst, mapped_memory, read_size);
-        });
-        if (vr != VK_SUCCESS) { res = TranslateReturnCode(vr); return; }
+    vr = executeCommands([&](VkCommandBuffer clist) {
+        VkBufferCopy region = { 0, 0, read_size };
+        vkCmdCopyBuffer(clist, buf, staging_buffer.get(), 1, &region);
     });
-    if (vr != VK_SUCCESS) { res = TranslateReturnCode(vr); }
+    if (vr != VK_SUCCESS) { return TranslateReturnCode(vr); }
 
-    return res;
+    vr = map(staging_memory.get(), [&](void *mapped_memory) {
+        memcpy(dst, mapped_memory, read_size);
+    });
+    if (vr != VK_SUCCESS) { return TranslateReturnCode(vr); }
+
+    return Result::OK;
 }
 
 Result GraphicsInterfaceVulkan::writeBuffer(void *dst_buf, const void *src, size_t write_size, BufferType type)
@@ -530,24 +520,24 @@ Result GraphicsInterfaceVulkan::writeBuffer(void *dst_buf, const void *src, size
     if (!dst_buf || !src) { return Result::InvalidParameter; }
 
     auto buf = (VkBuffer)dst_buf;
-    auto res = Result::OK;
 
-    VkResult vr;
-    vr = staging(buf, StagingFlag::Upload, [&](VkBuffer staging_buffer, VkDeviceMemory staging_memory) {
-        vr = map(staging_memory, [&](void *mapped_memory) {
-            memcpy(mapped_memory, src, write_size);
-        });
-        if (vr != VK_SUCCESS) { res = TranslateReturnCode(vr); return; }
+    auto staging_buffer = unique_handle<VkBuffer>(m_device);
+    auto staging_memory = unique_handle<VkDeviceMemory>(m_device);
+    auto vr = createStagingBuffer(buf, StagingFlag::Upload, staging_buffer.ref(), staging_memory.ref());
+    if (vr != VK_SUCCESS) { return TranslateReturnCode(vr); }
 
-        vr = executeCommands([&](VkCommandBuffer clist) {
-            VkBufferCopy region = {0, 0, write_size };
-            vkCmdCopyBuffer(clist, staging_buffer, buf, 1, &region);
-        });
-        if (vr != VK_SUCCESS) { res = TranslateReturnCode(vr); return; }
+    vr = map(staging_memory.get(), [&](void *mapped_memory) {
+        memcpy(mapped_memory, src, write_size);
     });
-    if (vr != VK_SUCCESS) { res = TranslateReturnCode(vr); }
+    if (vr != VK_SUCCESS) { return TranslateReturnCode(vr); }
 
-    return res;
+    vr = executeCommands([&](VkCommandBuffer clist) {
+        VkBufferCopy region = {0, 0, write_size };
+        vkCmdCopyBuffer(clist, staging_buffer.get(), buf, 1, &region);
+    });
+    if (vr != VK_SUCCESS) { return TranslateReturnCode(vr); }
+
+    return Result::OK;
 }
 
 } // namespace gi
