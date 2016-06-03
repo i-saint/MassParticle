@@ -287,7 +287,7 @@ class TestImplVulkan : public TestImpl
 public:
     ~TestImplVulkan() override;
     TestType getType() const override { return TestType::Vulkan; }
-    void* getDevice() const override { return m_device; }
+    void* getDevice() const override { return (void*)&m_physical_device; }
     void onInit(void *hwnd) override;
 
 private:

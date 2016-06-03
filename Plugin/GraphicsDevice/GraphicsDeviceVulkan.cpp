@@ -31,6 +31,8 @@ public:
     Error writeBuffer(void *dst_buf, const void *src, size_t write_size, BufferType type) override;
 
 private:
+    uint32_t getMemoryType(uint32_t typeBits, VkMemoryPropertyFlags properties);
+
     enum class StagingFlag {
         Upload,
         Readback,
@@ -44,12 +46,15 @@ private:
     template<class Body> VkResult map(VkDeviceMemory device_memory, const Body& body);
 
     // Body: [](VkCommandBuffer *clist) -> void
-    template<class Body> VkResult executeCommands(const Body& body);
+    template<class Body> VkResult submitCommands(const Body& body);
 
 private:
+    VkPhysicalDevice m_physical_device = nullptr;
     VkDevice m_device = nullptr;
     VkQueue m_cqueue = nullptr;
     VkCommandPool m_cpool = nullptr;
+
+    VkPhysicalDeviceMemoryProperties m_memory_properties;
 };
 
 
@@ -58,10 +63,21 @@ GraphicsDevice* CreateGraphicsDeviceVulkan(void *device)
     return new GraphicsDeviceVulkan(device);
 }
 
+struct VulkanParams
+{
+    VkPhysicalDevice physical_device;
+    VkDevice device;
+};
+
 
 GraphicsDeviceVulkan::GraphicsDeviceVulkan(void *device)
-    : m_device((VkDevice)device)
 {
+    auto& vkparams = *(VulkanParams*)device;
+    m_physical_device = vkparams.physical_device;
+    m_device = vkparams.device;
+
+    vkGetPhysicalDeviceMemoryProperties(m_physical_device, &m_memory_properties);
+
     uint32_t graphicsQueueIndex = 0;
     vkGetDeviceQueue(m_device, graphicsQueueIndex, 0, &m_cqueue);
 
@@ -101,13 +117,15 @@ static Error TranslateReturnCode(VkResult vr)
     return Error::Unknown;
 }
 
-static uint32_t GetMemoryType(uint32_t typeBits, VkMemoryPropertyFlags properties)
+uint32_t GraphicsDeviceVulkan::getMemoryType(uint32_t type_bits, VkMemoryPropertyFlags properties)
 {
     for (uint32_t i = 0; i < 32; i++) {
-        if ((typeBits & 1) == 1) {
-            return i;
+        if ((type_bits & 1) == 1) {
+            if ((m_memory_properties.memoryTypes[i].propertyFlags & properties) == properties) {
+                return i;
+            }
         }
-        typeBits >>= 1;
+        type_bits >>= 1;
     }
 
     return 0;
@@ -135,7 +153,7 @@ VkResult GraphicsDeviceVulkan::createStagingBuffer(size_t size, StagingFlag flag
     VkMemoryAllocateInfo mem_info = {};
     mem_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     mem_info.allocationSize = mem_required.size;
-    mem_info.memoryTypeIndex = GetMemoryType(mem_required.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+    mem_info.memoryTypeIndex = getMemoryType(mem_required.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
 
     vr = vkAllocateMemory(m_device, &mem_info, nullptr, &memory);
     if (vr != VK_SUCCESS) { return vr; }
@@ -174,11 +192,16 @@ VkResult GraphicsDeviceVulkan::map(VkDeviceMemory device_memory, const Body& bod
     body(mapped_memory);
 
     vkUnmapMemory(m_device, device_memory);
+
+    VkMappedMemoryRange mapped_range = { VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE , nullptr, device_memory , 0, VK_WHOLE_SIZE };
+    vr = vkFlushMappedMemoryRanges(m_device, 1, &mapped_range);
+    if (vr != VK_SUCCESS) { return vr; }
+
     return VK_SUCCESS;
 }
 
 template<class Body>
-VkResult GraphicsDeviceVulkan::executeCommands(const Body& body)
+VkResult GraphicsDeviceVulkan::submitCommands(const Body& body)
 {
     VkCommandBufferAllocateInfo alloc_info = {};
     alloc_info.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -190,7 +213,14 @@ VkResult GraphicsDeviceVulkan::executeCommands(const Body& body)
     auto vr = vkAllocateCommandBuffers(m_device, &alloc_info, &clist);
     if (vr != VK_SUCCESS) { return vr; }
 
+    VkCommandBufferBeginInfo begin_info = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, nullptr, 0, nullptr };
+    vr = vkBeginCommandBuffer(clist, &begin_info);
+    if (vr != VK_SUCCESS) { return vr; }
+
     body(clist);
+
+    vr = vkEndCommandBuffer(clist);
+    if (vr != VK_SUCCESS) { return vr; }
 
     VkSubmitInfo submit_info = {};
     submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -198,9 +228,6 @@ VkResult GraphicsDeviceVulkan::executeCommands(const Body& body)
     submit_info.pCommandBuffers = &clist;
 
     vr = vkQueueSubmit(m_cqueue, 1, &submit_info, VK_NULL_HANDLE);
-    if (vr != VK_SUCCESS) { return vr; }
-
-    vr = vkQueueWaitIdle(m_cqueue);
     if (vr != VK_SUCCESS) { return vr; }
 
     vkFreeCommandBuffers(m_device, m_cpool, 1, &clist);
@@ -263,7 +290,7 @@ Error GraphicsDeviceVulkan::createTexture2D(void **dst_tex, int width, int heigh
     VkMemoryAllocateInfo mem_info = {};
     mem_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     mem_info.allocationSize = mem_required.size;
-    mem_info.memoryTypeIndex = GetMemoryType(mem_required.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    mem_info.memoryTypeIndex = getMemoryType(mem_required.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
     VkDeviceMemory memory;
     vr = vkAllocateMemory(m_device, &mem_info, nullptr, &memory);
@@ -347,7 +374,7 @@ Error GraphicsDeviceVulkan::createBuffer(void **dst_buf, size_t size, BufferType
     VkMemoryAllocateInfo mem_info = {};
     mem_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     mem_info.allocationSize = mem_required.size;
-    mem_info.memoryTypeIndex = GetMemoryType(mem_required.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    mem_info.memoryTypeIndex = getMemoryType(mem_required.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
     VkDeviceMemory memory;
     vr = vkAllocateMemory(m_device, &mem_info, nullptr, &memory);
@@ -379,11 +406,13 @@ Error GraphicsDeviceVulkan::readBuffer(void *dst, const void *src_buf, size_t re
 
     VkResult vr;
     vr = staging(buf, StagingFlag::Readback, [&](VkBuffer staging_buffer, VkDeviceMemory staging_memory) {
-        vr = executeCommands([&](VkCommandBuffer clist) {
+        vr = submitCommands([&](VkCommandBuffer clist) {
             VkBufferCopy region = { 0, 0, read_size };
             vkCmdCopyBuffer(clist, buf, staging_buffer, 1, &region);
         });
         if (vr != VK_SUCCESS) { res = TranslateReturnCode(vr); return; }
+
+        sync();
 
         vr = map(staging_memory, [&](void *mapped_memory) {
             memcpy(dst, mapped_memory, read_size);
@@ -410,7 +439,7 @@ Error GraphicsDeviceVulkan::writeBuffer(void *dst_buf, const void *src, size_t w
         });
         if (vr != VK_SUCCESS) { res = TranslateReturnCode(vr); return; }
 
-        vr = executeCommands([&](VkCommandBuffer clist) {
+        vr = submitCommands([&](VkCommandBuffer clist) {
             VkBufferCopy region = {0, 0, write_size };
             vkCmdCopyBuffer(clist, staging_buffer, buf, 1, &region);
         });
