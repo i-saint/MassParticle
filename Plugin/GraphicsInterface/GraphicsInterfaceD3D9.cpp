@@ -73,15 +73,21 @@ static D3DFORMAT GetInternalFormatD3D9(TextureFormat fmt)
 {
     switch (fmt)
     {
-    case TextureFormat::RGBAu8:   return D3DFMT_A8R8G8B8;
+    case TextureFormat::Ru8:     return D3DFMT_A8;
+    case TextureFormat::RGu8:    return D3DFMT_A8L8;
+    case TextureFormat::RGBAu8:  return D3DFMT_A8R8G8B8;
 
-    case TextureFormat::RGBAf16:  return D3DFMT_A16B16G16R16F;
-    case TextureFormat::RGf16:    return D3DFMT_G16R16F;
-    case TextureFormat::Rf16:     return D3DFMT_R16F;
+    case TextureFormat::Rf16:    return D3DFMT_R16F;
+    case TextureFormat::RGf16:   return D3DFMT_G16R16F;
+    case TextureFormat::RGBAf16: return D3DFMT_A16B16G16R16F;
 
-    case TextureFormat::RGBAf32:  return D3DFMT_A32B32G32R32F;
-    case TextureFormat::RGf32:    return D3DFMT_G32R32F;
-    case TextureFormat::Rf32:     return D3DFMT_R32F;
+    case TextureFormat::Ri16:    return D3DFMT_L16;
+    case TextureFormat::RGi16:   return D3DFMT_G16R16;
+    case TextureFormat::RGBAi16: return D3DFMT_A16B16G16R16;
+
+    case TextureFormat::Rf32:    return D3DFMT_R32F;
+    case TextureFormat::RGf32:   return D3DFMT_G32R32F;
+    case TextureFormat::RGBAf32: return D3DFMT_A32B32G32R32F;
     }
     return D3DFMT_UNKNOWN;
 }
@@ -260,23 +266,23 @@ Result GraphicsInterfaceD3D9::writeTexture2D(void *dst_tex, int width, int heigh
 }
 
 
-enum class MapMpde {
+enum class MapMode {
     Read,
     Write,
 };
 
 // Body: [](void *mapped_data) -> void
 template<class BufferT, class Body>
-static HRESULT MapBuffer(BufferT *buf, MapMpde mode, const Body& body)
+static HRESULT MapBuffer(BufferT *buf, MapMode mode, const Body& body)
 {
     if (!buf) { return E_INVALIDARG; }
 
     DWORD lock_mode = 0;
     switch (mode) {
-    case MapMpde::Read:
+    case MapMode::Read:
         lock_mode = D3DLOCK_READONLY;
         break;
-    case MapMpde::Write:
+    case MapMode::Write:
         lock_mode = D3DLOCK_DISCARD;
         break;
     }
@@ -291,7 +297,7 @@ static HRESULT MapBuffer(BufferT *buf, MapMpde mode, const Body& body)
 
 // Body: [](void *mapped_data) -> void
 template<class Body>
-static HRESULT MapBuffer(void *buf, BufferType type, MapMpde mode, const Body& body)
+static HRESULT MapBuffer(void *buf, BufferType type, MapMode mode, const Body& body)
 {
     switch (type) {
     case BufferType::Index: return MapBuffer((IDirect3DIndexBuffer9*)buf, mode, body);
@@ -323,7 +329,7 @@ Result GraphicsInterfaceD3D9::createBuffer(void **dst_buf, size_t size, BufferTy
     }
 
     if (data) {
-        MapBuffer(dst_buf, type, MapMpde::Write, [&](void *mapped_data) {
+        MapBuffer(dst_buf, type, MapMode::Write, [&](void *mapped_data) {
             memcpy(mapped_data, data, size);
         });
     }
@@ -341,7 +347,7 @@ Result GraphicsInterfaceD3D9::readBuffer(void *dst, void *src_buf, size_t read_s
     if (read_size == 0) { return Result::OK; }
     if (!dst || !src_buf) { return Result::InvalidParameter; }
 
-    auto hr = MapBuffer(src_buf, type, MapMpde::Read, [&](void *mapped_data) {
+    auto hr = MapBuffer(src_buf, type, MapMode::Read, [&](void *mapped_data) {
         memcpy(dst, mapped_data, read_size);
     });
     return TranslateReturnCode(hr);
@@ -352,7 +358,7 @@ Result GraphicsInterfaceD3D9::writeBuffer(void *dst_buf, const void *src, size_t
     if (write_size == 0) { return Result::OK; }
     if (!dst_buf || !src) { return Result::InvalidParameter; }
 
-    auto hr = MapBuffer(dst_buf, type, MapMpde::Write, [&](void *mapped_data) {
+    auto hr = MapBuffer(dst_buf, type, MapMode::Write, [&](void *mapped_data) {
         memcpy(mapped_data, src, write_size);
     });
     return TranslateReturnCode(hr);

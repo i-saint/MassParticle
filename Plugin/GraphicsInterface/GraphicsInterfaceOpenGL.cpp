@@ -58,23 +58,29 @@ void GraphicsInterfaceOpenGL::release()
 }
 
 
-static void GetGLTextureType(TextureFormat format, GLenum &glfmt, GLenum &gltype, GLenum &glitype)
+static void GetGLTextureType(TextureFormat format, GLenum &glfmt, GLenum &gltype, GLenum &glifmt)
 {
     switch (format)
     {
-    case TextureFormat::RGBAu8:   glfmt = GL_RGBA;  gltype = GL_UNSIGNED_BYTE; glitype = GL_R8; return;
+    case TextureFormat::Ru8:     glfmt = GL_RED;  gltype = GL_UNSIGNED_BYTE; glifmt = GL_R8; return;
+    case TextureFormat::RGu8:    glfmt = GL_RG;   gltype = GL_UNSIGNED_BYTE; glifmt = GL_RG8; return;
+    case TextureFormat::RGBAu8:  glfmt = GL_RGBA; gltype = GL_UNSIGNED_BYTE; glifmt = GL_RGBA8; return;
 
-    case TextureFormat::RGBAf16:  glfmt = GL_RGBA;  gltype = GL_HALF_FLOAT; glitype = GL_RGBA16F; return;
-    case TextureFormat::RGf16:    glfmt = GL_RG;    gltype = GL_HALF_FLOAT; glitype = GL_RG16F; return;
-    case TextureFormat::Rf16:     glfmt = GL_RED;   gltype = GL_HALF_FLOAT; glitype = GL_R16F; return;
+    case TextureFormat::Rf16:    glfmt = GL_RED;  gltype = GL_HALF_FLOAT; glifmt = GL_R16F; return;
+    case TextureFormat::RGf16:   glfmt = GL_RG;   gltype = GL_HALF_FLOAT; glifmt = GL_RG16F; return;
+    case TextureFormat::RGBAf16: glfmt = GL_RGBA; gltype = GL_HALF_FLOAT; glifmt = GL_RGBA16F; return;
 
-    case TextureFormat::RGBAf32:  glfmt = GL_RGBA;  gltype = GL_FLOAT; glitype = GL_RGBA32F; return;
-    case TextureFormat::RGf32:    glfmt = GL_RG;    gltype = GL_FLOAT; glitype = GL_RG32F; return;
-    case TextureFormat::Rf32:     glfmt = GL_RED;   gltype = GL_FLOAT; glitype = GL_R32F; return;
+    case TextureFormat::Ri16:    glfmt = GL_RED;  gltype = GL_SHORT; glifmt = GL_R16_SNORM; return;
+    case TextureFormat::RGi16:   glfmt = GL_RG;   gltype = GL_SHORT; glifmt = GL_RG16_SNORM; return;
+    case TextureFormat::RGBAi16: glfmt = GL_RGBA; gltype = GL_SHORT; glifmt = GL_RGBA16_SNORM; return;
 
-    case TextureFormat::RGBAi32:  glfmt = GL_RGBA_INTEGER;  gltype = GL_INT;  glitype = GL_RGBA32I; return;
-    case TextureFormat::RGi32:    glfmt = GL_RG_INTEGER;    gltype = GL_INT;  glitype = GL_RG32I; return;
-    case TextureFormat::Ri32:     glfmt = GL_RED_INTEGER;   gltype = GL_INT;  glitype = GL_R32I; return;
+    case TextureFormat::Rf32:    glfmt = GL_RED;  gltype = GL_FLOAT; glifmt = GL_R32F; return;
+    case TextureFormat::RGf32:   glfmt = GL_RG;   gltype = GL_FLOAT; glifmt = GL_RG32F; return;
+    case TextureFormat::RGBAf32: glfmt = GL_RGBA; gltype = GL_FLOAT; glifmt = GL_RGBA32F; return;
+
+    case TextureFormat::Ri32:    glfmt = GL_RED_INTEGER;   gltype = GL_INT;  glifmt = GL_R32I; return;
+    case TextureFormat::RGi32:   glfmt = GL_RG_INTEGER;    gltype = GL_INT;  glifmt = GL_RG32I; return;
+    case TextureFormat::RGBAi32: glfmt = GL_RGBA_INTEGER;  gltype = GL_INT;  glifmt = GL_RGBA32I; return;
     default: break;
     }
 }
@@ -101,14 +107,14 @@ Result GraphicsInterfaceOpenGL::createTexture2D(void **dst_tex, int width, int h
 {
     GLenum gl_format = 0;
     GLenum gl_type = 0;
-    GLenum gl_itype = 0;
-    GetGLTextureType(format, gl_format, gl_type, gl_itype);
+    GLenum gl_iformat = 0;
+    GetGLTextureType(format, gl_format, gl_type, gl_iformat);
 
     auto ret = Result::OK;
     GLuint tex = 0;
     glGenTextures(1, &tex);
     glBindTexture(GL_TEXTURE_2D, tex);
-    glTexImage2D(GL_TEXTURE_2D, 0, gl_itype, width, height, 0, gl_format, gl_type, data);
+    glTexImage2D(GL_TEXTURE_2D, 0, gl_iformat, width, height, 0, gl_format, gl_type, data);
     ret = GetGLError();
     glBindTexture(GL_TEXTURE_2D, 0);
     *(GLuint*)dst_tex = tex;
@@ -127,8 +133,8 @@ Result GraphicsInterfaceOpenGL::readTexture2D(void *o_buf, size_t, void *tex, in
 {
     GLenum gl_format = 0;
     GLenum gl_type = 0;
-    GLenum gl_itype = 0;
-    GetGLTextureType(format, gl_format, gl_type, gl_itype);
+    GLenum gl_iformat = 0;
+    GetGLTextureType(format, gl_format, gl_type, gl_iformat);
 
     // available OpenGL 4.5 or later
     // glGetTextureImage((GLuint)(size_t)tex, 0, internal_format, internal_type, bufsize, o_buf);
@@ -147,8 +153,8 @@ Result GraphicsInterfaceOpenGL::writeTexture2D(void *o_tex, int width, int heigh
 {
     GLenum gl_format = 0;
     GLenum gl_type = 0;
-    GLenum gl_itype = 0;
-    GetGLTextureType(format, gl_format, gl_type, gl_itype);
+    GLenum gl_iformat = 0;
+    GetGLTextureType(format, gl_format, gl_type, gl_iformat);
 
     // available OpenGL 4.5 or later
     // glTextureSubImage2D((GLuint)(size_t)o_tex, 0, 0, 0, width, height, internal_format, internal_type, buf);
