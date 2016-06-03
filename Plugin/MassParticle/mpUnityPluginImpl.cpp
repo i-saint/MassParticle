@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "mpInternal.h"
-#include "GraphicsDevice.h"
-#include "gdUnityPluginImpl.h"
+#include "GraphicsInterface.h"
+#include "giUnityPluginImpl.h"
 #include "PluginAPI/IUnityGraphics.h"
 
 #ifndef mpStaticLink

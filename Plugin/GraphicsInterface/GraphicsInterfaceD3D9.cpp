@@ -1,5 +1,5 @@
 ﻿#include "pch.h"
-#include "gdInternal.h"
+#include "giInternal.h"
 #include <d3d9.h>
 
 using Microsoft::WRL::ComPtr;
@@ -8,26 +8,26 @@ namespace gd {
 
 const int D3D9MaxStagingTextures = 32;
 
-class GraphicsDeviceD3D9 : public GraphicsDevice
+class GraphicsInterfaceD3D9 : public GraphicsInterface
 {
 public:
-    GraphicsDeviceD3D9(void *device);
-    ~GraphicsDeviceD3D9() override;
+    GraphicsInterfaceD3D9(void *device);
+    ~GraphicsInterfaceD3D9() override;
     void release() override;
 
     void* getDevicePtr() override;
     DeviceType getDeviceType() override;
     void sync() override;
 
-    Error createTexture2D(void **dst_tex, int width, int height, TextureFormat format, const void *data, ResourceFlags flags) override;
+    Result createTexture2D(void **dst_tex, int width, int height, TextureFormat format, const void *data, ResourceFlags flags) override;
     void releaseTexture2D(void *tex) override;
-    Error readTexture2D(void *o_buf, size_t bufsize, void *tex, int width, int height, TextureFormat format) override;
-    Error writeTexture2D(void *o_tex, int width, int height, TextureFormat format, const void *buf, size_t bufsize) override;
+    Result readTexture2D(void *o_buf, size_t bufsize, void *tex, int width, int height, TextureFormat format) override;
+    Result writeTexture2D(void *o_tex, int width, int height, TextureFormat format, const void *buf, size_t bufsize) override;
 
-    Error createBuffer(void **dst_buf, size_t size, BufferType type, const void *data, ResourceFlags flags) override;
+    Result createBuffer(void **dst_buf, size_t size, BufferType type, const void *data, ResourceFlags flags) override;
     void releaseBuffer(void *buf) override;
-    Error readBuffer(void *dst, const void *src_buf, size_t read_size, BufferType type) override;
-    Error writeBuffer(void *dst_buf, const void *src, size_t write_size, BufferType type) override;
+    Result readBuffer(void *dst, const void *src_buf, size_t read_size, BufferType type) override;
+    Result writeBuffer(void *dst_buf, const void *src, size_t write_size, BufferType type) override;
 
 private:
     void clearStagingTextures();
@@ -40,14 +40,14 @@ private:
 };
 
 
-GraphicsDevice* CreateGraphicsDeviceD3D9(void *device)
+GraphicsInterface* CreateGraphicsInterfaceD3D9(void *device)
 {
     if (!device) { return nullptr; }
-    return new GraphicsDeviceD3D9(device);
+    return new GraphicsInterfaceD3D9(device);
 }
 
 
-GraphicsDeviceD3D9::GraphicsDeviceD3D9(void *device)
+GraphicsInterfaceD3D9::GraphicsInterfaceD3D9(void *device)
     : m_device((IDirect3DDevice9*)device)
     , m_query_event(nullptr)
 {
@@ -57,21 +57,21 @@ GraphicsDeviceD3D9::GraphicsDeviceD3D9(void *device)
     }
 }
 
-GraphicsDeviceD3D9::~GraphicsDeviceD3D9()
+GraphicsInterfaceD3D9::~GraphicsInterfaceD3D9()
 {
     clearStagingTextures();
 }
 
-void GraphicsDeviceD3D9::release()
+void GraphicsInterfaceD3D9::release()
 {
     delete this;
 }
 
-void* GraphicsDeviceD3D9::getDevicePtr() { return m_device.Get(); }
-DeviceType GraphicsDeviceD3D9::getDeviceType() { return DeviceType::D3D9; }
+void* GraphicsInterfaceD3D9::getDevicePtr() { return m_device.Get(); }
+DeviceType GraphicsInterfaceD3D9::getDeviceType() { return DeviceType::D3D9; }
 
 
-void GraphicsDeviceD3D9::clearStagingTextures()
+void GraphicsInterfaceD3D9::clearStagingTextures()
 {
     m_staging_textures.clear();
 }
@@ -95,7 +95,7 @@ static D3DFORMAT GetInternalFormatD3D9(TextureFormat fmt)
     return D3DFMT_UNKNOWN;
 }
 
-IDirect3DSurface9* GraphicsDeviceD3D9::findOrCreateStagingTexture(int width, int height, TextureFormat format)
+IDirect3DSurface9* GraphicsInterfaceD3D9::findOrCreateStagingTexture(int width, int height, TextureFormat format)
 {
     if (m_staging_textures.size() >= D3D9MaxStagingTextures) {
         clearStagingTextures();
@@ -150,7 +150,7 @@ inline void copy_with_BGRA_RGBA_conversion(RGBA<T> *dst, const RGBA<T> *src, int
     }
 }
 
-void GraphicsDeviceD3D9::sync()
+void GraphicsInterfaceD3D9::sync()
 {
     m_query_event->Issue(D3DISSUE_END);
     auto hr = m_query_event->GetData(nullptr, 0, D3DGETDATA_FLUSH);
@@ -159,17 +159,17 @@ void GraphicsDeviceD3D9::sync()
     }
 }
 
-Error GraphicsDeviceD3D9::createTexture2D(void **dst_tex, int width, int height, TextureFormat format, const void *data, ResourceFlags flags)
+Result GraphicsInterfaceD3D9::createTexture2D(void **dst_tex, int width, int height, TextureFormat format, const void *data, ResourceFlags flags)
 {
-    return Error::NotAvailable;
+    return Result::NotAvailable;
 }
 
-void GraphicsDeviceD3D9::releaseTexture2D(void *tex)
+void GraphicsInterfaceD3D9::releaseTexture2D(void *tex)
 {
 
 }
 
-Error GraphicsDeviceD3D9::readTexture2D(void *o_buf, size_t bufsize, void *tex_, int width, int height, TextureFormat format)
+Result GraphicsInterfaceD3D9::readTexture2D(void *o_buf, size_t bufsize, void *tex_, int width, int height, TextureFormat format)
 {
     HRESULT hr;
     IDirect3DTexture9 *tex = (IDirect3DTexture9*)tex_;
@@ -177,15 +177,15 @@ Error GraphicsDeviceD3D9::readTexture2D(void *o_buf, size_t bufsize, void *tex_,
     // D3D11 と同様 render target の内容は CPU からはアクセス不可能になっている。
     // staging texture を用意してそれに内容を移し、CPU はそれ経由でデータを読む。
     IDirect3DSurface9 *surf_dst = findOrCreateStagingTexture(width, height, format);
-    if (surf_dst == nullptr) { return Error::Unknown; }
+    if (surf_dst == nullptr) { return Result::Unknown; }
 
     ComPtr<IDirect3DSurface9> surf_src;
     hr = tex->GetSurfaceLevel(0, &surf_src);
-    if (FAILED(hr)){ return Error::Unknown; }
+    if (FAILED(hr)){ return Result::Unknown; }
 
     sync();
 
-    Error ret = Error::Unknown;
+    Result ret = Result::Unknown;
     hr = m_device->GetRenderTargetData(surf_src.Get(), surf_dst);
     if (SUCCEEDED(hr))
     {
@@ -205,14 +205,14 @@ Error GraphicsDeviceD3D9::readTexture2D(void *o_buf, size_t bufsize, void *tex_,
             if (format == TextureFormat::RGBAu8) {
                 BGRA_RGBA_conversion((RGBA<uint8_t>*)o_buf, int(bufsize / 4));
             }
-            ret = Error::OK;
+            ret = Result::OK;
         }
     }
 
     return ret;
 }
 
-Error GraphicsDeviceD3D9::writeTexture2D(void *o_tex, int width, int height, TextureFormat format, const void *buf, size_t bufsize)
+Result GraphicsInterfaceD3D9::writeTexture2D(void *o_tex, int width, int height, TextureFormat format, const void *buf, size_t bufsize)
 {
     int psize = GetTexelSize(format);
     int pitch = psize * width;
@@ -223,13 +223,13 @@ Error GraphicsDeviceD3D9::writeTexture2D(void *o_tex, int width, int height, Tex
 
     // D3D11 と違い、D3D9 では書き込みも staging texture を経由する必要がある。
     IDirect3DSurface9 *surf_src = findOrCreateStagingTexture(width, height, format);
-    if (surf_src == nullptr) { return Error::Unknown; }
+    if (surf_src == nullptr) { return Result::Unknown; }
 
     IDirect3DSurface9* surf_dst = nullptr;
     hr = tex->GetSurfaceLevel(0, &surf_dst);
-    if (FAILED(hr)){ return Error::Unknown; }
+    if (FAILED(hr)){ return Result::Unknown; }
 
-    Error ret = Error::Unknown;
+    Result ret = Result::Unknown;
     D3DLOCKED_RECT locked;
     hr = surf_src->LockRect(&locked, nullptr, D3DLOCK_DISCARD);
     if (SUCCEEDED(hr))
@@ -250,7 +250,7 @@ Error GraphicsDeviceD3D9::writeTexture2D(void *o_tex, int width, int height, Tex
 
         hr = m_device->UpdateSurface(surf_src, nullptr, surf_dst, nullptr);
         if (SUCCEEDED(hr)) {
-            ret = Error::Unknown;
+            ret = Result::Unknown;
         }
     }
     surf_dst->Release();
@@ -259,24 +259,24 @@ Error GraphicsDeviceD3D9::writeTexture2D(void *o_tex, int width, int height, Tex
 }
 
 
-Error GraphicsDeviceD3D9::createBuffer(void **dst_buf, size_t size, BufferType type, const void *data, ResourceFlags flags)
+Result GraphicsInterfaceD3D9::createBuffer(void **dst_buf, size_t size, BufferType type, const void *data, ResourceFlags flags)
 {
-    return Error::NotAvailable;
+    return Result::NotAvailable;
 }
 
-void GraphicsDeviceD3D9::releaseBuffer(void *buf)
+void GraphicsInterfaceD3D9::releaseBuffer(void *buf)
 {
 
 }
 
-Error GraphicsDeviceD3D9::readBuffer(void *dst, const void *src_buf, size_t read_size, BufferType type)
+Result GraphicsInterfaceD3D9::readBuffer(void *dst, const void *src_buf, size_t read_size, BufferType type)
 {
-    return Error::NotAvailable;
+    return Result::NotAvailable;
 }
 
-Error GraphicsDeviceD3D9::writeBuffer(void *dst_buf, const void *src, size_t write_size, BufferType type)
+Result GraphicsInterfaceD3D9::writeBuffer(void *dst_buf, const void *src, size_t write_size, BufferType type)
 {
-    return Error::NotAvailable;
+    return Result::NotAvailable;
 }
 
 } // namespace gd

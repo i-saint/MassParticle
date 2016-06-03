@@ -1,9 +1,9 @@
 ﻿#include "pch.h"
-#include "gdInternal.h"
+#include "giInternal.h"
 
 namespace gd {
 
-int GraphicsDevice::GetTexelSize(TextureFormat format)
+int GraphicsInterface::GetTexelSize(TextureFormat format)
 {
     switch (format)
     {
@@ -29,46 +29,46 @@ int GraphicsDevice::GetTexelSize(TextureFormat format)
 }
 
 
-static GraphicsDevice *g_gfx_device;
+static GraphicsInterface *g_gfx_device;
 
-GraphicsDevice* CreateGraphicsDevice(DeviceType type, void *device_ptr)
+GraphicsInterface* CreateGraphicsInterface(DeviceType type, void *device_ptr)
 {
     switch (type) {
 #ifdef gdSupportD3D9
     case DeviceType::D3D9:
-        g_gfx_device = CreateGraphicsDeviceD3D9(device_ptr);
+        g_gfx_device = CreateGraphicsInterfaceD3D9(device_ptr);
         break;
 #endif
 #ifdef gdSupportD3D11
     case DeviceType::D3D11:
-        g_gfx_device = CreateGraphicsDeviceD3D11(device_ptr);
+        g_gfx_device = CreateGraphicsInterfaceD3D11(device_ptr);
         break;
 #endif
 #ifdef gdSupportD3D12
     case DeviceType::D3D12:
-        g_gfx_device = CreateGraphicsDeviceD3D12(device_ptr);
+        g_gfx_device = CreateGraphicsInterfaceD3D12(device_ptr);
         break;
 #endif
 #ifdef gdSupportOpenGL
     case DeviceType::OpenGL:
-        g_gfx_device = CreateGraphicsDeviceOpenGL(device_ptr);
+        g_gfx_device = CreateGraphicsInterfaceOpenGL(device_ptr);
         break;
 #endif
 #ifdef gdSupportVulkan
     case DeviceType::Vulkan:
-        g_gfx_device = CreateGraphicsDeviceVulkan(device_ptr);
+        g_gfx_device = CreateGraphicsInterfaceVulkan(device_ptr);
         break;
 #endif
     }
     return g_gfx_device;
 }
 
-GraphicsDevice* GetGraphicsDevice()
+GraphicsInterface* GetGraphicsInterface()
 {
     return g_gfx_device;
 }
 
-void ReleaseGraphicsDevice()
+void ReleaseGraphicsInterface()
 {
     if (g_gfx_device) {
         delete g_gfx_device;

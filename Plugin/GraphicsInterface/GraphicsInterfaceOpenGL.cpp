@@ -1,5 +1,5 @@
 ﻿#include "pch.h"
-#include "gdInternal.h"
+#include "giInternal.h"
 
 #ifdef _WIN32
     #pragma comment(lib, "opengl32.lib")
@@ -10,48 +10,48 @@
 
 namespace gd {
 
-class GraphicsDeviceOpenGL : public GraphicsDevice
+class GraphicsInterfaceOpenGL : public GraphicsInterface
 {
 public:
-    GraphicsDeviceOpenGL(void *device);
-    ~GraphicsDeviceOpenGL() override;
+    GraphicsInterfaceOpenGL(void *device);
+    ~GraphicsInterfaceOpenGL() override;
     void release() override;
 
     void* getDevicePtr() override;
     DeviceType getDeviceType() override;
     void sync() override;
 
-    Error createTexture2D(void **dst_tex, int width, int height, TextureFormat format, const void *data, ResourceFlags flags) override;
+    Result createTexture2D(void **dst_tex, int width, int height, TextureFormat format, const void *data, ResourceFlags flags) override;
     void releaseTexture2D(void *tex) override;
-    Error readTexture2D(void *o_buf, size_t bufsize, void *tex, int width, int height, TextureFormat format) override;
-    Error writeTexture2D(void *o_tex, int width, int height, TextureFormat format, const void *buf, size_t bufsize) override;
+    Result readTexture2D(void *o_buf, size_t bufsize, void *tex, int width, int height, TextureFormat format) override;
+    Result writeTexture2D(void *o_tex, int width, int height, TextureFormat format, const void *buf, size_t bufsize) override;
 
-    Error createBuffer(void **dst_buf, size_t size, BufferType type, const void *data, ResourceFlags flags) override;
+    Result createBuffer(void **dst_buf, size_t size, BufferType type, const void *data, ResourceFlags flags) override;
     void releaseBuffer(void *buf) override;
-    Error readBuffer(void *dst, const void *src_buf, size_t read_size, BufferType type) override;
-    Error writeBuffer(void *dst_buf, const void *src, size_t write_size, BufferType type) override;
+    Result readBuffer(void *dst, const void *src_buf, size_t read_size, BufferType type) override;
+    Result writeBuffer(void *dst_buf, const void *src, size_t write_size, BufferType type) override;
 };
 
 
-GraphicsDevice* CreateGraphicsDeviceOpenGL(void *device)
+GraphicsInterface* CreateGraphicsInterfaceOpenGL(void *device)
 {
-    return new GraphicsDeviceOpenGL(device);
+    return new GraphicsInterfaceOpenGL(device);
 }
 
 
-void* GraphicsDeviceOpenGL::getDevicePtr() { return nullptr; }
-DeviceType GraphicsDeviceOpenGL::getDeviceType() { return DeviceType::OpenGL; }
+void* GraphicsInterfaceOpenGL::getDevicePtr() { return nullptr; }
+DeviceType GraphicsInterfaceOpenGL::getDeviceType() { return DeviceType::OpenGL; }
 
-GraphicsDeviceOpenGL::GraphicsDeviceOpenGL(void *device)
+GraphicsInterfaceOpenGL::GraphicsInterfaceOpenGL(void *device)
 {
     glewInit();
 }
 
-GraphicsDeviceOpenGL::~GraphicsDeviceOpenGL()
+GraphicsInterfaceOpenGL::~GraphicsInterfaceOpenGL()
 {
 }
 
-void GraphicsDeviceOpenGL::release()
+void GraphicsInterfaceOpenGL::release()
 {
     delete this;
 }
@@ -78,32 +78,32 @@ static void GetGLTextureType(TextureFormat format, GLenum &glfmt, GLenum &gltype
     }
 }
 
-static Error GetGLError()
+static Result GetGLError()
 {
     auto e = glGetError();
     switch (e) {
-    case GL_NO_ERROR: return Error::OK;
-    case GL_OUT_OF_MEMORY: return Error::OutOfMemory;
-    case GL_INVALID_ENUM: return Error::InvalidParameter;
-    case GL_INVALID_VALUE: return Error::InvalidParameter;
-    case GL_INVALID_OPERATION: return Error::InvalidOperation;
+    case GL_NO_ERROR: return Result::OK;
+    case GL_OUT_OF_MEMORY: return Result::OutOfMemory;
+    case GL_INVALID_ENUM: return Result::InvalidParameter;
+    case GL_INVALID_VALUE: return Result::InvalidParameter;
+    case GL_INVALID_OPERATION: return Result::InvalidOperation;
     }
-    return Error::Unknown;
+    return Result::Unknown;
 }
 
-void GraphicsDeviceOpenGL::sync()
+void GraphicsInterfaceOpenGL::sync()
 {
     glFinish();
 }
 
-Error GraphicsDeviceOpenGL::createTexture2D(void **dst_tex, int width, int height, TextureFormat format, const void *data, ResourceFlags flags)
+Result GraphicsInterfaceOpenGL::createTexture2D(void **dst_tex, int width, int height, TextureFormat format, const void *data, ResourceFlags flags)
 {
     GLenum gl_format = 0;
     GLenum gl_type = 0;
     GLenum gl_itype = 0;
     GetGLTextureType(format, gl_format, gl_type, gl_itype);
 
-    auto ret = Error::OK;
+    auto ret = Result::OK;
     GLuint tex = 0;
     glGenTextures(1, &tex);
     glBindTexture(GL_TEXTURE_2D, tex);
@@ -115,14 +115,14 @@ Error GraphicsDeviceOpenGL::createTexture2D(void **dst_tex, int width, int heigh
     return ret;
 }
 
-void GraphicsDeviceOpenGL::releaseTexture2D(void *tex_)
+void GraphicsInterfaceOpenGL::releaseTexture2D(void *tex_)
 {
     GLuint tex = (GLuint)(size_t)tex_;
     glDeleteTextures(1, &tex);
 
 }
 
-Error GraphicsDeviceOpenGL::readTexture2D(void *o_buf, size_t, void *tex, int, int, TextureFormat format)
+Result GraphicsInterfaceOpenGL::readTexture2D(void *o_buf, size_t, void *tex, int, int, TextureFormat format)
 {
     GLenum gl_format = 0;
     GLenum gl_type = 0;
@@ -134,7 +134,7 @@ Error GraphicsDeviceOpenGL::readTexture2D(void *o_buf, size_t, void *tex, int, i
 
     sync();
 
-    auto ret = Error::OK;
+    auto ret = Result::OK;
     glBindTexture(GL_TEXTURE_2D, (GLuint)(size_t)tex);
     glGetTexImage(GL_TEXTURE_2D, 0, gl_format, gl_type, o_buf);
     ret = GetGLError();
@@ -142,7 +142,7 @@ Error GraphicsDeviceOpenGL::readTexture2D(void *o_buf, size_t, void *tex, int, i
     return ret;
 }
 
-Error GraphicsDeviceOpenGL::writeTexture2D(void *o_tex, int width, int height, TextureFormat format, const void *buf, size_t)
+Result GraphicsInterfaceOpenGL::writeTexture2D(void *o_tex, int width, int height, TextureFormat format, const void *buf, size_t)
 {
     GLenum gl_format = 0;
     GLenum gl_type = 0;
@@ -152,7 +152,7 @@ Error GraphicsDeviceOpenGL::writeTexture2D(void *o_tex, int width, int height, T
     // available OpenGL 4.5 or later
     // glTextureSubImage2D((GLuint)(size_t)o_tex, 0, 0, 0, width, height, internal_format, internal_type, buf);
 
-    auto ret = Error::OK;
+    auto ret = Result::OK;
     glBindTexture(GL_TEXTURE_2D, (GLuint)(size_t)o_tex);
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, gl_format, gl_type, buf);
     ret = GetGLError();
@@ -181,7 +181,7 @@ static GLenum GetGLBufferType(BufferType type)
     return gltype;
 }
 
-Error GraphicsDeviceOpenGL::createBuffer(void **dst_buf, size_t size, BufferType type, const void *data, ResourceFlags flags)
+Result GraphicsInterfaceOpenGL::createBuffer(void **dst_buf, size_t size, BufferType type, const void *data, ResourceFlags flags)
 {
     GLenum gltype = GetGLBufferType(type);
     GLenum glusage = GL_STATIC_DRAW;
@@ -192,7 +192,7 @@ Error GraphicsDeviceOpenGL::createBuffer(void **dst_buf, size_t size, BufferType
         glusage = GL_STREAM_DRAW;
     }
 
-    auto ret = Error::OK;
+    auto ret = Result::OK;
     GLuint buf = 0;
     glGenBuffers(1, &buf);
     glBindBuffer(gltype, buf);
@@ -204,18 +204,18 @@ Error GraphicsDeviceOpenGL::createBuffer(void **dst_buf, size_t size, BufferType
     return ret;
 }
 
-void GraphicsDeviceOpenGL::releaseBuffer(void *buf_)
+void GraphicsInterfaceOpenGL::releaseBuffer(void *buf_)
 {
     GLuint buf = (GLuint)(size_t)buf_;
     glDeleteBuffers(1, &buf);
 }
 
-Error GraphicsDeviceOpenGL::readBuffer(void *dst, const void *src_buf, size_t read_size, BufferType type)
+Result GraphicsInterfaceOpenGL::readBuffer(void *dst, const void *src_buf, size_t read_size, BufferType type)
 {
     GLuint buf = (GLuint)(size_t)src_buf;
     GLenum gltype = GetGLBufferType(type);
 
-    Error ret = Error::OK;
+    Result ret = Result::OK;
     glBindBuffer(gltype, buf);
     void *mapped_data = glMapBuffer(gltype, GL_READ_ONLY);
     if (mapped_data) {
@@ -230,12 +230,12 @@ Error GraphicsDeviceOpenGL::readBuffer(void *dst, const void *src_buf, size_t re
     return ret;
 }
 
-Error GraphicsDeviceOpenGL::writeBuffer(void *dst_buf, const void *src, size_t write_size, BufferType type)
+Result GraphicsInterfaceOpenGL::writeBuffer(void *dst_buf, const void *src, size_t write_size, BufferType type)
 {
     GLuint buf = (GLuint)(size_t)dst_buf;
     GLenum gltype = GetGLBufferType(type);
 
-    Error ret = Error::OK;
+    Result ret = Result::OK;
     glBindBuffer(gltype, buf);
     void *mapped_data = glMapBuffer(gltype, GL_WRITE_ONLY);
     if (mapped_data) {

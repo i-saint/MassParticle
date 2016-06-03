@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "gdInternal.h"
+#include "giInternal.h"
 
 #ifdef _WIN32
     #define VK_USE_PLATFORM_WIN32_KHR
@@ -9,26 +9,26 @@
 
 namespace gd {
 
-class GraphicsDeviceVulkan : public GraphicsDevice
+class GraphicsInterfaceVulkan : public GraphicsInterface
 {
 public:
-    GraphicsDeviceVulkan(void *device);
-    ~GraphicsDeviceVulkan() override;
+    GraphicsInterfaceVulkan(void *device);
+    ~GraphicsInterfaceVulkan() override;
     void release() override;
 
     void* getDevicePtr() override;
     DeviceType getDeviceType() override;
     void sync() override;
 
-    Error createTexture2D(void **dst_tex, int width, int height, TextureFormat format, const void *data, ResourceFlags flags) override;
+    Result createTexture2D(void **dst_tex, int width, int height, TextureFormat format, const void *data, ResourceFlags flags) override;
     void releaseTexture2D(void *tex) override;
-    Error readTexture2D(void *o_buf, size_t bufsize, void *tex, int width, int height, TextureFormat format) override;
-    Error writeTexture2D(void *o_tex, int width, int height, TextureFormat format, const void *buf, size_t bufsize) override;
+    Result readTexture2D(void *o_buf, size_t bufsize, void *tex, int width, int height, TextureFormat format) override;
+    Result writeTexture2D(void *o_tex, int width, int height, TextureFormat format, const void *buf, size_t bufsize) override;
 
-    Error createBuffer(void **dst_buf, size_t size, BufferType type, const void *data, ResourceFlags flags) override;
+    Result createBuffer(void **dst_buf, size_t size, BufferType type, const void *data, ResourceFlags flags) override;
     void releaseBuffer(void *buf) override;
-    Error readBuffer(void *dst, const void *src_buf, size_t read_size, BufferType type) override;
-    Error writeBuffer(void *dst_buf, const void *src, size_t write_size, BufferType type) override;
+    Result readBuffer(void *dst, const void *src_buf, size_t read_size, BufferType type) override;
+    Result writeBuffer(void *dst_buf, const void *src, size_t write_size, BufferType type) override;
 
 private:
     uint32_t getMemoryType(uint32_t typeBits, VkMemoryPropertyFlags properties);
@@ -59,9 +59,9 @@ private:
 };
 
 
-GraphicsDevice* CreateGraphicsDeviceVulkan(void *device)
+GraphicsInterface* CreateGraphicsInterfaceVulkan(void *device)
 {
-    return new GraphicsDeviceVulkan(device);
+    return new GraphicsInterfaceVulkan(device);
 }
 
 struct VulkanParams
@@ -71,7 +71,7 @@ struct VulkanParams
 };
 
 
-GraphicsDeviceVulkan::GraphicsDeviceVulkan(void *device)
+GraphicsInterfaceVulkan::GraphicsInterfaceVulkan(void *device)
 {
     auto& vkparams = *(VulkanParams*)device;
     m_physical_device = vkparams.physical_device;
@@ -89,36 +89,36 @@ GraphicsDeviceVulkan::GraphicsDeviceVulkan(void *device)
     vkCreateCommandPool(m_device, &info, nullptr, &m_cpool);
 }
 
-GraphicsDeviceVulkan::~GraphicsDeviceVulkan()
+GraphicsInterfaceVulkan::~GraphicsInterfaceVulkan()
 {
 }
 
-void GraphicsDeviceVulkan::release()
+void GraphicsInterfaceVulkan::release()
 {
     delete this;
 }
 
-void* GraphicsDeviceVulkan::getDevicePtr()
+void* GraphicsInterfaceVulkan::getDevicePtr()
 {
     return nullptr;
 }
 
-DeviceType GraphicsDeviceVulkan::getDeviceType()
+DeviceType GraphicsInterfaceVulkan::getDeviceType()
 {
     return DeviceType::Vulkan;
 }
 
-static Error TranslateReturnCode(VkResult vr)
+static Result TranslateReturnCode(VkResult vr)
 {
     switch (vr) {
-    case VK_SUCCESS: return Error::OK;
-    case VK_ERROR_OUT_OF_HOST_MEMORY: return Error::OutOfMemory;
-    case VK_ERROR_OUT_OF_DEVICE_MEMORY: return Error::OutOfMemory;
+    case VK_SUCCESS: return Result::OK;
+    case VK_ERROR_OUT_OF_HOST_MEMORY: return Result::OutOfMemory;
+    case VK_ERROR_OUT_OF_DEVICE_MEMORY: return Result::OutOfMemory;
     }
-    return Error::Unknown;
+    return Result::Unknown;
 }
 
-uint32_t GraphicsDeviceVulkan::getMemoryType(uint32_t type_bits, VkMemoryPropertyFlags properties)
+uint32_t GraphicsInterfaceVulkan::getMemoryType(uint32_t type_bits, VkMemoryPropertyFlags properties)
 {
     for (uint32_t i = 0; i < 32; i++) {
         if ((type_bits & 1) == 1) {
@@ -132,7 +132,7 @@ uint32_t GraphicsDeviceVulkan::getMemoryType(uint32_t type_bits, VkMemoryPropert
     return 0;
 }
 
-VkResult GraphicsDeviceVulkan::createStagingBuffer(size_t size, StagingFlag flag, VkBuffer &buffer, VkDeviceMemory &memory)
+VkResult GraphicsInterfaceVulkan::createStagingBuffer(size_t size, StagingFlag flag, VkBuffer &buffer, VkDeviceMemory &memory)
 {
     VkResult vr = VK_SUCCESS;
 
@@ -181,7 +181,7 @@ on_error:
 }
 
 template<class Body>
-VkResult GraphicsDeviceVulkan::staging(VkBuffer target, StagingFlag flag, const Body& body)
+VkResult GraphicsInterfaceVulkan::staging(VkBuffer target, StagingFlag flag, const Body& body)
 {
     VkMemoryRequirements mem_required;
     vkGetBufferMemoryRequirements(m_device, target, &mem_required);
@@ -199,7 +199,7 @@ VkResult GraphicsDeviceVulkan::staging(VkBuffer target, StagingFlag flag, const 
 }
 
 template<class Body>
-VkResult GraphicsDeviceVulkan::staging(VkImage target, StagingFlag flag, const Body& body)
+VkResult GraphicsInterfaceVulkan::staging(VkImage target, StagingFlag flag, const Body& body)
 {
     VkMemoryRequirements mem_required;
     vkGetImageMemoryRequirements(m_device, target, &mem_required);
@@ -217,7 +217,7 @@ VkResult GraphicsDeviceVulkan::staging(VkImage target, StagingFlag flag, const B
 }
 
 template<class Body>
-VkResult GraphicsDeviceVulkan::map(VkDeviceMemory device_memory, const Body& body)
+VkResult GraphicsInterfaceVulkan::map(VkDeviceMemory device_memory, const Body& body)
 {
     void *mapped_memory = nullptr;
     auto vr = vkMapMemory(m_device, device_memory, 0, VK_WHOLE_SIZE, 0, &mapped_memory);
@@ -235,7 +235,7 @@ VkResult GraphicsDeviceVulkan::map(VkDeviceMemory device_memory, const Body& bod
 }
 
 template<class Body>
-VkResult GraphicsDeviceVulkan::submitCommands(const Body& body)
+VkResult GraphicsInterfaceVulkan::submitCommands(const Body& body)
 {
     VkResult vr;
     VkCommandBuffer clist = nullptr;
@@ -277,7 +277,7 @@ on_error:
 
 
 
-void GraphicsDeviceVulkan::sync()
+void GraphicsInterfaceVulkan::sync()
 {
     auto vr = vkQueueWaitIdle(m_cqueue);
 }
@@ -304,7 +304,7 @@ static VkFormat TranslateFormat(TextureFormat format)
     return VK_FORMAT_UNDEFINED;
 }
 
-Error GraphicsDeviceVulkan::createTexture2D(void **dst_tex, int width, int height, TextureFormat format, const void *data, ResourceFlags flags)
+Result GraphicsInterfaceVulkan::createTexture2D(void **dst_tex, int width, int height, TextureFormat format, const void *data, ResourceFlags flags)
 {
     VkResult vr = VK_SUCCESS;
     VkImage ret = nullptr;
@@ -351,7 +351,7 @@ Error GraphicsDeviceVulkan::createTexture2D(void **dst_tex, int width, int heigh
     //subresourceRange.layerCount = 1;
 
     *dst_tex = ret;
-    return Error::OK;
+    return Result::OK;
 
 on_error:
     if (memory) { vkFreeMemory(m_device, memory, nullptr); }
@@ -359,7 +359,7 @@ on_error:
     return TranslateReturnCode(vr);
 }
 
-void GraphicsDeviceVulkan::releaseTexture2D(void *tex_)
+void GraphicsInterfaceVulkan::releaseTexture2D(void *tex_)
 {
     if (!tex_) { return; }
 
@@ -367,13 +367,13 @@ void GraphicsDeviceVulkan::releaseTexture2D(void *tex_)
     vkDestroyImage(m_device, tex, nullptr);
 }
 
-Error GraphicsDeviceVulkan::readTexture2D(void *dst, size_t read_size, void *src_tex_, int width, int height, TextureFormat format)
+Result GraphicsInterfaceVulkan::readTexture2D(void *dst, size_t read_size, void *src_tex_, int width, int height, TextureFormat format)
 {
-    if (read_size == 0) { return Error::OK; }
-    if (!dst || !src_tex_) { return Error::InvalidParameter; }
+    if (read_size == 0) { return Result::OK; }
+    if (!dst || !src_tex_) { return Result::InvalidParameter; }
 
     auto src_tex = (VkImage)src_tex_;
-    auto res = Error::OK;
+    auto res = Result::OK;
 
     VkResult vr;
     vr = staging(src_tex, StagingFlag::Readback, [&](VkBuffer staging_buffer, VkDeviceMemory staging_memory) {
@@ -400,13 +400,13 @@ Error GraphicsDeviceVulkan::readTexture2D(void *dst, size_t read_size, void *src
     return res;
 }
 
-Error GraphicsDeviceVulkan::writeTexture2D(void *dst_tex_, int width, int height, TextureFormat format, const void *src, size_t write_size)
+Result GraphicsInterfaceVulkan::writeTexture2D(void *dst_tex_, int width, int height, TextureFormat format, const void *src, size_t write_size)
 {
-    if (write_size == 0) { return Error::OK; }
-    if (!dst_tex_ || !src) { return Error::InvalidParameter; }
+    if (write_size == 0) { return Result::OK; }
+    if (!dst_tex_ || !src) { return Result::InvalidParameter; }
 
     auto dst_tex = (VkImage)dst_tex_;
-    auto res = Error::OK;
+    auto res = Result::OK;
 
     VkResult vr;
     vr = staging(dst_tex, StagingFlag::Upload, [&](VkBuffer staging_buffer, VkDeviceMemory staging_memory) {
@@ -434,9 +434,9 @@ Error GraphicsDeviceVulkan::writeTexture2D(void *dst_tex_, int width, int height
 }
 
 
-Error GraphicsDeviceVulkan::createBuffer(void **dst_buf, size_t size, BufferType type, const void *data, ResourceFlags flags)
+Result GraphicsInterfaceVulkan::createBuffer(void **dst_buf, size_t size, BufferType type, const void *data, ResourceFlags flags)
 {
-    if (!dst_buf) { return Error::InvalidParameter; }
+    if (!dst_buf) { return Result::InvalidParameter; }
 
     VkResult vr = VK_SUCCESS;
     VkBuffer ret = nullptr;
@@ -481,7 +481,7 @@ Error GraphicsDeviceVulkan::createBuffer(void **dst_buf, size_t size, BufferType
     if (vr != VK_SUCCESS) { goto on_error; }
 
     *dst_buf = ret;
-    return Error::OK;
+    return Result::OK;
 
 on_error:
     if (memory) { vkFreeMemory(m_device, memory, nullptr); }
@@ -489,7 +489,7 @@ on_error:
     return TranslateReturnCode(vr);
 }
 
-void GraphicsDeviceVulkan::releaseBuffer(void *buf_)
+void GraphicsInterfaceVulkan::releaseBuffer(void *buf_)
 {
     if (!buf_) { return; }
 
@@ -497,13 +497,13 @@ void GraphicsDeviceVulkan::releaseBuffer(void *buf_)
     vkDestroyBuffer(m_device, buf, nullptr);
 }
 
-Error GraphicsDeviceVulkan::readBuffer(void *dst, const void *src_buf, size_t read_size, BufferType type)
+Result GraphicsInterfaceVulkan::readBuffer(void *dst, const void *src_buf, size_t read_size, BufferType type)
 {
-    if (read_size == 0) { return Error::OK; }
-    if (!dst || !src_buf) { return Error::InvalidParameter; }
+    if (read_size == 0) { return Result::OK; }
+    if (!dst || !src_buf) { return Result::InvalidParameter; }
 
     auto buf = (VkBuffer)src_buf;
-    auto res = Error::OK;
+    auto res = Result::OK;
 
     VkResult vr;
     vr = staging(buf, StagingFlag::Readback, [&](VkBuffer staging_buffer, VkDeviceMemory staging_memory) {
@@ -523,13 +523,13 @@ Error GraphicsDeviceVulkan::readBuffer(void *dst, const void *src_buf, size_t re
     return res;
 }
 
-Error GraphicsDeviceVulkan::writeBuffer(void *dst_buf, const void *src, size_t write_size, BufferType type)
+Result GraphicsInterfaceVulkan::writeBuffer(void *dst_buf, const void *src, size_t write_size, BufferType type)
 {
-    if (write_size == 0) { return Error::OK; }
-    if (!dst_buf || !src) { return Error::InvalidParameter; }
+    if (write_size == 0) { return Result::OK; }
+    if (!dst_buf || !src) { return Result::InvalidParameter; }
 
     auto buf = (VkBuffer)dst_buf;
-    auto res = Error::OK;
+    auto res = Result::OK;
 
     VkResult vr;
     vr = staging(buf, StagingFlag::Upload, [&](VkBuffer staging_buffer, VkDeviceMemory staging_memory) {

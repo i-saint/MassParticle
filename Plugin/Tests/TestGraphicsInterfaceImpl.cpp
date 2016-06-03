@@ -1,4 +1,4 @@
-#include "TestGraphicsDevice.h"
+#include "TestGraphicsInterface.h"
 
 #ifdef _WIN32
     #define WithD3D9

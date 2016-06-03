@@ -2,14 +2,14 @@
 #include <d3d9.h>
 #include <d3d12.h>
 #include <GL/GL.h>
-#include "TestGraphicsDevice.h"
-#include "../GraphicsDevice/GraphicsDevice.h"
+#include "TestGraphicsInterface.h"
+#include "../GraphicsInterface/GraphicsInterface.h"
 
 struct float4 { float x, y, z, w; };
 static inline bool operator==(const float4& a, const float4& b) { return memcmp(&a, &b, sizeof(float4)) == 0; }
 
-const char* TranslateResult(gd::Error v) {
-    return v == gd::Error::OK ? "ok" : "ng";
+const char* TranslateResult(gd::Result v) {
+    return v == gd::Result::OK ? "ok" : "ng";
 }
 const char* TranslateResult(bool v) {
     return v ? "ok" : "ng";
@@ -38,13 +38,13 @@ void PrintResult(R r, int line, const char *exp)
 
 void TestImpl::testMain()
 {
-    gd::GraphicsDevice *dev = nullptr;
+    gd::GraphicsInterface *dev = nullptr;
     switch (getType()) {
-    case TestType::D3D9: dev = gd::CreateGraphicsDevice(gd::DeviceType::D3D9, getDevice()); break;
-    case TestType::D3D11: dev = gd::CreateGraphicsDevice(gd::DeviceType::D3D11, getDevice()); break;
-    case TestType::D3D12: dev = gd::CreateGraphicsDevice(gd::DeviceType::D3D12, getDevice()); break;
-    case TestType::OpenGL: dev = gd::CreateGraphicsDevice(gd::DeviceType::OpenGL, getDevice()); break;
-    case TestType::Vulkan: dev = gd::CreateGraphicsDevice(gd::DeviceType::Vulkan, getDevice()); break;
+    case TestType::D3D9: dev = gd::CreateGraphicsInterface(gd::DeviceType::D3D9, getDevice()); break;
+    case TestType::D3D11: dev = gd::CreateGraphicsInterface(gd::DeviceType::D3D11, getDevice()); break;
+    case TestType::D3D12: dev = gd::CreateGraphicsInterface(gd::DeviceType::D3D12, getDevice()); break;
+    case TestType::OpenGL: dev = gd::CreateGraphicsInterface(gd::DeviceType::OpenGL, getDevice()); break;
+    case TestType::Vulkan: dev = gd::CreateGraphicsInterface(gd::DeviceType::Vulkan, getDevice()); break;
     }
     if (!dev) {
         printf("TestImpl::testMain(): device is null\n");
@@ -168,7 +168,7 @@ void TestImpl::testMain()
         }
     }
 
-    gd::ReleaseGraphicsDevice();
+    gd::ReleaseGraphicsInterface();
 }
 
 
@@ -236,7 +236,7 @@ void RunTest(TestType type)
     windowClass.lpfnWndProc = WindowProc;
     windowClass.hInstance = GetModuleHandleA(nullptr);
     windowClass.hCursor = LoadCursor(NULL, IDC_ARROW);
-    windowClass.lpszClassName = L"TestGraphicsDevice";
+    windowClass.lpszClassName = L"TestGraphicsInterface";
     RegisterClassEx(&windowClass);
 
     RECT windowRect = { 0, 0, WindowWidth, WindowHeight };
@@ -245,7 +245,7 @@ void RunTest(TestType type)
     // Create the window and store a handle to it.
     auto hwnd = CreateWindow(
         windowClass.lpszClassName,
-        L"TestGraphicsDevice",
+        L"TestGraphicsInterface",
         WS_OVERLAPPEDWINDOW,
         CW_USEDEFAULT,
         CW_USEDEFAULT,

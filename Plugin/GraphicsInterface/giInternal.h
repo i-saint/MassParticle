@@ -15,16 +15,16 @@
     #define gdSupportOpenGL
 #endif
 
-#include "GraphicsDevice.h"
+#include "GraphicsInterface.h"
 
 namespace gd {
 
-class GraphicsDevice;
-GraphicsDevice* CreateGraphicsDeviceD3D9(void *device);
-GraphicsDevice* CreateGraphicsDeviceD3D11(void *device);
-GraphicsDevice* CreateGraphicsDeviceD3D12(void *device);
-GraphicsDevice* CreateGraphicsDeviceOpenGL(void *device);
-GraphicsDevice* CreateGraphicsDeviceVulkan(void *device);
+class GraphicsInterface;
+GraphicsInterface* CreateGraphicsInterfaceD3D9(void *device);
+GraphicsInterface* CreateGraphicsInterfaceD3D11(void *device);
+GraphicsInterface* CreateGraphicsInterfaceD3D12(void *device);
+GraphicsInterface* CreateGraphicsInterfaceOpenGL(void *device);
+GraphicsInterface* CreateGraphicsInterfaceVulkan(void *device);
 
 
 // i.e:

@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "gdInternal.h"
-#include "gdUnityPluginImpl.h"
+#include "giInternal.h"
+#include "giUnityPluginImpl.h"
 
 #include "PluginAPI/IUnityGraphics.h"
 #ifdef gdSupportD3D9
@@ -20,7 +20,7 @@ namespace gd {
 
 static IUnityInterfaces* g_unity_interface;
 
-static void UNITY_INTERFACE_API UnityOnGraphicsDeviceEvent(UnityGfxDeviceEventType eventType)
+static void UNITY_INTERFACE_API UnityOnGraphicsInterfaceEvent(UnityGfxDeviceEventType eventType)
 {
     if (eventType == kUnityGfxDeviceEventInitialize) {
         auto unity_gfx = g_unity_interface->Get<IUnityGraphics>();
@@ -28,17 +28,17 @@ static void UNITY_INTERFACE_API UnityOnGraphicsDeviceEvent(UnityGfxDeviceEventTy
 
 #ifdef gdSupportD3D9
         if (api == kUnityGfxRendererD3D9) {
-            CreateGraphicsDevice(DeviceType::D3D9, g_unity_interface->Get<IUnityGraphicsD3D9>()->GetDevice());
+            CreateGraphicsInterface(DeviceType::D3D9, g_unity_interface->Get<IUnityGraphicsD3D9>()->GetDevice());
         }
 #endif
 #ifdef gdSupportD3D11
         if (api == kUnityGfxRendererD3D11) {
-            CreateGraphicsDevice(DeviceType::D3D11, g_unity_interface->Get<IUnityGraphicsD3D11>()->GetDevice());
+            CreateGraphicsInterface(DeviceType::D3D11, g_unity_interface->Get<IUnityGraphicsD3D11>()->GetDevice());
         }
 #endif
 #ifdef gdSupportD3D12
         if (api == kUnityGfxRendererD3D12) {
-            CreateGraphicsDevice(DeviceType::D3D12, g_unity_interface->Get<IUnityGraphicsD3D12>()->GetDevice());
+            CreateGraphicsInterface(DeviceType::D3D12, g_unity_interface->Get<IUnityGraphicsD3D12>()->GetDevice());
         }
 #endif
 #ifdef gdSupportOpenGL
@@ -47,18 +47,18 @@ static void UNITY_INTERFACE_API UnityOnGraphicsDeviceEvent(UnityGfxDeviceEventTy
             api == kUnityGfxRendererOpenGLES20 ||
             api == kUnityGfxRendererOpenGLES30)
         {
-            CreateGraphicsDevice(DeviceType::OpenGL, nullptr);
+            CreateGraphicsInterface(DeviceType::OpenGL, nullptr);
         }
 #endif
 #ifdef gdSupportVulkan
         if (false) // todo
         {
-            CreateGraphicsDevice(DeviceType::Vulkan, nullptr);
+            CreateGraphicsInterface(DeviceType::Vulkan, nullptr);
         }
 #endif
     }
     else if (eventType == kUnityGfxDeviceEventShutdown) {
-        ReleaseGraphicsDevice();
+        ReleaseGraphicsInterface();
     }
 }
 
@@ -66,14 +66,14 @@ static void UNITY_INTERFACE_API UnityOnGraphicsDeviceEvent(UnityGfxDeviceEventTy
 void UnityPluginLoad(IUnityInterfaces* unityInterfaces)
 {
     g_unity_interface = unityInterfaces;
-    g_unity_interface->Get<IUnityGraphics>()->RegisterDeviceEventCallback(UnityOnGraphicsDeviceEvent);
-    UnityOnGraphicsDeviceEvent(kUnityGfxDeviceEventInitialize);
+    g_unity_interface->Get<IUnityGraphics>()->RegisterDeviceEventCallback(UnityOnGraphicsInterfaceEvent);
+    UnityOnGraphicsInterfaceEvent(kUnityGfxDeviceEventInitialize);
 }
 
 void UnityPluginUnload()
 {
     auto unity_gfx = g_unity_interface->Get<IUnityGraphics>();
-    unity_gfx->UnregisterDeviceEventCallback(UnityOnGraphicsDeviceEvent);
+    unity_gfx->UnregisterDeviceEventCallback(UnityOnGraphicsInterfaceEvent);
 }
 
 } // namespace gd

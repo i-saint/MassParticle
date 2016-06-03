@@ -19,20 +19,20 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="GraphicsDevice\gdInternal.h" />
-    <ClInclude Include="GraphicsDevice\gdUnityPluginImpl.h" />
-    <ClInclude Include="GraphicsDevice\GraphicsDevice.h" />
-    <ClInclude Include="GraphicsDevice\pch.h" />
+    <ClInclude Include="GraphicsInterface\giInternal.h" />
+    <ClInclude Include="GraphicsInterface\giUnityPluginImpl.h" />
+    <ClInclude Include="GraphicsInterface\GraphicsInterface.h" />
+    <ClInclude Include="GraphicsInterface\pch.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="GraphicsDevice\gdUnityPluginImpl.cpp" />
-    <ClCompile Include="GraphicsDevice\GraphicsDevice.cpp" />
-    <ClCompile Include="GraphicsDevice\GraphicsDeviceD3D11.cpp" />
-    <ClCompile Include="GraphicsDevice\GraphicsDeviceD3D12.cpp" />
-    <ClCompile Include="GraphicsDevice\GraphicsDeviceD3D9.cpp" />
-    <ClCompile Include="GraphicsDevice\GraphicsDeviceOpenGL.cpp" />
-    <ClCompile Include="GraphicsDevice\GraphicsDeviceVulkan.cpp" />
-    <ClCompile Include="GraphicsDevice\pch.cpp">
+    <ClCompile Include="GraphicsInterface\giUnityPluginImpl.cpp" />
+    <ClCompile Include="GraphicsInterface\GraphicsInterface.cpp" />
+    <ClCompile Include="GraphicsInterface\GraphicsInterfaceD3D11.cpp" />
+    <ClCompile Include="GraphicsInterface\GraphicsInterfaceD3D12.cpp" />
+    <ClCompile Include="GraphicsInterface\GraphicsInterfaceD3D9.cpp" />
+    <ClCompile Include="GraphicsInterface\GraphicsInterfaceOpenGL.cpp" />
+    <ClCompile Include="GraphicsInterface\GraphicsInterfaceVulkan.cpp" />
+    <ClCompile Include="GraphicsInterface\pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Master|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
@@ -102,17 +102,17 @@
     <OutDir>$(SolutionDir)_out\$(ProjectName)_$(Platform)_$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)_tmp\$(ProjectName)_$(Platform)_$(Configuration)\</IntDir>
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>external\include;$(ProjectDir)GraphicsDevice;$(ProjectDir)MassParticle;$(VK_SDK_PATH)\include;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
+    <IncludePath>external\include;$(ProjectDir)GraphicsInterface;$(ProjectDir)MassParticle;$(VK_SDK_PATH)\include;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)external\lib\x86;$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86)</LibraryPath>
-    <TargetName>GraphicsDevice</TargetName>
+    <TargetName>GraphicsInterface</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>external\include;$(ProjectDir)GraphicsDevice;$(ProjectDir)MassParticle;$(VK_SDK_PATH)\include;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
+    <IncludePath>external\include;$(ProjectDir)GraphicsInterface;$(ProjectDir)MassParticle;$(VK_SDK_PATH)\include;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)external\lib\x86_64;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64)</LibraryPath>
     <OutDir>$(SolutionDir)_out\$(ProjectName)_$(Platform)_$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)_tmp\$(ProjectName)_$(Platform)_$(Configuration)\</IntDir>
-    <TargetName>GraphicsDevice</TargetName>
+    <TargetName>GraphicsInterface</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Master|Win32'">
     <OutDir>$(SolutionDir)build/$(Configuration)\</OutDir>
@@ -130,17 +130,17 @@
     <OutDir>$(SolutionDir)_out\$(ProjectName)_$(Platform)_$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)_tmp\$(ProjectName)_$(Platform)_$(Configuration)\</IntDir>
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>external\include;$(ProjectDir)GraphicsDevice;$(ProjectDir)MassParticle;$(VK_SDK_PATH)\include;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
+    <IncludePath>external\include;$(ProjectDir)GraphicsInterface;$(ProjectDir)MassParticle;$(VK_SDK_PATH)\include;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)external\lib\x86;$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86)</LibraryPath>
-    <TargetName>GraphicsDevice</TargetName>
+    <TargetName>GraphicsInterface</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Master|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>external\include;$(ProjectDir)GraphicsDevice;$(ProjectDir)MassParticle;$(VK_SDK_PATH)\include;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
+    <IncludePath>external\include;$(ProjectDir)GraphicsInterface;$(ProjectDir)MassParticle;$(VK_SDK_PATH)\include;$(VC_IncludePath);$(WindowsSDK_IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)external\lib\x86_64;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64)</LibraryPath>
     <OutDir>$(SolutionDir)_out\$(ProjectName)_$(Platform)_$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)_tmp\$(ProjectName)_$(Platform)_$(Configuration)\</IntDir>
-    <TargetName>GraphicsDevice</TargetName>
+    <TargetName>GraphicsInterface</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>

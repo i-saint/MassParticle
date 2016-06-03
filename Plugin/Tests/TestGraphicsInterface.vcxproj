@@ -19,14 +19,14 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="TestGraphicsDevice.cpp" />
-    <ClCompile Include="TestGraphicsDeviceImpl.cpp" />
+    <ClCompile Include="TestGraphicsInterface.cpp" />
+    <ClCompile Include="TestGraphicsInterfaceImpl.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="TestGraphicsDevice.h" />
+    <ClInclude Include="TestGraphicsInterface.h" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\GraphicsDevice_Windows.vcxproj">
+    <ProjectReference Include="..\GraphicsInterface_Windows.vcxproj">
       <Project>{29751262-3a23-4cf5-9dec-8d11aff02599}</Project>
     </ProjectReference>
   </ItemGroup>
