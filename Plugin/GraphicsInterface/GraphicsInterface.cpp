@@ -1,7 +1,7 @@
 ﻿#include "pch.h"
 #include "giInternal.h"
 
-namespace gd {
+namespace gi {
 
 int GraphicsInterface::GetTexelSize(TextureFormat format)
 {
@@ -34,27 +34,27 @@ static GraphicsInterface *g_gfx_device;
 GraphicsInterface* CreateGraphicsInterface(DeviceType type, void *device_ptr)
 {
     switch (type) {
-#ifdef gdSupportD3D9
+#ifdef giSupportD3D9
     case DeviceType::D3D9:
         g_gfx_device = CreateGraphicsInterfaceD3D9(device_ptr);
         break;
 #endif
-#ifdef gdSupportD3D11
+#ifdef giSupportD3D11
     case DeviceType::D3D11:
         g_gfx_device = CreateGraphicsInterfaceD3D11(device_ptr);
         break;
 #endif
-#ifdef gdSupportD3D12
+#ifdef giSupportD3D12
     case DeviceType::D3D12:
         g_gfx_device = CreateGraphicsInterfaceD3D12(device_ptr);
         break;
 #endif
-#ifdef gdSupportOpenGL
+#ifdef giSupportOpenGL
     case DeviceType::OpenGL:
         g_gfx_device = CreateGraphicsInterfaceOpenGL(device_ptr);
         break;
 #endif
-#ifdef gdSupportVulkan
+#ifdef giSupportVulkan
     case DeviceType::Vulkan:
         g_gfx_device = CreateGraphicsInterfaceVulkan(device_ptr);
         break;
@@ -76,4 +76,4 @@ void ReleaseGraphicsInterface()
     }
 }
 
-} // namespace gd
+} // namespace gi

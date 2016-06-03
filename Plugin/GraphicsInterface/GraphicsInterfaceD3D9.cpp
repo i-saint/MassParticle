@@ -1,10 +1,12 @@
 ﻿#include "pch.h"
 #include "giInternal.h"
+
+#ifdef giSupportD3D9
 #include <d3d9.h>
 
 using Microsoft::WRL::ComPtr;
 
-namespace gd {
+namespace gi {
 
 const int D3D9MaxStagingTextures = 32;
 
@@ -155,7 +157,7 @@ void GraphicsInterfaceD3D9::sync()
     m_query_event->Issue(D3DISSUE_END);
     auto hr = m_query_event->GetData(nullptr, 0, D3DGETDATA_FLUSH);
     if (hr != S_OK) {
-        gdLog("GetData() failed\n");
+        giLog("GetData() failed\n");
     }
 }
 
@@ -279,4 +281,5 @@ Result GraphicsInterfaceD3D9::writeBuffer(void *dst_buf, const void *src, size_t
     return Result::NotAvailable;
 }
 
-} // namespace gd
+} // namespace gi
+#endif // giSupportD3D9

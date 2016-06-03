@@ -1,13 +1,14 @@
 #include "pch.h"
 #include "giInternal.h"
 
+#ifdef giSupportVulkan
 #ifdef _WIN32
     #define VK_USE_PLATFORM_WIN32_KHR
 #endif // _WIN32
 #include <vulkan/vulkan.h>
 #pragma comment(lib, "vulkan-1.lib")
 
-namespace gd {
+namespace gi {
 
 class GraphicsInterfaceVulkan : public GraphicsInterface
 {
@@ -549,5 +550,5 @@ Result GraphicsInterfaceVulkan::writeBuffer(void *dst_buf, const void *src, size
     return res;
 }
 
-} // namespace gd
-
+} // namespace gi
+#endif // giSupportVulkan

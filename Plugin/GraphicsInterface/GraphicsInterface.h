@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-namespace gd {
+namespace gi {
 
 enum class DeviceType
 {
@@ -121,4 +121,4 @@ GraphicsInterface* GetGraphicsInterface();
 // release existing instance
 void ReleaseGraphicsInterface();
 
-} // namespace gd
+} // namespace gi

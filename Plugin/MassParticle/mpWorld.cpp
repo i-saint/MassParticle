@@ -954,11 +954,11 @@ int mpWorld::updateDataTexture(void *tex, int width, int height)
 {
     std::unique_lock<std::mutex> lock(m_mutex);
 
-    auto *gd = gd::GetGraphicsInterface();
+    auto *gd = gi::GetGraphicsInterface();
     if (gd && !m_particles_gpu.empty()) {
         int num_needs_copy = std::max<int>(m_num_particles_gpu, m_num_particles_gpu_prev);
         m_num_particles_gpu_prev = m_num_particles_gpu;
-        gd->writeTexture2D(tex, width, height, gd::TextureFormat::RGBAf32,
+        gd->writeTexture2D(tex, width, height, gi::TextureFormat::RGBAf32,
             m_particles_gpu.data(), sizeof(mpParticle)*m_kparams.max_particles);
     }
     return m_num_particles_gpu;

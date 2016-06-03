@@ -1,11 +1,13 @@
 #include "pch.h"
 #include "giInternal.h"
+
+#ifdef giSupportD3D12
 #include <d3d12.h>
 #include <d3dx12.h>
 
 using Microsoft::WRL::ComPtr;
 
-namespace gd {
+namespace gi {
 
 class GraphicsInterfaceD3D12 : public GraphicsInterface
 {
@@ -400,4 +402,5 @@ Result GraphicsInterfaceD3D12::writeBuffer(void *dst_buf, const void *src, size_
     return Result::OK;
 }
 
-} // namespace gd
+} // namespace gi
+#endif // giSupportD3D12

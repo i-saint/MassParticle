@@ -16,7 +16,7 @@
     #include "PluginAPI/IUnityGraphicsD3D12.h"
 #endif
 
-namespace gd {
+namespace gi {
 
 static IUnityInterfaces* g_unity_interface;
 
@@ -76,4 +76,4 @@ void UnityPluginUnload()
     unity_gfx->UnregisterDeviceEventCallback(UnityOnGraphicsInterfaceEvent);
 }
 
-} // namespace gd
+} // namespace gi

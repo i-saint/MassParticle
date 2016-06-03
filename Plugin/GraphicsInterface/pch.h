@@ -11,6 +11,7 @@
 
 #ifdef _WIN32
     #define GLEW_STATIC
+    #define VK_USE_PLATFORM_WIN32_KHR
     #include <wrl.h>
     #include <d3d9.h>
     #include <d3d11.h>

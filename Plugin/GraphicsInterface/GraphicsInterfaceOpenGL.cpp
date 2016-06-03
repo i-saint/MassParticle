@@ -1,6 +1,7 @@
 ﻿#include "pch.h"
 #include "giInternal.h"
 
+#ifdef giSupportOpenGL
 #ifdef _WIN32
     #pragma comment(lib, "opengl32.lib")
     #pragma comment(lib, "glew32s.lib")
@@ -8,7 +9,7 @@
 #endif
 #include <GL/glew.h>
 
-namespace gd {
+namespace gi {
 
 class GraphicsInterfaceOpenGL : public GraphicsInterface
 {
@@ -250,5 +251,5 @@ Result GraphicsInterfaceOpenGL::writeBuffer(void *dst_buf, const void *src, size
     return ret;
 }
 
-} // namespace gd
-
+} // namespace gi
+#endif // giSupportOpenGL

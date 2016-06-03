@@ -8,8 +8,8 @@
 struct float4 { float x, y, z, w; };
 static inline bool operator==(const float4& a, const float4& b) { return memcmp(&a, &b, sizeof(float4)) == 0; }
 
-const char* TranslateResult(gd::Result v) {
-    return v == gd::Result::OK ? "ok" : "ng";
+const char* TranslateResult(gi::Result v) {
+    return v == gi::Result::OK ? "ok" : "ng";
 }
 const char* TranslateResult(bool v) {
     return v ? "ok" : "ng";
@@ -38,16 +38,16 @@ void PrintResult(R r, int line, const char *exp)
 
 void TestImpl::testMain()
 {
-    gd::GraphicsInterface *dev = nullptr;
+    gi::GraphicsInterface *ifs = nullptr;
     switch (getType()) {
-    case TestType::D3D9: dev = gd::CreateGraphicsInterface(gd::DeviceType::D3D9, getDevice()); break;
-    case TestType::D3D11: dev = gd::CreateGraphicsInterface(gd::DeviceType::D3D11, getDevice()); break;
-    case TestType::D3D12: dev = gd::CreateGraphicsInterface(gd::DeviceType::D3D12, getDevice()); break;
-    case TestType::OpenGL: dev = gd::CreateGraphicsInterface(gd::DeviceType::OpenGL, getDevice()); break;
-    case TestType::Vulkan: dev = gd::CreateGraphicsInterface(gd::DeviceType::Vulkan, getDevice()); break;
+    case TestType::D3D9: ifs = gi::CreateGraphicsInterface(gi::DeviceType::D3D9, getDevice()); break;
+    case TestType::D3D11: ifs = gi::CreateGraphicsInterface(gi::DeviceType::D3D11, getDevice()); break;
+    case TestType::D3D12: ifs = gi::CreateGraphicsInterface(gi::DeviceType::D3D12, getDevice()); break;
+    case TestType::OpenGL: ifs = gi::CreateGraphicsInterface(gi::DeviceType::OpenGL, getDevice()); break;
+    case TestType::Vulkan: ifs = gi::CreateGraphicsInterface(gi::DeviceType::Vulkan, getDevice()); break;
     }
-    if (!dev) {
-        printf("TestImpl::testMain(): device is null\n");
+    if (!ifs) {
+        printf("TestImpl::testMain(): interface is null\n");
         return;
     }
 
@@ -58,7 +58,7 @@ void TestImpl::testMain()
         const int height = 1024;
         const int num_texels = width * height;
         const int data_size = width * height * sizeof(float4);
-        gd::TextureFormat format = gd::TextureFormat::RGBAf32;
+        gi::TextureFormat format = gi::TextureFormat::RGBAf32;
 
         std::vector<float4> data;
         data.resize(num_texels);
@@ -71,41 +71,41 @@ void TestImpl::testMain()
         {
             void *texture = nullptr;
             std::vector<float4> ret(num_texels);
-            Test(dev->createTexture2D(&texture, width, height, format, nullptr, gd::ResourceFlags::None));
-            Test(dev->writeTexture2D(texture, width, height, format, data.data(), data_size));
-            Test(dev->readTexture2D(ret.data(), data_size, texture, width, height, format));
+            Test(ifs->createTexture2D(&texture, width, height, format, nullptr, gi::ResourceFlags::None));
+            Test(ifs->writeTexture2D(texture, width, height, format, data.data(), data_size));
+            Test(ifs->readTexture2D(ret.data(), data_size, texture, width, height, format));
             Test(data.back() == ret.back());
-            dev->releaseTexture2D(texture);
+            ifs->releaseTexture2D(texture);
         }
         printf("\n");
         {
             void *rtexture = nullptr;
             std::vector<float4> ret(num_texels);
-            Test(dev->createTexture2D(&rtexture, width, height, format, nullptr, gd::ResourceFlags::CPU_Read));
-            Test(dev->writeTexture2D(rtexture, width, height, format, data.data(), data_size));
-            Test(dev->readTexture2D(ret.data(), data_size, rtexture, width, height, format));
+            Test(ifs->createTexture2D(&rtexture, width, height, format, nullptr, gi::ResourceFlags::CPU_Read));
+            Test(ifs->writeTexture2D(rtexture, width, height, format, data.data(), data_size));
+            Test(ifs->readTexture2D(ret.data(), data_size, rtexture, width, height, format));
             Test(data.back() == ret.back());
-            dev->releaseTexture2D(rtexture);
+            ifs->releaseTexture2D(rtexture);
         }
         printf("\n");
         {
             void *wtexture = nullptr;
             std::vector<float4> ret(num_texels);
-            Test(dev->createTexture2D(&wtexture, width, height, format, nullptr, gd::ResourceFlags::CPU_Write));
-            Test(dev->writeTexture2D(wtexture, width, height, format, data.data(), data_size));
-            Test(dev->readTexture2D(ret.data(), data_size, wtexture, width, height, format));
+            Test(ifs->createTexture2D(&wtexture, width, height, format, nullptr, gi::ResourceFlags::CPU_Write));
+            Test(ifs->writeTexture2D(wtexture, width, height, format, data.data(), data_size));
+            Test(ifs->readTexture2D(ret.data(), data_size, wtexture, width, height, format));
             Test(data.back() == ret.back());
-            dev->releaseTexture2D(wtexture);
+            ifs->releaseTexture2D(wtexture);
         }
         printf("\n");
         {
             void *rwtexture = nullptr;
             std::vector<float4> ret(num_texels);
-            Test(dev->createTexture2D(&rwtexture, width, height, format, nullptr, gd::ResourceFlags::CPU_ReadWrite));
-            Test(dev->writeTexture2D(rwtexture, width, height, format, data.data(), data_size));
-            Test(dev->readTexture2D(ret.data(), data_size, rwtexture, width, height, format));
+            Test(ifs->createTexture2D(&rwtexture, width, height, format, nullptr, gi::ResourceFlags::CPU_ReadWrite));
+            Test(ifs->writeTexture2D(rwtexture, width, height, format, data.data(), data_size));
+            Test(ifs->readTexture2D(ret.data(), data_size, rwtexture, width, height, format));
             Test(data.back() == ret.back());
-            dev->releaseTexture2D(rwtexture);
+            ifs->releaseTexture2D(rwtexture);
         }
     }
 
@@ -116,7 +116,7 @@ void TestImpl::testMain()
     {
         const int num_elements = 1024;
         const int data_size = num_elements * sizeof(float4);
-        auto format = gd::BufferType::Vertex;
+        auto format = gi::BufferType::Vertex;
 
         std::vector<float4> data;
         data.resize(num_elements);
@@ -129,46 +129,46 @@ void TestImpl::testMain()
         {
             void *buffer = nullptr;
             std::vector<float4> ret(num_elements);
-            Test(dev->createBuffer(&buffer, data_size, format, nullptr, gd::ResourceFlags::None));
-            Test(dev->writeBuffer(buffer, data.data(), data_size, format));
-            Test(dev->readBuffer(ret.data(), buffer, data_size, format));
+            Test(ifs->createBuffer(&buffer, data_size, format, nullptr, gi::ResourceFlags::None));
+            Test(ifs->writeBuffer(buffer, data.data(), data_size, format));
+            Test(ifs->readBuffer(ret.data(), buffer, data_size, format));
             Test(data.back() == ret.back());
-            dev->releaseBuffer(buffer);
+            ifs->releaseBuffer(buffer);
         }
         printf("\n");
         {
             void *rbuffer = nullptr;
             std::vector<float4> ret(num_elements);
-            Test(dev->createBuffer(&rbuffer, data_size, format, nullptr, gd::ResourceFlags::CPU_Read));
-            Test(dev->writeBuffer(rbuffer, data.data(), data_size, format));
-            Test(dev->readBuffer(ret.data(), rbuffer, data_size, format));
+            Test(ifs->createBuffer(&rbuffer, data_size, format, nullptr, gi::ResourceFlags::CPU_Read));
+            Test(ifs->writeBuffer(rbuffer, data.data(), data_size, format));
+            Test(ifs->readBuffer(ret.data(), rbuffer, data_size, format));
             Test(data.back() == ret.back());
-            dev->releaseBuffer(rbuffer);
+            ifs->releaseBuffer(rbuffer);
         }
         printf("\n");
         {
             void *wbuffer = nullptr;
             std::vector<float4> ret(num_elements);
-            Test(dev->createBuffer(&wbuffer, data_size, format, nullptr, gd::ResourceFlags::CPU_Write));
-            Test(dev->writeBuffer(wbuffer, data.data(), data_size, format));
-            Test(dev->readBuffer(ret.data(), wbuffer, data_size, format));
+            Test(ifs->createBuffer(&wbuffer, data_size, format, nullptr, gi::ResourceFlags::CPU_Write));
+            Test(ifs->writeBuffer(wbuffer, data.data(), data_size, format));
+            Test(ifs->readBuffer(ret.data(), wbuffer, data_size, format));
             Test(data.back() == ret.back());
-            dev->releaseBuffer(wbuffer);
+            ifs->releaseBuffer(wbuffer);
         }
         printf("\n");
         {
             void *rwbuffer = nullptr;
             std::vector<float4> ret(num_elements);
-            Test(dev->createBuffer(&rwbuffer, data_size, format, nullptr, gd::ResourceFlags::CPU_ReadWrite));
-            Test(dev->writeBuffer(rwbuffer, data.data(), data_size, format));
-            Test(dev->readBuffer(ret.data(), rwbuffer, data_size, format));
+            Test(ifs->createBuffer(&rwbuffer, data_size, format, nullptr, gi::ResourceFlags::CPU_ReadWrite));
+            Test(ifs->writeBuffer(rwbuffer, data.data(), data_size, format));
+            Test(ifs->readBuffer(ret.data(), rwbuffer, data_size, format));
             Test(data.back() == ret.back());
-            dev->releaseBuffer(rwbuffer);
+            ifs->releaseBuffer(rwbuffer);
 
         }
     }
 
-    gd::ReleaseGraphicsInterface();
+    gi::ReleaseGraphicsInterface();
 }
 
 

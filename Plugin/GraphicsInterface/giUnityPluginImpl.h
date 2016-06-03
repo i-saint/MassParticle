@@ -2,7 +2,7 @@
 
 struct IUnityInterfaces;
 
-namespace gd {
+namespace gi {
     void UnityPluginLoad(IUnityInterfaces* unityInterfaces);
     void UnityPluginUnload();
-} // namespace gd
+} // namespace gi

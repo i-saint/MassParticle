@@ -1,23 +1,23 @@
 #pragma  once
 
 #ifndef gdLog
-    #define gdLog(...)
-    #define gdLogError(...)
+    #define giLog(...)
+    #define giLogError(...)
 #endif
 
 #ifdef _WIN32
-    #define gdSupportD3D9
-    #define gdSupportD3D11
-    #define gdSupportD3D12
-    #define gdSupportOpenGL
-    #define gdSupportVulkan
+    #define giSupportD3D9
+    #define giSupportD3D11
+    #define giSupportD3D12
+    #define giSupportOpenGL
+    #define giSupportVulkan
 #else
-    #define gdSupportOpenGL
+    #define giSupportOpenGL
 #endif
 
 #include "GraphicsInterface.h"
 
-namespace gd {
+namespace gi {
 
 class GraphicsInterface;
 GraphicsInterface* CreateGraphicsInterfaceD3D9(void *device);
@@ -67,4 +67,4 @@ inline void CopyRegion(void *dst, int dst_pitch, const void *src, int src_pitch,
     }
 }
 
-} // namespace gd
+} // namespace gi

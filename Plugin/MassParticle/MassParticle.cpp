@@ -432,5 +432,5 @@ mpAPI void mpMoveAll(int context, vec3 *move_amount)
 void mpSetGraphicsInterface(mpGraphicsInterfaceType device_type, void* device_ptr)
 {
     mpTraceFunc();
-    gd::CreateGraphicsInterface((gd::DeviceType)device_type, device_ptr);
+    gi::CreateGraphicsInterface((gi::DeviceType)device_type, device_ptr);
 }

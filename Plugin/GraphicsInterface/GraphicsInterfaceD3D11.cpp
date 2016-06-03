@@ -1,10 +1,12 @@
 ﻿#include "pch.h"
 #include "giInternal.h"
+
+#ifdef giSupportD3D11
 #include <d3d11.h>
 
 using Microsoft::WRL::ComPtr;
 
-namespace gd {
+namespace gi {
 
 const int D3D11MaxStagingTextures = 32;
 
@@ -220,7 +222,7 @@ Result GraphicsInterfaceD3D11::readTexture2D(void *dst, size_t read_size, void *
         D3D11_MAPPED_SUBRESOURCE mapped = { 0 };
         auto hr = m_context->Map(tex, 0, D3D11_MAP_READ, 0, &mapped);
         if (FAILED(hr)) {
-            gdLogError("GraphicsInterfaceD3D11::readTexture2D(): Map() failed.\n");
+            giLogError("GraphicsInterfaceD3D11::readTexture2D(): Map() failed.\n");
             ret = TranslateReturnCode(hr);
         }
         else {
@@ -338,7 +340,7 @@ ID3D11Buffer* GraphicsInterfaceD3D11::getStagingBuffer(BufferType type, size_t s
 
         HRESULT hr = m_device->CreateBuffer(&desc, nullptr, &staging);
         if (FAILED(hr)) {
-            gdLogError("GraphicsInterfaceD3D11::findOrCreateStagingBuffer(): CreateBuffer() failed!\n");
+            giLogError("GraphicsInterfaceD3D11::findOrCreateStagingBuffer(): CreateBuffer() failed!\n");
             return nullptr;
         }
     }
@@ -412,7 +414,7 @@ Result GraphicsInterfaceD3D11::readBuffer(void *dst, const void *src_buf_, size_
         D3D11_MAPPED_SUBRESOURCE mapped;
         HRESULT hr = m_context->Map(buf, 0, D3D11_MAP_READ, 0, &mapped);
         if (FAILED(hr)) {
-            gdLogError("GraphicsInterfaceD3D11::readBuffer(): Map() failed.\n");
+            giLogError("GraphicsInterfaceD3D11::readBuffer(): Map() failed.\n");
             ret = Result::Unknown;
         }
         else {
@@ -456,7 +458,7 @@ Result GraphicsInterfaceD3D11::writeBuffer(void *dst_buf_, const void *src, size
             hr = m_context->Map(dst_buf, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
         }
         if (FAILED(hr)) {
-            gdLogError("GraphicsInterfaceD3D11::writeBuffer(): Map() failed.\n");
+            giLogError("GraphicsInterfaceD3D11::writeBuffer(): Map() failed.\n");
             ret = Result::Unknown;
         }
         else {
@@ -478,4 +480,5 @@ Result GraphicsInterfaceD3D11::writeBuffer(void *dst_buf_, const void *src, size
     return ret;
 }
 
-} // namespace gd
+} // namespace gi
+#endif // giSupportD3D11
