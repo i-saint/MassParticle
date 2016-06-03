@@ -167,6 +167,8 @@ void TestImpl::testMain()
 
         }
     }
+
+    gd::ReleaseGraphicsDevice();
 }
 
 
@@ -187,7 +189,9 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
     case WM_SHOWWINDOW:
     {
         auto* test = (TestImpl*)GetWindowLongPtr(hWnd, GWLP_USERDATA);
-        test->testMain();
+        for (int i = 0; i < 1; ++i) {
+            test->testMain();
+        }
     }
     return 0;
 

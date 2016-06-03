@@ -41,6 +41,7 @@ private:
 
     // Body: [](VkBuffer staging_buffer, VkDeviceMemory staging_memory) -> void
     template<class Body> VkResult staging(VkBuffer target, StagingFlag flag, const Body& body);
+    template<class Body> VkResult staging(VkImage target, StagingFlag flag, const Body& body);
 
     // Body: [](void *mapped_memory) -> void
     template<class Body> VkResult map(VkDeviceMemory device_memory, const Body& body);
@@ -133,35 +134,50 @@ uint32_t GraphicsDeviceVulkan::getMemoryType(uint32_t type_bits, VkMemoryPropert
 
 VkResult GraphicsDeviceVulkan::createStagingBuffer(size_t size, StagingFlag flag, VkBuffer &buffer, VkDeviceMemory &memory)
 {
-    VkBufferCreateInfo info = {};
-    info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    info.size = size;
-    info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    VkResult vr = VK_SUCCESS;
+
+    VkBufferCreateInfo buf_info = {};
+    VkMemoryRequirements mem_required = {};
+    VkMemoryAllocateInfo mem_info = {};
+
+    buf_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    buf_info.size = size;
+    buf_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    buf_info.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
     if (flag == StagingFlag::Upload) {
-        info.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+        buf_info.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
     }
     if (flag == StagingFlag::Readback) {
-        info.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+        buf_info.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
     }
 
-    auto vr = vkCreateBuffer(m_device, &info, nullptr, &buffer);
-    if(vr != VK_SUCCESS) { return vr; }
+    vr = vkCreateBuffer(m_device, &buf_info, nullptr, &buffer);
+    if (vr != VK_SUCCESS) { goto on_error; }
 
-    VkMemoryRequirements mem_required;
     vkGetBufferMemoryRequirements(m_device, buffer, &mem_required);
 
-    VkMemoryAllocateInfo mem_info = {};
     mem_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     mem_info.allocationSize = mem_required.size;
     mem_info.memoryTypeIndex = getMemoryType(mem_required.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
 
     vr = vkAllocateMemory(m_device, &mem_info, nullptr, &memory);
-    if (vr != VK_SUCCESS) { return vr; }
+    if (vr != VK_SUCCESS) { goto on_error; }
 
     vr = vkBindBufferMemory(m_device, buffer, memory, 0);
-    if (vr != VK_SUCCESS) { return vr; }
+    if (vr != VK_SUCCESS) { goto on_error; }
 
     return VK_SUCCESS;
+
+on_error:
+    if (memory) {
+        vkFreeMemory(m_device, memory, nullptr);
+        memory = nullptr;
+    }
+    if (buffer) {
+        vkDestroyBuffer(m_device, buffer, nullptr);
+        buffer = nullptr;
+    }
+    return vr;
 }
 
 template<class Body>
@@ -169,6 +185,24 @@ VkResult GraphicsDeviceVulkan::staging(VkBuffer target, StagingFlag flag, const 
 {
     VkMemoryRequirements mem_required;
     vkGetBufferMemoryRequirements(m_device, target, &mem_required);
+
+    VkBuffer staging_buffer;
+    VkDeviceMemory staging_memory;
+    auto vr = createStagingBuffer(mem_required.size, flag, staging_buffer, staging_memory);
+    if (vr != VK_SUCCESS) { return vr; }
+
+    body(staging_buffer, staging_memory);
+
+    vkFreeMemory(m_device, staging_memory, nullptr);
+    vkDestroyBuffer(m_device, staging_buffer, nullptr);
+    return VK_SUCCESS;
+}
+
+template<class Body>
+VkResult GraphicsDeviceVulkan::staging(VkImage target, StagingFlag flag, const Body& body)
+{
+    VkMemoryRequirements mem_required;
+    vkGetImageMemoryRequirements(m_device, target, &mem_required);
 
     VkBuffer staging_buffer;
     VkDeviceMemory staging_memory;
@@ -203,35 +237,42 @@ VkResult GraphicsDeviceVulkan::map(VkDeviceMemory device_memory, const Body& bod
 template<class Body>
 VkResult GraphicsDeviceVulkan::submitCommands(const Body& body)
 {
+    VkResult vr;
+    VkCommandBuffer clist = nullptr;
     VkCommandBufferAllocateInfo alloc_info = {};
+    VkCommandBufferBeginInfo begin_info = {};
+    VkSubmitInfo submit_info = {};
+
     alloc_info.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     alloc_info.commandPool        = m_cpool;
     alloc_info.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
     alloc_info.commandBufferCount = 1;
+    vr = vkAllocateCommandBuffers(m_device, &alloc_info, &clist);
+    if (vr != VK_SUCCESS) { goto on_error; }
 
-    VkCommandBuffer clist;
-    auto vr = vkAllocateCommandBuffers(m_device, &alloc_info, &clist);
-    if (vr != VK_SUCCESS) { return vr; }
-
-    VkCommandBufferBeginInfo begin_info = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, nullptr, 0, nullptr };
+    begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     vr = vkBeginCommandBuffer(clist, &begin_info);
-    if (vr != VK_SUCCESS) { return vr; }
+    if (vr != VK_SUCCESS) { goto on_error; }
 
     body(clist);
 
     vr = vkEndCommandBuffer(clist);
-    if (vr != VK_SUCCESS) { return vr; }
+    if (vr != VK_SUCCESS) { goto on_error; }
 
-    VkSubmitInfo submit_info = {};
     submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     submit_info.commandBufferCount = 1;
     submit_info.pCommandBuffers = &clist;
-
     vr = vkQueueSubmit(m_cqueue, 1, &submit_info, VK_NULL_HANDLE);
-    if (vr != VK_SUCCESS) { return vr; }
+    if (vr != VK_SUCCESS) { goto on_error; }
 
-    vkFreeCommandBuffers(m_device, m_cpool, 1, &clist);
-    return VK_SUCCESS;
+    vr = vkQueueWaitIdle(m_cqueue);
+    if (vr != VK_SUCCESS) { goto on_error; }
+
+on_error:
+    if (m_cpool) {
+        vkFreeCommandBuffers(m_device, m_cpool, 1, &clist);
+    }
+    return vr;
 }
 
 
@@ -265,39 +306,42 @@ static VkFormat TranslateFormat(TextureFormat format)
 
 Error GraphicsDeviceVulkan::createTexture2D(void **dst_tex, int width, int height, TextureFormat format, const void *data, ResourceFlags flags)
 {
-    VkImageCreateInfo info = {};
-    info.sType          = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-    info.imageType      = VK_IMAGE_TYPE_2D;
-    info.format         = TranslateFormat(format);
-    info.mipLevels      = 1;
-    info.arrayLayers    = 1;
-    info.samples        = VK_SAMPLE_COUNT_1_BIT;
-    info.tiling         = VK_IMAGE_TILING_OPTIMAL;
-    info.usage          = VK_IMAGE_USAGE_SAMPLED_BIT;
-    info.sharingMode    = VK_SHARING_MODE_EXCLUSIVE;
-    info.initialLayout  = VK_IMAGE_LAYOUT_PREINITIALIZED;
-    info.extent         = { (uint32_t)width, (uint32_t)height, 1 };
-    info.usage          = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-    info.flags          = 0;
-
+    VkResult vr = VK_SUCCESS;
     VkImage ret = nullptr;
-    auto vr = vkCreateImage(m_device, &info, nullptr, &ret);
-    if (vr != VK_SUCCESS) { return TranslateReturnCode(vr); }
+    VkDeviceMemory memory = nullptr;
 
-    VkMemoryRequirements mem_required;
+    VkImageCreateInfo image_info = {};
+    VkMemoryRequirements mem_required = {};
+    VkMemoryAllocateInfo mem_info = {};
+
+    image_info.sType          = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+    image_info.imageType      = VK_IMAGE_TYPE_2D;
+    image_info.format         = TranslateFormat(format);
+    image_info.mipLevels      = 1;
+    image_info.arrayLayers    = 1;
+    image_info.samples        = VK_SAMPLE_COUNT_1_BIT;
+    image_info.tiling         = VK_IMAGE_TILING_OPTIMAL;
+    image_info.usage          = VK_IMAGE_USAGE_SAMPLED_BIT;
+    image_info.sharingMode    = VK_SHARING_MODE_EXCLUSIVE;
+    image_info.initialLayout  = VK_IMAGE_LAYOUT_PREINITIALIZED;
+    image_info.extent         = { (uint32_t)width, (uint32_t)height, 1 };
+    image_info.usage          = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+    image_info.flags          = 0;
+
+    vr = vkCreateImage(m_device, &image_info, nullptr, &ret);
+    if (vr != VK_SUCCESS) { goto on_error; }
+
     vkGetImageMemoryRequirements(m_device, ret, &mem_required);
 
-    VkMemoryAllocateInfo mem_info = {};
     mem_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     mem_info.allocationSize = mem_required.size;
     mem_info.memoryTypeIndex = getMemoryType(mem_required.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-    VkDeviceMemory memory;
     vr = vkAllocateMemory(m_device, &mem_info, nullptr, &memory);
-    if (vr != VK_SUCCESS) { return TranslateReturnCode(vr); }
+    if (vr != VK_SUCCESS) { goto on_error; }
 
     vr = vkBindImageMemory(m_device, ret, memory, 0);
-    if (vr != VK_SUCCESS) { return TranslateReturnCode(vr); }
+    if (vr != VK_SUCCESS) { goto on_error; }
 
     //// todo: upload if needed
     //VkImageSubresourceRange subresourceRange = {};
@@ -307,8 +351,12 @@ Error GraphicsDeviceVulkan::createTexture2D(void **dst_tex, int width, int heigh
     //subresourceRange.layerCount = 1;
 
     *dst_tex = ret;
-
     return Error::OK;
+
+on_error:
+    if (memory) { vkFreeMemory(m_device, memory, nullptr); }
+    if (ret) { vkDestroyImage(m_device, ret, nullptr); }
+    return TranslateReturnCode(vr);
 }
 
 void GraphicsDeviceVulkan::releaseTexture2D(void *tex_)
@@ -324,9 +372,32 @@ Error GraphicsDeviceVulkan::readTexture2D(void *dst, size_t read_size, void *src
     if (read_size == 0) { return Error::OK; }
     if (!dst || !src_tex_) { return Error::InvalidParameter; }
 
-    auto *src_tex = (VkImage*)src_tex_;
+    auto src_tex = (VkImage)src_tex_;
+    auto res = Error::OK;
 
-    return Error::NotAvailable;
+    VkResult vr;
+    vr = staging(src_tex, StagingFlag::Readback, [&](VkBuffer staging_buffer, VkDeviceMemory staging_memory) {
+        vr = submitCommands([&](VkCommandBuffer clist) {
+            VkBufferImageCopy region = {};
+            region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            region.imageSubresource.mipLevel = 0;
+            region.imageSubresource.baseArrayLayer = 0;
+            region.imageSubresource.layerCount = 1;
+            region.imageExtent.width = width;
+            region.imageExtent.height = height;
+            region.imageExtent.depth = 1;
+            vkCmdCopyImageToBuffer(clist, src_tex, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, staging_buffer, 1, &region);
+        });
+        if (vr != VK_SUCCESS) { res = TranslateReturnCode(vr); return; }
+
+        vr = map(staging_memory, [&](void *mapped_memory) {
+            memcpy(dst, mapped_memory, read_size);
+        });
+        if (vr != VK_SUCCESS) { res = TranslateReturnCode(vr); return; }
+    });
+    if (vr != VK_SUCCESS) { res = TranslateReturnCode(vr); }
+
+    return res;
 }
 
 Error GraphicsDeviceVulkan::writeTexture2D(void *dst_tex_, int width, int height, TextureFormat format, const void *src, size_t write_size)
@@ -334,9 +405,32 @@ Error GraphicsDeviceVulkan::writeTexture2D(void *dst_tex_, int width, int height
     if (write_size == 0) { return Error::OK; }
     if (!dst_tex_ || !src) { return Error::InvalidParameter; }
 
-    auto *dst_tex = (VkImage*)dst_tex_;
+    auto dst_tex = (VkImage)dst_tex_;
+    auto res = Error::OK;
 
-    return Error::NotAvailable;
+    VkResult vr;
+    vr = staging(dst_tex, StagingFlag::Upload, [&](VkBuffer staging_buffer, VkDeviceMemory staging_memory) {
+        vr = map(staging_memory, [&](void *mapped_memory) {
+            memcpy(mapped_memory, src, write_size);
+        });
+        if (vr != VK_SUCCESS) { res = TranslateReturnCode(vr); return; }
+
+        vr = submitCommands([&](VkCommandBuffer clist) {
+            VkBufferImageCopy region = {};
+            region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            region.imageSubresource.mipLevel = 0;
+            region.imageSubresource.baseArrayLayer = 0;
+            region.imageSubresource.layerCount = 1;
+            region.imageExtent.width = width;
+            region.imageExtent.height = height;
+            region.imageExtent.depth = 1;
+            vkCmdCopyBufferToImage(clist, staging_buffer, dst_tex, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+        });
+        if (vr != VK_SUCCESS) { res = TranslateReturnCode(vr); return; }
+    });
+    if (vr != VK_SUCCESS) { res = TranslateReturnCode(vr); }
+
+    return res;
 }
 
 
@@ -344,48 +438,55 @@ Error GraphicsDeviceVulkan::createBuffer(void **dst_buf, size_t size, BufferType
 {
     if (!dst_buf) { return Error::InvalidParameter; }
 
-    VkBufferCreateInfo info = {};
-    info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    info.size = size;
-    info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    info.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+    VkResult vr = VK_SUCCESS;
+    VkBuffer ret = nullptr;
+    VkDeviceMemory memory = nullptr;
+
+    VkBufferCreateInfo buf_info = {};
+    VkMemoryRequirements mem_required = {};
+    VkMemoryAllocateInfo mem_info = {};
+
+    buf_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    buf_info.size = size;
+    buf_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    buf_info.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
     switch (type) {
     case BufferType::Index:
-        info.usage |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+        buf_info.usage |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
         break;
     case BufferType::Vertex:
-        info.usage |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+        buf_info.usage |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
         break;
     case BufferType::Constant:
-        info.usage |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+        buf_info.usage |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
         break;
     case BufferType::Compute:
-        info.usage |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+        buf_info.usage |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
         break;
     }
 
-    VkBuffer ret;
-    auto vr = vkCreateBuffer(m_device, &info, nullptr, &ret);
-    if (vr != VK_SUCCESS) { return TranslateReturnCode(vr); }
+    vr = vkCreateBuffer(m_device, &buf_info, nullptr, &ret);
+    if (vr != VK_SUCCESS) { goto on_error; }
 
-    VkMemoryRequirements mem_required;
     vkGetBufferMemoryRequirements(m_device, ret, &mem_required);
 
-    VkMemoryAllocateInfo mem_info = {};
     mem_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     mem_info.allocationSize = mem_required.size;
     mem_info.memoryTypeIndex = getMemoryType(mem_required.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-    VkDeviceMemory memory;
     vr = vkAllocateMemory(m_device, &mem_info, nullptr, &memory);
-    if (vr != VK_SUCCESS) { return TranslateReturnCode(vr); }
+    if (vr != VK_SUCCESS) { goto on_error; }
 
     vr = vkBindBufferMemory(m_device, ret, memory, 0);
-    if (vr != VK_SUCCESS) { return TranslateReturnCode(vr); }
+    if (vr != VK_SUCCESS) { goto on_error; }
 
     *dst_buf = ret;
-
     return Error::OK;
+
+on_error:
+    if (memory) { vkFreeMemory(m_device, memory, nullptr); }
+    if (ret) { vkDestroyBuffer(m_device, ret, nullptr); }
+    return TranslateReturnCode(vr);
 }
 
 void GraphicsDeviceVulkan::releaseBuffer(void *buf_)
@@ -411,8 +512,6 @@ Error GraphicsDeviceVulkan::readBuffer(void *dst, const void *src_buf, size_t re
             vkCmdCopyBuffer(clist, buf, staging_buffer, 1, &region);
         });
         if (vr != VK_SUCCESS) { res = TranslateReturnCode(vr); return; }
-
-        sync();
 
         vr = map(staging_memory, [&](void *mapped_memory) {
             memcpy(dst, mapped_memory, read_size);
