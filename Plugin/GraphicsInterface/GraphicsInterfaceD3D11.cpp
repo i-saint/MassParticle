@@ -21,8 +21,8 @@ public:
 
     Result createTexture2D(void **dst_tex, int width, int height, TextureFormat format, const void *data, ResourceFlags flags) override;
     void releaseTexture2D(void *tex) override;
-    Result readTexture2D(void *o_buf, size_t read_size, void *tex, int width, int height, TextureFormat format) override;
-    Result writeTexture2D(void *o_tex, int width, int height, TextureFormat format, const void *buf, size_t write_size) override;
+    Result readTexture2D(void *dst, size_t read_size, void *src_tex, int width, int height, TextureFormat format) override;
+    Result writeTexture2D(void *dst_tex, int width, int height, TextureFormat format, const void *src, size_t write_size) override;
 
     Result createBuffer(void **dst_buf, size_t size, BufferType type, const void *data, ResourceFlags flags) override;
     void releaseBuffer(void *buf) override;

@@ -78,7 +78,7 @@ public:
 
     virtual Result  createTexture2D(void **dst_tex, int width, int height, TextureFormat format, const void *data, ResourceFlags flags = ResourceFlags::None) = 0;
     virtual void    releaseTexture2D(void *tex) = 0;
-    virtual Result  readTexture2D(void *dst, size_t dstsize, void *src_tex, int width, int height, TextureFormat format) = 0;
+    virtual Result  readTexture2D(void *dst, size_t read_size, void *src_tex, int width, int height, TextureFormat format) = 0;
     virtual Result  writeTexture2D(void *dst_tex, int width, int height, TextureFormat format, const void *src, size_t write_size) = 0;
 
     virtual Result  createBuffer(void **dst_buf, size_t size, BufferType type, const void *data, ResourceFlags flags = ResourceFlags::None) = 0;
