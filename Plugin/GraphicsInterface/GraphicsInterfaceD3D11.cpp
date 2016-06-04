@@ -169,49 +169,35 @@ Result GraphicsInterfaceD3D11::readTexture2D(void *dst, size_t read_size, void *
     if (read_size == 0) { return Result::OK; }
     if (!dst || !src_tex_) { return Result::InvalidParameter; }
 
-    int psize = GetTexelSize(format);
-
     auto *src_tex = (ID3D11Texture2D*)src_tex_;
-    bool mappable = false;
-    {
-        D3D11_TEXTURE2D_DESC desc;
-        src_tex->GetDesc(&desc);
-        mappable = (desc.CPUAccessFlags & D3D11_CPU_ACCESS_READ) != 0;
-    }
 
-    Result ret = Result::OK;
-    auto proc_read = [this, &ret](void *dst, size_t dst_size, ID3D11Texture2D *tex, int width, int height, TextureFormat format) {
+    auto proc_read = [this](void *dst, size_t dst_size, ID3D11Texture2D *tex, int width, int height, TextureFormat format) -> HRESULT {
         D3D11_MAPPED_SUBRESOURCE mapped = { 0 };
         auto hr = m_context->Map(tex, 0, D3D11_MAP_READ, 0, &mapped);
-        if (FAILED(hr)) {
-            giLogError("GraphicsInterfaceD3D11::readTexture2D(): Map() failed.\n");
-            ret = TranslateReturnCode(hr);
-        }
-        else {
-            auto *dst_pixels = (char*)dst;
-            auto *src_pixels = (const char*)mapped.pData;
-            int dst_pitch = width * GetTexelSize(format);
-            int src_pitch = mapped.RowPitch;
-            CopyRegion(dst_pixels, dst_pitch, src_pixels, src_pitch, height);
+        if (FAILED(hr)) { return hr; }
 
-            m_context->Unmap(tex, 0);
-        }
+        auto *dst_pixels = (char*)dst;
+        auto *src_pixels = (const char*)mapped.pData;
+        int dst_pitch = width * GetTexelSize(format);
+        int src_pitch = mapped.RowPitch;
+        CopyRegion(dst_pixels, dst_pitch, src_pixels, src_pitch, height);
+
+        m_context->Unmap(tex, 0);
+        return S_OK;
     };
 
-    if (mappable) {
-        // read buffer data directly
-        proc_read(dst, read_size, src_tex, width, height, format);
-    }
-    else {
-        // copy texture data to staging texture and read from it
-        auto staging = createStagingTexture(width, height, format, StagingFlag::Readback);
-        m_context->CopyResource(staging.Get(), src_tex);
-        // Map() doesn't wait completion of above CopyResource(). manual synchronization is required.
-        sync();
-        proc_read(dst, read_size, staging.Get(), width, height, format);
-    }
+    // try direct access
+    auto hr = proc_read(dst, read_size, src_tex, width, height, format);
+    if (SUCCEEDED(hr)) { return Result::OK; }
 
-    return ret;
+
+    // try copy-via-staging
+    auto staging = createStagingTexture(width, height, format, StagingFlag::Readback);
+    m_context->CopyResource(staging.Get(), src_tex);
+    sync(); // Map() doesn't wait completion of above CopyResource(). manual synchronization is required.
+    hr = proc_read(dst, read_size, staging.Get(), width, height, format);
+
+    return TranslateReturnCode(hr);
 }
 
 Result GraphicsInterfaceD3D11::writeTexture2D(void *dst_tex_, int width, int height, TextureFormat format, const void *src, size_t write_size)
@@ -220,48 +206,44 @@ Result GraphicsInterfaceD3D11::writeTexture2D(void *dst_tex_, int width, int hei
     if (!dst_tex_ || !src) { return Result::InvalidParameter; }
 
     auto *dst_tex = (ID3D11Texture2D*)dst_tex_;
-    bool mappable = false;
-    {
-        D3D11_TEXTURE2D_DESC desc;
-        dst_tex->GetDesc(&desc);
-        mappable = (desc.CPUAccessFlags & D3D11_CPU_ACCESS_WRITE) != 0;
-    }
 
-    int psize = GetTexelSize(format);
-    int pitch = psize * width;
-    const size_t num_pixels = write_size / psize;
-
-    Result ret = Result::OK;
-    if (mappable) {
+    auto proc_write = [this](ID3D11Texture2D *tex, int width, int height, TextureFormat format, const void *src, size_t write_size) -> HRESULT {
         D3D11_MAPPED_SUBRESOURCE mapped = { 0 };
-        auto hr = m_context->Map(dst_tex, 0, D3D11_MAP_WRITE, 0, &mapped);
-        if (FAILED(hr)) {
-            hr = m_context->Map(dst_tex, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
-        }
-        if (FAILED(hr)) {
-            ret = TranslateReturnCode(hr);
-        }
-        else {
-            auto *dst_pixels = (char*)mapped.pData;
-            auto *src_pixels = (const char*)src;
-            int dst_pitch = mapped.RowPitch;
-            int src_pitch = width * GetTexelSize(format);
-            CopyRegion(dst_pixels, dst_pitch, src_pixels, src_pitch, height);
+        auto hr = m_context->Map(tex, 0, D3D11_MAP_WRITE, 0, &mapped);
+        if (FAILED(hr)) { return hr; }
 
-            m_context->Unmap(dst_tex, 0);
-        }
-    }
-    else {
-        D3D11_BOX box;
-        box.left = 0;
-        box.right = width;
-        box.top = 0;
-        box.bottom = ceildiv((UINT)num_pixels, (UINT)width);
-        box.front = 0;
-        box.back = 1;
-        m_context->UpdateSubresource(dst_tex, 0, &box, src, pitch, 0);
-    }
-    return ret;
+        auto *dst_pixels = (char*)mapped.pData;
+        auto *src_pixels = (const char*)src;
+        int dst_pitch = mapped.RowPitch;
+        int src_pitch = width * GetTexelSize(format);
+        CopyRegion(dst_pixels, dst_pitch, src_pixels, src_pitch, height);
+
+        m_context->Unmap(tex, 0);
+        return S_OK;
+    };
+
+
+    // try direct access
+    auto hr = proc_write(dst_tex, width, height, format, src, write_size);
+    if (SUCCEEDED(hr)) { return Result::OK; }
+
+
+    // try copy-via-staging
+    auto staging = createStagingTexture(width, height, format, StagingFlag::Upload);
+    hr = proc_write(staging.Get(), width, height, format, src, write_size);
+    m_context->CopyResource(dst_tex, staging.Get());
+
+    return TranslateReturnCode(hr);
+
+    // UpdateSubresource() approach. 
+    //D3D11_BOX box;
+    //box.left = 0;
+    //box.right = width;
+    //box.top = 0;
+    //box.bottom = ceildiv((UINT)num_pixels, (UINT)width);
+    //box.front = 0;
+    //box.back = 1;
+    //m_context->UpdateSubresource(dst_tex, 0, &box, src, pitch, 0);
 }
 
 
@@ -320,41 +302,29 @@ Result GraphicsInterfaceD3D11::readBuffer(void *dst, void *src_buf_, size_t read
     if (!dst || !src_buf_) { return Result::InvalidParameter; }
 
     auto *src_buf = (ID3D11Buffer*)src_buf_;
-    bool mappable = false;
-    {
-        D3D11_BUFFER_DESC desc;
-        src_buf->GetDesc(&desc);
-        mappable = (desc.CPUAccessFlags & D3D11_CPU_ACCESS_READ) != 0;
-    }
 
 
-    Result ret = Result::OK;
-    auto proc_read = [this, &ret](void *dst, ID3D11Buffer *buf, size_t size) {
+    auto proc_read = [this](void *dst, ID3D11Buffer *buf, size_t size) -> HRESULT {
         D3D11_MAPPED_SUBRESOURCE mapped;
         HRESULT hr = m_context->Map(buf, 0, D3D11_MAP_READ, 0, &mapped);
-        if (FAILED(hr)) {
-            giLogError("GraphicsInterfaceD3D11::readBuffer(): Map() failed.\n");
-            ret = Result::Unknown;
-        }
-        else {
-            memcpy(dst, mapped.pData, size);
-            m_context->Unmap(buf, 0);
-        }
+        if (FAILED(hr)) { return hr; }
+        memcpy(dst, mapped.pData, size);
+        m_context->Unmap(buf, 0);
+        return S_OK;
     };
 
-    if (mappable) {
-        // read buffer data directly
-        proc_read(dst, src_buf, read_size);
-    }
-    else {
-        // copy buffer data to staging buffer and read from it
-        auto staging = createStagingBuffer(read_size, StagingFlag::Readback);
-        m_context->CopyResource(staging.Get(), src_buf);
-        sync();
-        proc_read(dst, staging.Get(), read_size);
-    }
+    // try direct access
+    auto hr = proc_read(dst, src_buf, read_size);
+    if (SUCCEEDED(hr)) { return Result::OK; }
 
-    return ret;
+
+    // try copy-via-staging
+    auto staging = createStagingBuffer(read_size, StagingFlag::Readback);
+    m_context->CopyResource(staging.Get(), src_buf);
+    sync();
+    hr = proc_read(dst, staging.Get(), read_size);
+
+    return TranslateReturnCode(hr);
 }
 
 Result GraphicsInterfaceD3D11::writeBuffer(void *dst_buf_, const void *src, size_t write_size, BufferType type)
@@ -363,40 +333,37 @@ Result GraphicsInterfaceD3D11::writeBuffer(void *dst_buf_, const void *src, size
     if (!dst_buf_ || !src) { return Result::InvalidParameter; }
 
     auto *dst_buf = (ID3D11Buffer*)dst_buf_;
-    bool mappable = false;
 
-    D3D11_BUFFER_DESC desc = { 0 };
-    dst_buf->GetDesc(&desc);
-    mappable = (desc.CPUAccessFlags & D3D11_CPU_ACCESS_WRITE) != 0;
-
-    Result ret = Result::OK;
-    if (mappable) {
+    auto proc_write = [this](ID3D11Buffer *buf, const void *src, size_t size) -> HRESULT {
         D3D11_MAPPED_SUBRESOURCE mapped;
-        auto hr = m_context->Map(dst_buf, 0, D3D11_MAP_WRITE, 0, &mapped);
-        if (FAILED(hr)) {
-            hr = m_context->Map(dst_buf, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
-        }
-        if (FAILED(hr)) {
-            giLogError("GraphicsInterfaceD3D11::writeBuffer(): Map() failed.\n");
-            ret = Result::Unknown;
-        }
-        else {
-            memcpy(mapped.pData, src, write_size);
-            m_context->Unmap(dst_buf, 0);
-        }
-    }
-    else {
-        D3D11_BOX box;
-        box.left = 0;
-        box.right = (UINT)write_size;
-        box.top = 0;
-        box.bottom = 1;
-        box.front = 0;
-        box.back = 1;
-        m_context->UpdateSubresource(dst_buf, 0, &box, src, (UINT)write_size, 0);
-    }
+        HRESULT hr = m_context->Map(buf, 0, D3D11_MAP_WRITE, 0, &mapped);
+        if (FAILED(hr)) { return hr; }
+        memcpy(mapped.pData, src, size);
+        m_context->Unmap(buf, 0);
+        return S_OK;
+    };
 
-    return ret;
+    // try direct access
+    auto hr = proc_write(dst_buf, src, write_size);
+    if (SUCCEEDED(hr)) { return Result::OK; }
+
+
+    // try copy-via-staging
+    auto staging = createStagingBuffer(write_size, StagingFlag::Upload);
+    hr = proc_write(staging.Get(), src, write_size);
+    m_context->CopyResource(dst_buf, staging.Get());
+
+    return TranslateReturnCode(hr);
+
+    // UpdateSubresource() approach. 
+    //D3D11_BOX box;
+    //box.left  = 0;
+    //box.right = (UINT)write_size;
+    //box.top   = 0;
+    //box.bottom= 1;
+    //box.front = 0;
+    //box.back  = 1;
+    //m_context->UpdateSubresource(dst_buf, 0, &box, src, (UINT)write_size, 0);
 }
 
 } // namespace gi
