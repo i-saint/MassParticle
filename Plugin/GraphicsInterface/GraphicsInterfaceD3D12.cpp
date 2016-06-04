@@ -21,12 +21,12 @@ public:
     void sync() override;
 
     Result createTexture2D(void **dst_tex, int width, int height, TextureFormat format, const void *data, ResourceFlags flags) override;
-    void  releaseTexture2D(void *tex) override;
+    void   releaseTexture2D(void *tex) override;
     Result readTexture2D(void *o_buf, size_t bufsize, void *tex, int width, int height, TextureFormat format) override;
     Result writeTexture2D(void *o_tex, int width, int height, TextureFormat format, const void *buf, size_t bufsize) override;
 
     Result createBuffer(void **dst_buf, size_t size, BufferType type, const void *data, ResourceFlags flags) override;
-    void  releaseBuffer(void *buf) override;
+    void   releaseBuffer(void *buf) override;
     Result readBuffer(void *dst, void *src_buf, size_t read_size, BufferType type) override;
     Result writeBuffer(void *dst_buf, const void *src, size_t write_size, BufferType type) override;
 
@@ -45,6 +45,7 @@ private:
     ComPtr<ID3D12CommandQueue> m_cqueue;
     ComPtr<ID3D12CommandAllocator> m_calloc;
     ComPtr<ID3D12Fence> m_fence;
+    uint64_t m_fence_value = 0;
     HANDLE m_fence_event;
 };
 
@@ -118,18 +119,22 @@ HRESULT GraphicsInterfaceD3D12::executeCommands(const Body& body)
     if (FAILED(hr)) { return hr; }
 
     m_cqueue->ExecuteCommandLists(1, (ID3D12CommandList**)clist.GetAddressOf());
-    hr = m_cqueue->Signal(m_fence.Get(), 1);
+
+    ++m_fence_value;
+    hr = m_cqueue->Signal(m_fence.Get(), m_fence_value);
     if (FAILED(hr)) { return hr; }
 
-    sync();
+    hr = m_fence->SetEventOnCompletion(m_fence_value, m_fence_event);
+    if (FAILED(hr)) { return hr; }
+
+    WaitForSingleObject(m_fence_event, INFINITE);
+
     return S_OK;
 }
 
 
 void GraphicsInterfaceD3D12::sync()
 {
-    m_fence->SetEventOnCompletion(1, m_fence_event);
-    WaitForSingleObject(m_fence_event, INFINITE);
 }
 
 ComPtr<ID3D12Resource> GraphicsInterfaceD3D12::createStagingBuffer(size_t size, StagingFlag flag)

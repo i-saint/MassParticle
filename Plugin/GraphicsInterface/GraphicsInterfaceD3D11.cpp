@@ -20,12 +20,12 @@ public:
     void sync() override;
 
     Result createTexture2D(void **dst_tex, int width, int height, TextureFormat format, const void *data, ResourceFlags flags) override;
-    void releaseTexture2D(void *tex) override;
+    void   releaseTexture2D(void *tex) override;
     Result readTexture2D(void *dst, size_t read_size, void *src_tex, int width, int height, TextureFormat format) override;
     Result writeTexture2D(void *dst_tex, int width, int height, TextureFormat format, const void *src, size_t write_size) override;
 
     Result createBuffer(void **dst_buf, size_t size, BufferType type, const void *data, ResourceFlags flags) override;
-    void releaseBuffer(void *buf) override;
+    void   releaseBuffer(void *buf) override;
     Result readBuffer(void *dst, void *src_buf, size_t read_size, BufferType type) override;
     Result writeBuffer(void *dst_buf, const void *src, size_t write_size, BufferType type) override;
 

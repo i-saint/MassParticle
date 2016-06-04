@@ -23,12 +23,12 @@ public:
     void sync() override;
 
     Result createTexture2D(void **dst_tex, int width, int height, TextureFormat format, const void *data, ResourceFlags flags) override;
-    void releaseTexture2D(void *tex) override;
-    Result readTexture2D(void *o_buf, size_t bufsize, void *tex, int width, int height, TextureFormat format) override;
-    Result writeTexture2D(void *o_tex, int width, int height, TextureFormat format, const void *buf, size_t bufsize) override;
+    void   releaseTexture2D(void *tex) override;
+    Result readTexture2D(void *dst, size_t read_size, void *src_tex, int width, int height, TextureFormat format) override;
+    Result writeTexture2D(void *dst_tex, int width, int height, TextureFormat format, const void *src, size_t write_size) override;
 
     Result createBuffer(void **dst_buf, size_t size, BufferType type, const void *data, ResourceFlags flags) override;
-    void releaseBuffer(void *buf) override;
+    void   releaseBuffer(void *buf) override;
     Result readBuffer(void *dst, void *src_buf, size_t read_size, BufferType type) override;
     Result writeBuffer(void *dst_buf, const void *src, size_t write_size, BufferType type) override;
 };
@@ -129,7 +129,7 @@ void GraphicsInterfaceOpenGL::releaseTexture2D(void *tex_)
 
 }
 
-Result GraphicsInterfaceOpenGL::readTexture2D(void *o_buf, size_t, void *tex, int, int, TextureFormat format)
+Result GraphicsInterfaceOpenGL::readTexture2D(void *dst, size_t /*read_size*/, void *src_tex, int /*width*/, int /*height*/, TextureFormat format)
 {
     GLenum gl_format = 0;
     GLenum gl_type = 0;
@@ -142,14 +142,14 @@ Result GraphicsInterfaceOpenGL::readTexture2D(void *o_buf, size_t, void *tex, in
     sync();
 
     auto ret = Result::OK;
-    glBindTexture(GL_TEXTURE_2D, (GLuint)(size_t)tex);
-    glGetTexImage(GL_TEXTURE_2D, 0, gl_format, gl_type, o_buf);
+    glBindTexture(GL_TEXTURE_2D, (GLuint)(size_t)src_tex);
+    glGetTexImage(GL_TEXTURE_2D, 0, gl_format, gl_type, dst);
     ret = GetGLError();
     glBindTexture(GL_TEXTURE_2D, 0);
     return ret;
 }
 
-Result GraphicsInterfaceOpenGL::writeTexture2D(void *o_tex, int width, int height, TextureFormat format, const void *buf, size_t)
+Result GraphicsInterfaceOpenGL::writeTexture2D(void *dst_tex, int width, int height, TextureFormat format, const void *src, size_t /*write_size*/)
 {
     GLenum gl_format = 0;
     GLenum gl_type = 0;
@@ -160,8 +160,8 @@ Result GraphicsInterfaceOpenGL::writeTexture2D(void *o_tex, int width, int heigh
     // glTextureSubImage2D((GLuint)(size_t)o_tex, 0, 0, 0, width, height, internal_format, internal_type, buf);
 
     auto ret = Result::OK;
-    glBindTexture(GL_TEXTURE_2D, (GLuint)(size_t)o_tex);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, gl_format, gl_type, buf);
+    glBindTexture(GL_TEXTURE_2D, (GLuint)(size_t)dst_tex);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, gl_format, gl_type, src);
     ret = GetGLError();
     glBindTexture(GL_TEXTURE_2D, 0);
     return ret;

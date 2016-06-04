@@ -5,8 +5,10 @@
 #include "TestGraphicsInterface.h"
 #include "../GraphicsInterface/GraphicsInterface.h"
 
-struct float4 { float x, y, z, w; };
-static inline bool operator==(const float4& a, const float4& b) { return memcmp(&a, &b, sizeof(float4)) == 0; }
+struct unorm8x4 { uint8_t v[4]; };
+struct snorm16x4 { int16_t v[4]; };
+struct float32x4 { float v[4]; };
+struct int32x4 { int v[4]; };
 
 const char* TranslateResult(gi::Result v) {
     return v == gi::Result::OK ? "ok" : "ng";
@@ -36,6 +38,39 @@ void PrintResult(R r, int line, const char *exp)
 #define Test(exp) PrintResult(exp, __LINE__, #exp)
 
 
+template<class T>
+void TextureTest(gi::GraphicsInterface *ifs, const std::vector<T>& test_data, int width, int height, gi::TextureFormat format, gi::ResourceFlags flags)
+{
+    const int num_texels = width * height;
+    const int data_size = width * height * ifs->GetTexelSize(format);
+
+    void *texture = nullptr;
+    auto read_data = std::vector<T>(num_texels);
+
+    Test(ifs->createTexture2D(&texture, width, height, format, nullptr, flags));
+    Test(ifs->writeTexture2D(texture, width, height, format, test_data.data(), data_size));
+    Test(ifs->readTexture2D(read_data.data(), data_size, texture, width, height, format));
+    Test(memcmp(test_data.data(), read_data.data(), data_size) == 0);
+    ifs->releaseTexture2D(texture);
+    printf("\n");
+}
+
+template<class T>
+void BufferTest(gi::GraphicsInterface *ifs, const std::vector<T>& test_data, gi::BufferType type, gi::ResourceFlags flags)
+{
+    const size_t data_size = sizeof(T) * test_data.size();
+
+    void *buffer = nullptr;
+    auto read_data = std::vector<T>(test_data.size());
+
+    Test(ifs->createBuffer(&buffer, data_size, type, nullptr, gi::ResourceFlags::None));
+    Test(ifs->writeBuffer(buffer, test_data.data(), data_size, type));
+    Test(ifs->readBuffer(read_data.data(), buffer, data_size, type));
+    Test(memcmp(test_data.data(), read_data.data(), data_size) == 0);
+    ifs->releaseBuffer(buffer);
+    printf("\n");
+}
+
 void TestImpl::testMain()
 {
     gi::GraphicsInterface *ifs = nullptr;
@@ -51,74 +86,83 @@ void TestImpl::testMain()
         return;
     }
 
-    // texture read / write texts
-    printf("texture read / write texts\n");
+    // texture read / write tests
     {
-        const int width = 1024;
-        const int height = 1024;
-        const int num_texels = width * height;
-        const int data_size = width * height * sizeof(float4);
+        const int width = 999; // unfriendly size to make mismatch src-picth and dst-pitch
+        const int height = 999;
         gi::TextureFormat format = gi::TextureFormat::RGBAf32;
 
-        std::vector<float4> data;
-        data.resize(num_texels);
-
+        auto data = std::vector<float32x4>(width * height);
         for (size_t i = 0; i < data.size(); ++i) {
             float f = (float)i;
             data[i] = { f + 0.0f, f + 0.2f, f + 0.4f, f + 0.8f };
         }
 
-        {
-            void *texture = nullptr;
-            std::vector<float4> ret(num_texels);
-            Test(ifs->createTexture2D(&texture, width, height, format, nullptr, gi::ResourceFlags::None));
-            Test(ifs->writeTexture2D(texture, width, height, format, data.data(), data_size));
-            Test(ifs->readTexture2D(ret.data(), data_size, texture, width, height, format));
-            Test(data.back() == ret.back());
-            ifs->releaseTexture2D(texture);
+        printf("texture test - RGBAf32\n");
+        TextureTest(ifs, data, width, height, format, gi::ResourceFlags::None);
+
+        printf("texture test - RGBAf32 CPU_Read\n");
+        TextureTest(ifs, data, width, height, format, gi::ResourceFlags::CPU_Read);
+
+        printf("texture test - RGBAf32 CPU_Write\n");
+        TextureTest(ifs, data, width, height, format, gi::ResourceFlags::CPU_Write);
+
+        printf("texture test - RGBAf32 CPU_ReadWrite\n");
+        TextureTest(ifs, data, width, height, format, gi::ResourceFlags::CPU_ReadWrite);
+    }
+    {
+        const int width = 999;
+        const int height = 999;
+        gi::TextureFormat format = gi::TextureFormat::RGBAu8;
+
+        auto data = std::vector<unorm8x4>(width * height);
+        for (size_t i = 0; i < data.size(); ++i) {
+            data[i] = { (i + 0) & 0xff, (i + 1) & 0xff,  (i + 2) & 0xff,  (i + 3) & 0xff };
         }
-        printf("\n");
-        {
-            void *rtexture = nullptr;
-            std::vector<float4> ret(num_texels);
-            Test(ifs->createTexture2D(&rtexture, width, height, format, nullptr, gi::ResourceFlags::CPU_Read));
-            Test(ifs->writeTexture2D(rtexture, width, height, format, data.data(), data_size));
-            Test(ifs->readTexture2D(ret.data(), data_size, rtexture, width, height, format));
-            Test(data.back() == ret.back());
-            ifs->releaseTexture2D(rtexture);
-        }
-        printf("\n");
-        {
-            void *wtexture = nullptr;
-            std::vector<float4> ret(num_texels);
-            Test(ifs->createTexture2D(&wtexture, width, height, format, nullptr, gi::ResourceFlags::CPU_Write));
-            Test(ifs->writeTexture2D(wtexture, width, height, format, data.data(), data_size));
-            Test(ifs->readTexture2D(ret.data(), data_size, wtexture, width, height, format));
-            Test(data.back() == ret.back());
-            ifs->releaseTexture2D(wtexture);
-        }
-        printf("\n");
-        {
-            void *rwtexture = nullptr;
-            std::vector<float4> ret(num_texels);
-            Test(ifs->createTexture2D(&rwtexture, width, height, format, nullptr, gi::ResourceFlags::CPU_ReadWrite));
-            Test(ifs->writeTexture2D(rwtexture, width, height, format, data.data(), data_size));
-            Test(ifs->readTexture2D(ret.data(), data_size, rwtexture, width, height, format));
-            Test(data.back() == ret.back());
-            ifs->releaseTexture2D(rwtexture);
-        }
+
+        printf("texture test - RGBAu8\n");
+        TextureTest(ifs, data, width, height, format, gi::ResourceFlags::None);
+
+        printf("texture test - RGBAu8 CPU_Read\n");
+        TextureTest(ifs, data, width, height, format, gi::ResourceFlags::CPU_Read);
+
+        printf("texture test - RGBAu8 CPU_Write\n");
+        TextureTest(ifs, data, width, height, format, gi::ResourceFlags::CPU_Write);
+
+        printf("texture test - RGBAu8 CPU_ReadWrite\n");
+        TextureTest(ifs, data, width, height, format, gi::ResourceFlags::CPU_ReadWrite);
     }
 
-    printf("\n");
 
     // buffer read / write tests
-    printf("buffer read / write tests\n");
     {
-        const int num_elements = 1024;
-        const int data_size = num_elements * sizeof(float4);
-        auto format = gi::BufferType::Vertex;
+        const int num_elements = 9999;
+        const int data_size = num_elements * sizeof(int);
 
-        std::vector<float4> data;
+        std::vector<int> data;
+        data.resize(num_elements);
+
+        for (size_t i = 0; i < data.size(); ++i) {
+            data[i] = (int)i;
+        }
+
+        printf("buffer test - IndexBuffer i32\n");
+        BufferTest(ifs, data, gi::BufferType::Index, gi::ResourceFlags::None);
+
+        printf("buffer test - IndexBuffer i32 CPU_Read\n");
+        BufferTest(ifs, data, gi::BufferType::Index, gi::ResourceFlags::CPU_Read);
+
+        printf("buffer test - IndexBuffer i32 CPU_Read\n");
+        BufferTest(ifs, data, gi::BufferType::Index, gi::ResourceFlags::CPU_Write);
+
+        printf("buffer test - IndexBuffer i32 CPU_ReadWrite\n");
+        BufferTest(ifs, data, gi::BufferType::Index, gi::ResourceFlags::CPU_ReadWrite);
+    }
+    {
+        const int num_elements = 9999;
+        const int data_size = num_elements * sizeof(float32x4);
+
+        std::vector<float32x4> data;
         data.resize(num_elements);
 
         for (size_t i = 0; i < data.size(); ++i) {
@@ -126,46 +170,59 @@ void TestImpl::testMain()
             data[i] = { f + 0.0f, f + 0.2f, f + 0.4f, f + 0.8f };
         }
 
-        {
-            void *buffer = nullptr;
-            std::vector<float4> ret(num_elements);
-            Test(ifs->createBuffer(&buffer, data_size, format, nullptr, gi::ResourceFlags::None));
-            Test(ifs->writeBuffer(buffer, data.data(), data_size, format));
-            Test(ifs->readBuffer(ret.data(), buffer, data_size, format));
-            Test(data.back() == ret.back());
-            ifs->releaseBuffer(buffer);
-        }
-        printf("\n");
-        {
-            void *rbuffer = nullptr;
-            std::vector<float4> ret(num_elements);
-            Test(ifs->createBuffer(&rbuffer, data_size, format, nullptr, gi::ResourceFlags::CPU_Read));
-            Test(ifs->writeBuffer(rbuffer, data.data(), data_size, format));
-            Test(ifs->readBuffer(ret.data(), rbuffer, data_size, format));
-            Test(data.back() == ret.back());
-            ifs->releaseBuffer(rbuffer);
-        }
-        printf("\n");
-        {
-            void *wbuffer = nullptr;
-            std::vector<float4> ret(num_elements);
-            Test(ifs->createBuffer(&wbuffer, data_size, format, nullptr, gi::ResourceFlags::CPU_Write));
-            Test(ifs->writeBuffer(wbuffer, data.data(), data_size, format));
-            Test(ifs->readBuffer(ret.data(), wbuffer, data_size, format));
-            Test(data.back() == ret.back());
-            ifs->releaseBuffer(wbuffer);
-        }
-        printf("\n");
-        {
-            void *rwbuffer = nullptr;
-            std::vector<float4> ret(num_elements);
-            Test(ifs->createBuffer(&rwbuffer, data_size, format, nullptr, gi::ResourceFlags::CPU_ReadWrite));
-            Test(ifs->writeBuffer(rwbuffer, data.data(), data_size, format));
-            Test(ifs->readBuffer(ret.data(), rwbuffer, data_size, format));
-            Test(data.back() == ret.back());
-            ifs->releaseBuffer(rwbuffer);
+        printf("buffer test - VertexBuffer RGBAf32\n");
+        BufferTest(ifs, data, gi::BufferType::Vertex, gi::ResourceFlags::None);
 
+        printf("buffer test - VertexBuffer RGBAf32 CPU_Read\n");
+        BufferTest(ifs, data, gi::BufferType::Vertex, gi::ResourceFlags::CPU_Read);
+
+        printf("buffer test - VertexBuffer RGBAf32 CPU_Read\n");
+        BufferTest(ifs, data, gi::BufferType::Vertex, gi::ResourceFlags::CPU_Write);
+
+        printf("buffer test - VertexBuffer RGBAf32 CPU_ReadWrite\n");
+        BufferTest(ifs, data, gi::BufferType::Vertex, gi::ResourceFlags::CPU_ReadWrite);
+
+
+        // these tests fail on d3d9
+
+        printf("buffer test - ComputeBuffer RGBAf32\n");
+        BufferTest(ifs, data, gi::BufferType::Compute, gi::ResourceFlags::None);
+
+        printf("buffer test - ComputeBuffer RGBAf32 CPU_Read\n");
+        BufferTest(ifs, data, gi::BufferType::Compute, gi::ResourceFlags::CPU_Read);
+
+        printf("buffer test - ComputeBuffer RGBAf32 CPU_Read\n");
+        BufferTest(ifs, data, gi::BufferType::Compute, gi::ResourceFlags::CPU_Write);
+
+        printf("buffer test - ComputeBuffer RGBAf32 CPU_ReadWrite\n");
+        BufferTest(ifs, data, gi::BufferType::Compute, gi::ResourceFlags::CPU_ReadWrite);
+    }
+    {
+        const int num_elements = 4096;
+        const int data_size = num_elements * sizeof(float32x4);
+
+        std::vector<float32x4> data;
+        data.resize(num_elements);
+
+        for (size_t i = 0; i < data.size(); ++i) {
+            float f = (float)i;
+            data[i] = { f + 0.0f, f + 0.2f, f + 0.4f, f + 0.8f };
         }
+
+        // these tests fail on d3d9
+
+        printf("buffer test - ConstantBuffer RGBAf32\n");
+        BufferTest(ifs, data, gi::BufferType::Constant, gi::ResourceFlags::None);
+
+        printf("buffer test - ConstantBuffer RGBAf32 CPU_Read\n");
+        BufferTest(ifs, data, gi::BufferType::Constant, gi::ResourceFlags::CPU_Read);
+
+        printf("buffer test - ConstantBuffer RGBAf32 CPU_Read\n");
+        BufferTest(ifs, data, gi::BufferType::Constant, gi::ResourceFlags::CPU_Write);
+
+        printf("buffer test - ConstantBuffer RGBAf32 CPU_ReadWrite\n");
+        BufferTest(ifs, data, gi::BufferType::Constant, gi::ResourceFlags::CPU_ReadWrite);
+
     }
 
     gi::ReleaseGraphicsInterface();

@@ -20,12 +20,12 @@ public:
     void sync() override;
 
     Result createTexture2D(void **dst_tex, int width, int height, TextureFormat format, const void *data, ResourceFlags flags) override;
-    void releaseTexture2D(void *tex) override;
+    void   releaseTexture2D(void *tex) override;
     Result readTexture2D(void *dst, size_t read_size, void *src_tex, int width, int height, TextureFormat format) override;
     Result writeTexture2D(void *dst_tex, int width, int height, TextureFormat format, const void *src, size_t write_size) override;
 
     Result createBuffer(void **dst_buf, size_t size, BufferType type, const void *data, ResourceFlags flags) override;
-    void releaseBuffer(void *buf) override;
+    void   releaseBuffer(void *buf) override;
     Result readBuffer(void *dst, void *src_buf, size_t read_size, BufferType type) override;
     Result writeBuffer(void *dst_buf, const void *src, size_t write_size, BufferType type) override;
 
@@ -118,15 +118,21 @@ inline void BGRA_RGBA_conversion(RGBA<T> *data, int num_pixels)
 }
 
 template<class T>
-inline void copy_with_BGRA_RGBA_conversion(RGBA<T> *dst, const RGBA<T> *src, int num_pixels)
+inline void copy_with_BGRA_RGBA_conversion(RGBA<T> *dst, int dst_pitch, const RGBA<T> *src, int src_pitch, int num_rows)
 {
-    for (int i = 0; i < num_pixels; ++i) {
-        RGBA<T>       &d = dst[i];
-        const RGBA<T> &s = src[i];
-        d.r = s.b;
-        d.g = s.g;
-        d.b = s.r;
-        d.a = s.a;
+    int dst_width = dst_pitch / sizeof(RGBA<T>);
+    int src_width = src_pitch / sizeof(RGBA<T>);
+    int copy_width = std::min<int>(dst_width, src_width);
+
+    for (int yi = 0; yi < num_rows; ++yi) {
+        for (int xi = 0; xi < copy_width; ++xi) {
+            RGBA<T>       &d = dst[dst_width * yi + xi];
+            const RGBA<T> &s = src[src_width * yi + xi];
+            d.r = s.b;
+            d.g = s.g;
+            d.b = s.r;
+            d.a = s.a;
+        }
     }
 }
 
@@ -194,7 +200,7 @@ Result GraphicsInterfaceD3D9::readTexture2D(void *dst, size_t read_size, void *s
 
     sync();
 
-    // try direct lock
+    // try direct access
     hr = LockSurfaceAndRead(dst, read_size, surf_src.Get(), width, height, format);
     if (SUCCEEDED(hr)) { return Result::OK; }
 
@@ -225,7 +231,7 @@ static HRESULT LockSurfaceAndWrite(IDirect3DSurface9 *surf, int width, int heigh
 
         // こちらも ARGB32 の場合 BGRA に並べ替える必要がある
         if (format == TextureFormat::RGBAu8) {
-            copy_with_BGRA_RGBA_conversion((RGBA<uint8_t>*)dst_pixels, (RGBA<uint8_t>*)src_pixels, int(write_size / 4));
+            copy_with_BGRA_RGBA_conversion((RGBA<uint8_t>*)dst_pixels, dst_pitch, (RGBA<uint8_t>*)src_pixels, src_pitch, height);
         }
         else {
             CopyRegion(dst_pixels, dst_pitch, src_pixels, src_pitch, height);
@@ -246,7 +252,7 @@ Result GraphicsInterfaceD3D9::writeTexture2D(void *dst_tex, int width, int heigh
     auto hr = tex->GetSurfaceLevel(0, &surf_dst);
     if (FAILED(hr)) { return TranslateReturnCode(hr); }
 
-    // try direct lock
+    // try direct access
     hr = LockSurfaceAndWrite(surf_dst.Get(), width, height, format, src, write_size);
     if (SUCCEEDED(hr)) { return Result::OK; }
 
@@ -279,12 +285,8 @@ static HRESULT MapBuffer(BufferT *buf, MapMode mode, const Body& body)
 
     DWORD lock_mode = 0;
     switch (mode) {
-    case MapMode::Read:
-        lock_mode = D3DLOCK_READONLY;
-        break;
-    case MapMode::Write:
-        lock_mode = D3DLOCK_DISCARD;
-        break;
+    case MapMode::Read: lock_mode = D3DLOCK_READONLY; break;
+    case MapMode::Write: lock_mode = D3DLOCK_DISCARD; break;
     }
 
     void *mapped_data;
