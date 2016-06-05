@@ -228,10 +228,31 @@ Result GraphicsInterfaceD3D12::readTexture2D(void *dst, size_t read_size, void *
     UINT64 src_required_size;
     m_device->GetCopyableFootprints(&src_desc, 0, 1, 0, &src_layout, &src_num_rows, &src_row_size, &src_required_size);
 
+
+    auto read_proc = [](void *dst, ID3D12Resource *src_tex, int width, int height, TextureFormat format, D3D12_PLACED_SUBRESOURCE_FOOTPRINT& src_layout) -> HRESULT {
+        void *mapped_data = nullptr;
+        auto hr = src_tex->Map(0, nullptr, &mapped_data);
+        if (FAILED(hr)) { return hr; }
+
+        int dst_pitch = width * GetTexelSize(format);
+        int src_pitch = src_layout.Footprint.RowPitch;
+        int num_rows = std::min<int>(height, (int)src_layout.Footprint.Height);
+        CopyRegion(dst, dst_pitch, mapped_data, src_pitch, num_rows);
+        src_tex->Unmap(0, nullptr);
+        return S_OK;
+    };
+
+
+    // try direct access
+    auto hr = read_proc(dst, src_tex, width, height, format, src_layout);
+    if (SUCCEEDED(hr)) { return Result::OK; }
+
+
+    // try copy-via-staging
     auto staging = createStagingBuffer(src_required_size, StagingFlag::Readback);
     if (!staging) { return Result::OutOfMemory; }
 
-    auto hr = executeCommands([&](ID3D12GraphicsCommandList *clist) {
+    hr = executeCommands([&](ID3D12GraphicsCommandList *clist) {
         CD3DX12_TEXTURE_COPY_LOCATION dst_region(staging.Get(), src_layout);
         CD3DX12_TEXTURE_COPY_LOCATION src_region(src_tex, 0);
 
@@ -241,19 +262,8 @@ Result GraphicsInterfaceD3D12::readTexture2D(void *dst, size_t read_size, void *
     });
     if (FAILED(hr)) { return TranslateReturnCode(hr); }
 
-
-    void *mapped_data = nullptr;
-    hr = staging->Map(0, nullptr, &mapped_data);
-    if (FAILED(hr)) { return TranslateReturnCode(hr); }
-    {
-        int dst_pitch = width * GetTexelSize(format);
-        int src_pitch = src_layout.Footprint.RowPitch;
-        int num_rows = std::min<int>(height, (int)src_layout.Footprint.Height);
-        CopyRegion(dst, dst_pitch, mapped_data, src_pitch, num_rows);
-    }
-    staging->Unmap(0, nullptr);
-
-    return Result::OK;
+    hr = read_proc(dst, staging.Get(), width, height, format, src_layout);
+    return TranslateReturnCode(hr);
 }
 
 Result GraphicsInterfaceD3D12::writeTexture2D(void *dst_tex_, int width, int height, TextureFormat format, const void *src, size_t write_size)
@@ -270,19 +280,32 @@ Result GraphicsInterfaceD3D12::writeTexture2D(void *dst_tex_, int width, int hei
     UINT64 dst_required_size;
     m_device->GetCopyableFootprints(&dst_desc, 0, 1, 0, &dst_layout, &dst_num_rows, &dst_row_size, &dst_required_size);
 
-    auto staging = createStagingBuffer(dst_required_size, StagingFlag::Upload);
-    if (!staging) { return Result::OutOfMemory; }
 
-    void *mapped_data = nullptr;
-    auto hr = staging->Map(0, nullptr, &mapped_data);
-    if (FAILED(hr)) { return TranslateReturnCode(hr); }
-    {
+    auto write_proc = [](ID3D12Resource *dst_tex, int width, int height, TextureFormat format, const void *src, D3D12_PLACED_SUBRESOURCE_FOOTPRINT& dst_layout) {
+        void *mapped_data = nullptr;
+        auto hr = dst_tex->Map(0, nullptr, &mapped_data);
+        if (FAILED(hr)) { return hr; }
+
         int dst_pitch = dst_layout.Footprint.RowPitch;
         int src_pitch = width * GetTexelSize(format);
         int num_rows = std::min<int>(height, (int)dst_layout.Footprint.Height);
         CopyRegion(mapped_data, dst_pitch, src, src_pitch, num_rows);
-    }
-    staging->Unmap(0, nullptr);
+        dst_tex->Unmap(0, nullptr);
+        return S_OK;
+    };
+
+
+    // try direct access
+    auto hr = write_proc(dst_tex, width, height, format, src, dst_layout);
+    if (SUCCEEDED(hr)) { return Result::OK; }
+
+
+    // try copy-via-staging
+    auto staging = createStagingBuffer(dst_required_size, StagingFlag::Upload);
+    if (!staging) { return Result::OutOfMemory; }
+
+    hr = write_proc(staging.Get(), width, height, format, src, dst_layout);
+    if (FAILED(hr)) { return TranslateReturnCode(hr); }
 
     hr = executeCommands([&](ID3D12GraphicsCommandList *clist) {
         CD3DX12_TEXTURE_COPY_LOCATION dst_region(dst_tex, 0);
@@ -304,7 +327,7 @@ Result GraphicsInterfaceD3D12::createBuffer(void **dst_buf, size_t size, BufferT
     if (!dst_buf) { return Result::InvalidParameter; }
     
     D3D12_HEAP_PROPERTIES heap = {};
-     heap.Type                 = D3D12_HEAP_TYPE_UPLOAD;
+     heap.Type                 = D3D12_HEAP_TYPE_DEFAULT;
      heap.CPUPageProperty      = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
      heap.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
      heap.CreationNodeMask     = 1;
@@ -323,7 +346,11 @@ Result GraphicsInterfaceD3D12::createBuffer(void **dst_buf, size_t size, BufferT
      desc.Layout             = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
      desc.Flags              = D3D12_RESOURCE_FLAG_NONE;
 
-     D3D12_RESOURCE_STATES state = D3D12_RESOURCE_STATE_GENERIC_READ;
+     D3D12_RESOURCE_STATES state = D3D12_RESOURCE_STATE_COMMON;
+     if (type == BufferType::Index)    { state |= D3D12_RESOURCE_STATE_INDEX_BUFFER; }
+     if (type == BufferType::Vertex)   { state |= D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER; }
+     if (type == BufferType::Constant) { state |= D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER; }
+     if (type == BufferType::Compute)  {}
 
      ID3D12Resource *buf = nullptr;
      auto hr = m_device->CreateCommittedResource(
@@ -350,14 +377,34 @@ Result GraphicsInterfaceD3D12::readBuffer(void *dst, void *src_buf, size_t read_
     if (!dst || !src_buf) { return Result::InvalidParameter; }
 
     auto *buf = (ID3D12Resource*)src_buf;
-    void *mapped_data = nullptr;
 
-    auto hr = buf->Map(0, nullptr, &mapped_data);
+    auto read_proc = [](void *dst, ID3D12Resource *src_buf, size_t read_size) -> HRESULT {
+        void *mapped_data = nullptr;
+        auto hr = src_buf->Map(0, nullptr, &mapped_data);
+        if (FAILED(hr)) { return hr; }
+        memcpy(dst, mapped_data, read_size);
+        src_buf->Unmap(0, nullptr);
+        return S_OK;
+    };
+
+
+    // try direct access
+    auto hr = read_proc(dst, buf, read_size);
+    if (SUCCEEDED(hr)) { return Result::OK; }
+
+    // try copy-via-staging
+    auto staging = createStagingBuffer(read_size, StagingFlag::Readback);
+    if (!staging) { return Result::OutOfMemory; }
+
+    hr = executeCommands([&](ID3D12GraphicsCommandList *clist) {
+        clist->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(buf, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COPY_SOURCE));
+        clist->CopyResource(staging.Get(), buf);
+        clist->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(buf, D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_COMMON));
+    });
     if (FAILED(hr)) { return TranslateReturnCode(hr); }
-    memcpy(dst, mapped_data, read_size);
-    buf->Unmap(0, nullptr);
 
-    return Result::OK;
+    hr = read_proc(dst, staging.Get(), read_size);
+    return TranslateReturnCode(hr);
 }
 
 Result GraphicsInterfaceD3D12::writeBuffer(void *dst_buf, const void *src, size_t write_size, BufferType type)
@@ -366,12 +413,35 @@ Result GraphicsInterfaceD3D12::writeBuffer(void *dst_buf, const void *src, size_
     if (!dst_buf || !src) { return Result::InvalidParameter; }
 
     auto *buf = (ID3D12Resource*)dst_buf;
-    void *mapped_data = nullptr;
 
-    auto hr = buf->Map(0, nullptr, &mapped_data);
+    auto write_proc = [](ID3D12Resource *buf, const void *src, size_t write_size) -> HRESULT {
+        void *mapped_data = nullptr;
+        auto hr = buf->Map(0, nullptr, &mapped_data);
+        if (FAILED(hr)) { return hr; }
+        memcpy(mapped_data, src, write_size);
+        buf->Unmap(0, nullptr);
+        return hr;
+    };
+
+
+    // try direct access
+    auto hr = write_proc(buf, src, write_size);
+    if (SUCCEEDED(hr)) { return Result::OK; }
+
+
+    // try copy-via-staging
+    auto staging = createStagingBuffer(write_size, StagingFlag::Upload);
+    if (!staging) { return Result::OutOfMemory; }
+
+    hr = write_proc(staging.Get(), src, write_size);
     if (FAILED(hr)) { return TranslateReturnCode(hr); }
-    memcpy(mapped_data, src, write_size);
-    buf->Unmap(0, nullptr);
+
+    hr = executeCommands([&](ID3D12GraphicsCommandList *clist) {
+        clist->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(buf, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COPY_DEST));
+        clist->CopyResource(buf, staging.Get());
+        clist->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(buf, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_COMMON));
+    });
+    if (FAILED(hr)) { return TranslateReturnCode(hr); }
 
     return Result::OK;
 }
