@@ -336,7 +336,7 @@ Result GraphicsInterfaceD3D9::createBuffer(void **dst_buf, size_t size, BufferTy
     }
 
     if (data) {
-        writeBuffer(dst_buf, data, size, type);
+        writeBuffer(*dst_buf, data, size, type);
     }
 
     return Result::OK;

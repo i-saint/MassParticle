@@ -349,13 +349,13 @@ Result GraphicsInterfaceVulkan::createTexture2D(void **dst_tex, int width, int h
     if (vr != VK_SUCCESS) { return TranslateReturnCode(vr); }
 
     *dst_tex = ret.get();
-    ret.detach();
-    memory.detach();
-
 
     if (data) {
         writeTexture2D(ret.get(), width, height, format, data, width * height * GetTexelSize(format));
     }
+
+    ret.detach();
+    memory.detach();
 
     return Result::OK;
 }
@@ -480,13 +480,13 @@ Result GraphicsInterfaceVulkan::createBuffer(void **dst_buf, size_t size, Buffer
     if (vr != VK_SUCCESS) { return TranslateReturnCode(vr); }
 
     *dst_buf = ret.get();
-    ret.detach();
-    memory.detach();
-
 
     if (data) {
         writeBuffer(ret.get(), data, size, type);
     }
+
+    ret.detach();
+    memory.detach();
 
     return Result::OK;
 }
