@@ -155,6 +155,11 @@ Result GraphicsInterfaceD3D9::createTexture2D(void **dst_tex, int width, int hei
     if (FAILED(hr)) { return TranslateReturnCode(hr); }
 
     *dst_tex = ret;
+
+    if (data) {
+        writeTexture2D(ret, width, height, format, data, width * height * GetTexelSize(format));
+    }
+
     return Result::OK;
 }
 
@@ -331,10 +336,9 @@ Result GraphicsInterfaceD3D9::createBuffer(void **dst_buf, size_t size, BufferTy
     }
 
     if (data) {
-        MapBuffer(dst_buf, type, MapMode::Write, [&](void *mapped_data) {
-            memcpy(mapped_data, data, size);
-        });
+        writeBuffer(dst_buf, data, size, type);
     }
+
     return Result::OK;
 }
 

@@ -234,16 +234,6 @@ Result GraphicsInterfaceD3D11::writeTexture2D(void *dst_tex_, int width, int hei
     m_context->CopyResource(dst_tex, staging.Get());
 
     return TranslateReturnCode(hr);
-
-    // UpdateSubresource() approach. 
-    //D3D11_BOX box;
-    //box.left = 0;
-    //box.right = width;
-    //box.top = 0;
-    //box.bottom = ceildiv((UINT)num_pixels, (UINT)width);
-    //box.front = 0;
-    //box.back = 1;
-    //m_context->UpdateSubresource(dst_tex, 0, &box, src, pitch, 0);
 }
 
 
@@ -280,8 +270,14 @@ Result GraphicsInterfaceD3D11::createBuffer(void **dst_buf, size_t size, BufferT
         desc.BindFlags = 0;
     }
 
+    D3D11_SUBRESOURCE_DATA subr = {
+        data,
+        (UINT)size,
+        1,
+    };
+
     ID3D11Buffer *ret = nullptr;
-    HRESULT hr = m_device->CreateBuffer(&desc, nullptr, &ret);
+    HRESULT hr = m_device->CreateBuffer(&desc, data ? &subr : nullptr, &ret);
     if (FAILED(hr)) {
         return TranslateReturnCode(hr);
     }
@@ -354,16 +350,6 @@ Result GraphicsInterfaceD3D11::writeBuffer(void *dst_buf_, const void *src, size
     m_context->CopyResource(dst_buf, staging.Get());
 
     return TranslateReturnCode(hr);
-
-    // UpdateSubresource() approach. 
-    //D3D11_BOX box;
-    //box.left  = 0;
-    //box.right = (UINT)write_size;
-    //box.top   = 0;
-    //box.bottom= 1;
-    //box.front = 0;
-    //box.back  = 1;
-    //m_context->UpdateSubresource(dst_buf, 0, &box, src, (UINT)write_size, 0);
 }
 
 } // namespace gi

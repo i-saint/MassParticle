@@ -86,7 +86,7 @@ private:
     // Body: [](void *mapped_memory) -> void
     template<class Body> VkResult map(VkDeviceMemory device_memory, const Body& body);
 
-    // Body: [](VkCommandBuffer *clist) -> void
+    // Body: [](VkCommandBuffer clist) -> void
     template<class Body> VkResult executeCommands(const Body& body);
 
 private:
@@ -348,16 +348,15 @@ Result GraphicsInterfaceVulkan::createTexture2D(void **dst_tex, int width, int h
     vr = vkBindImageMemory(m_device, ret.get(), memory.get(), 0);
     if (vr != VK_SUCCESS) { return TranslateReturnCode(vr); }
 
-    //// todo: upload if data is present
-    //VkImageSubresourceRange subresourceRange = {};
-    //subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    //subresourceRange.baseMipLevel = 0;
-    //subresourceRange.levelCount = 1;
-    //subresourceRange.layerCount = 1;
-
     *dst_tex = ret.get();
     ret.detach();
     memory.detach();
+
+
+    if (data) {
+        writeTexture2D(ret.get(), width, height, format, data, width * height * GetTexelSize(format));
+    }
+
     return Result::OK;
 }
 
@@ -483,6 +482,12 @@ Result GraphicsInterfaceVulkan::createBuffer(void **dst_buf, size_t size, Buffer
     *dst_buf = ret.get();
     ret.detach();
     memory.detach();
+
+
+    if (data) {
+        writeBuffer(ret.get(), data, size, type);
+    }
+
     return Result::OK;
 }
 

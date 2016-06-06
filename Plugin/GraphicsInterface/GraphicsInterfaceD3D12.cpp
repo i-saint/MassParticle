@@ -195,14 +195,19 @@ Result GraphicsInterfaceD3D12::createTexture2D(void **dst_tex, int width, int he
     desc.Layout             = D3D12_TEXTURE_LAYOUT_UNKNOWN;
     desc.Flags              = D3D12_RESOURCE_FLAG_NONE;
 
+    // texture can't be created with D3D12_HEAP_TYPE_UPLOAD / D3D12_HEAP_TYPE_READBACK heap type.
+    // ResourceFlags::CPU_Write / CPU_Read flag is ignored.
+
+
     ID3D12Resource *tex = nullptr;
-    auto hr = m_device->CreateCommittedResource(
-        &heap, D3D12_HEAP_FLAG_NONE, &desc, D3D12_RESOURCE_STATE_COMMON, nullptr, IID_PPV_ARGS(&tex) );
-    if ( FAILED( hr ) )
-    {
-        return TranslateReturnCode(hr);
-    }
+    auto hr = m_device->CreateCommittedResource(&heap, D3D12_HEAP_FLAG_NONE, &desc, D3D12_RESOURCE_STATE_COMMON, nullptr, IID_PPV_ARGS(&tex) );
+    if ( FAILED( hr ) ) { return TranslateReturnCode(hr); }
     *dst_tex = tex;
+
+    if (data) {
+        writeTexture2D(tex, width, height, format, data, width * height * GetTexelSize(format));
+    }
+
     return Result::OK;
 }
 
@@ -352,14 +357,23 @@ Result GraphicsInterfaceD3D12::createBuffer(void **dst_buf, size_t size, BufferT
      if (type == BufferType::Constant) { state |= D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER; }
      if (type == BufferType::Compute)  {}
 
-     ID3D12Resource *buf = nullptr;
-     auto hr = m_device->CreateCommittedResource(
-         &heap, D3D12_HEAP_FLAG_NONE, &desc, state, nullptr, IID_PPV_ARGS(&buf) );
-     if (FAILED(hr))
-     {
-         return TranslateReturnCode(hr);
+     if (flags & ResourceFlags::CPU_Write) {
+         heap.Type = D3D12_HEAP_TYPE_UPLOAD;
      }
+     if (flags & ResourceFlags::CPU_Read) {
+         heap.Type = D3D12_HEAP_TYPE_READBACK;
+     }
+
+
+     ID3D12Resource *buf = nullptr;
+     auto hr = m_device->CreateCommittedResource(&heap, D3D12_HEAP_FLAG_NONE, &desc, state, nullptr, IID_PPV_ARGS(&buf) );
+     if (FAILED(hr)) { return TranslateReturnCode(hr); }
      *dst_buf = buf;
+
+     if (data) {
+         writeBuffer(buf, data, size, type);
+     }
+
      return Result::OK;
 }
 
