@@ -4,10 +4,39 @@
 #ifdef giSupportOpenGL
 #ifdef _WIN32
     #pragma comment(lib, "opengl32.lib")
-    #pragma comment(lib, "glew32s.lib")
     #define GLEW_STATIC
 #endif
 #include <GL/glew.h>
+
+#if defined(_WIN32)
+#   define glGetProcAddress(name)  wglGetProcAddress(name)
+#elif defined(__APPLE__) && !defined(GLEW_APPLE_GLX)
+#   define glGetProcAddress(name) NSGLGetProcAddress(name)
+#elif defined(__ANDROID__)
+#   define glGetProcAddress(name) NULL /* TODO */
+#else /* __linux */
+#   define glGetProcAddress(name) (*glXGetProcAddressARB)(name)
+#endif
+
+static PFNGLGENBUFFERSPROC      _glGenBuffers;
+static PFNGLDELETEBUFFERSPROC   _glDeleteBuffers;
+static PFNGLBINDBUFFERPROC      _glBindBuffer;
+static PFNGLBUFFERDATAPROC      _glBufferData;
+static PFNGLMAPBUFFERPROC       _glMapBuffer;
+static PFNGLUNMAPBUFFERPROC     _glUnmapBuffer;
+
+static void InitializeOpenGL()
+{
+    if (_glGenBuffers) { return; }
+#define GetProc(name) (void*&)_##name = glGetProcAddress(#name)
+    GetProc(glGenBuffers);
+    GetProc(glDeleteBuffers);
+    GetProc(glBindBuffer);
+    GetProc(glBufferData);
+    GetProc(glMapBuffer);
+    GetProc(glUnmapBuffer);
+#undef GetProc
+}
 
 namespace gi {
 
@@ -45,7 +74,7 @@ DeviceType GraphicsInterfaceOpenGL::getDeviceType() { return DeviceType::OpenGL;
 
 GraphicsInterfaceOpenGL::GraphicsInterfaceOpenGL(void *device)
 {
-    glewInit();
+    InitializeOpenGL();
 }
 
 GraphicsInterfaceOpenGL::~GraphicsInterfaceOpenGL()
@@ -201,11 +230,11 @@ Result GraphicsInterfaceOpenGL::createBuffer(void **dst_buf, size_t size, Buffer
 
     auto ret = Result::OK;
     GLuint buf = 0;
-    glGenBuffers(1, &buf);
-    glBindBuffer(gltype, buf);
-    glBufferData(gltype, size, data, glusage);
+    _glGenBuffers(1, &buf);
+    _glBindBuffer(gltype, buf);
+    _glBufferData(gltype, size, data, glusage);
     ret = GetGLError();
-    glBindBuffer(gltype, 0);
+    _glBindBuffer(gltype, 0);
 
     *(GLuint*)dst_buf = buf;
     return ret;
@@ -214,7 +243,7 @@ Result GraphicsInterfaceOpenGL::createBuffer(void **dst_buf, size_t size, Buffer
 void GraphicsInterfaceOpenGL::releaseBuffer(void *buf_)
 {
     GLuint buf = (GLuint)(size_t)buf_;
-    glDeleteBuffers(1, &buf);
+    _glDeleteBuffers(1, &buf);
 }
 
 Result GraphicsInterfaceOpenGL::readBuffer(void *dst, void *src_buf, size_t read_size, BufferType type)
@@ -223,16 +252,16 @@ Result GraphicsInterfaceOpenGL::readBuffer(void *dst, void *src_buf, size_t read
     GLenum gltype = GetGLBufferType(type);
 
     Result ret = Result::OK;
-    glBindBuffer(gltype, buf);
-    void *mapped_data = glMapBuffer(gltype, GL_READ_ONLY);
+    _glBindBuffer(gltype, buf);
+    void *mapped_data = _glMapBuffer(gltype, GL_READ_ONLY);
     if (mapped_data) {
         memcpy(dst, mapped_data, read_size);
-        glUnmapBuffer(gltype);
+        _glUnmapBuffer(gltype);
     }
     else {
         ret = GetGLError();
     }
-    glBindBuffer(gltype, 0);
+    _glBindBuffer(gltype, 0);
 
     return ret;
 }
@@ -243,16 +272,16 @@ Result GraphicsInterfaceOpenGL::writeBuffer(void *dst_buf, const void *src, size
     GLenum gltype = GetGLBufferType(type);
 
     Result ret = Result::OK;
-    glBindBuffer(gltype, buf);
-    void *mapped_data = glMapBuffer(gltype, GL_WRITE_ONLY);
+    _glBindBuffer(gltype, buf);
+    void *mapped_data = _glMapBuffer(gltype, GL_WRITE_ONLY);
     if (mapped_data) {
         memcpy(mapped_data, src, write_size);
-        glUnmapBuffer(gltype);
+        _glUnmapBuffer(gltype);
     }
     else {
         ret = GetGLError();
     }
-    glBindBuffer(gltype, 0);
+    _glBindBuffer(gltype, 0);
 
     return ret;
 }
