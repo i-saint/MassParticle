@@ -168,7 +168,7 @@ ComPtr<ID3D12Resource> GraphicsInterfaceD3D12::createStagingBuffer(size_t size, 
     desc.Layout             = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
     desc.Flags              = D3D12_RESOURCE_FLAG_NONE;
 
-    ID3D12Resource *ret = nullptr;
+    auto ret = ComPtr<ID3D12Resource>();
     m_device->CreateCommittedResource(&heap, D3D12_HEAP_FLAG_NONE, &desc, state, nullptr, IID_PPV_ARGS(&ret));
     return ret;
 }
@@ -234,14 +234,14 @@ Result GraphicsInterfaceD3D12::readTexture2D(void *dst, size_t read_size, void *
     m_device->GetCopyableFootprints(&src_desc, 0, 1, 0, &src_layout, &src_num_rows, &src_row_size, &src_required_size);
 
 
-    auto read_proc = [](void *dst, ID3D12Resource *src_tex, int width, int height, TextureFormat format, D3D12_PLACED_SUBRESOURCE_FOOTPRINT& src_layout) -> HRESULT {
+    auto read_proc = [](void *dst, size_t read_size, ID3D12Resource *src_tex, int width, int height, TextureFormat format, D3D12_PLACED_SUBRESOURCE_FOOTPRINT& src_layout) -> HRESULT {
         void *mapped_data = nullptr;
         auto hr = src_tex->Map(0, nullptr, &mapped_data);
         if (FAILED(hr)) { return hr; }
 
         int dst_pitch = width * GetTexelSize(format);
         int src_pitch = src_layout.Footprint.RowPitch;
-        int num_rows = std::min<int>(height, (int)src_layout.Footprint.Height);
+        int num_rows = std::min<int>(std::min<int>(height, (int)src_layout.Footprint.Height), (int)ceildiv<size_t>(read_size, dst_pitch));
         CopyRegion(dst, dst_pitch, mapped_data, src_pitch, num_rows);
         src_tex->Unmap(0, nullptr);
         return S_OK;
@@ -249,7 +249,7 @@ Result GraphicsInterfaceD3D12::readTexture2D(void *dst, size_t read_size, void *
 
 
     // try direct access
-    auto hr = read_proc(dst, src_tex, width, height, format, src_layout);
+    auto hr = read_proc(dst, read_size, src_tex, width, height, format, src_layout);
     if (SUCCEEDED(hr)) { return Result::OK; }
 
 
@@ -267,7 +267,7 @@ Result GraphicsInterfaceD3D12::readTexture2D(void *dst, size_t read_size, void *
     });
     if (FAILED(hr)) { return TranslateReturnCode(hr); }
 
-    hr = read_proc(dst, staging.Get(), width, height, format, src_layout);
+    hr = read_proc(dst, read_size, staging.Get(), width, height, format, src_layout);
     return TranslateReturnCode(hr);
 }
 
@@ -286,14 +286,14 @@ Result GraphicsInterfaceD3D12::writeTexture2D(void *dst_tex_, int width, int hei
     m_device->GetCopyableFootprints(&dst_desc, 0, 1, 0, &dst_layout, &dst_num_rows, &dst_row_size, &dst_required_size);
 
 
-    auto write_proc = [](ID3D12Resource *dst_tex, int width, int height, TextureFormat format, const void *src, D3D12_PLACED_SUBRESOURCE_FOOTPRINT& dst_layout) {
+    auto write_proc = [](ID3D12Resource *dst_tex, int width, int height, TextureFormat format, const void *src, size_t write_size, D3D12_PLACED_SUBRESOURCE_FOOTPRINT& dst_layout) {
         void *mapped_data = nullptr;
         auto hr = dst_tex->Map(0, nullptr, &mapped_data);
         if (FAILED(hr)) { return hr; }
 
         int dst_pitch = dst_layout.Footprint.RowPitch;
         int src_pitch = width * GetTexelSize(format);
-        int num_rows = std::min<int>(height, (int)dst_layout.Footprint.Height);
+        int num_rows = std::min<int>(std::min<int>(height, (int)dst_layout.Footprint.Height), (int)ceildiv<size_t>(write_size, src_pitch));
         CopyRegion(mapped_data, dst_pitch, src, src_pitch, num_rows);
         dst_tex->Unmap(0, nullptr);
         return S_OK;
@@ -301,7 +301,7 @@ Result GraphicsInterfaceD3D12::writeTexture2D(void *dst_tex_, int width, int hei
 
 
     // try direct access
-    auto hr = write_proc(dst_tex, width, height, format, src, dst_layout);
+    auto hr = write_proc(dst_tex, width, height, format, src, write_size, dst_layout);
     if (SUCCEEDED(hr)) { return Result::OK; }
 
 
@@ -309,7 +309,7 @@ Result GraphicsInterfaceD3D12::writeTexture2D(void *dst_tex_, int width, int hei
     auto staging = createStagingBuffer(dst_required_size, StagingFlag::Upload);
     if (!staging) { return Result::OutOfMemory; }
 
-    hr = write_proc(staging.Get(), width, height, format, src, dst_layout);
+    hr = write_proc(staging.Get(), width, height, format, src, write_size, dst_layout);
     if (FAILED(hr)) { return TranslateReturnCode(hr); }
 
     hr = executeCommands([&](ID3D12GraphicsCommandList *clist) {

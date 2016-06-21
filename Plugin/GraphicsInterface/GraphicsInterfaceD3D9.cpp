@@ -97,7 +97,7 @@ ComPtr<IDirect3DSurface9> GraphicsInterfaceD3D9::createStagingSurface(int width,
     D3DFORMAT internal_format = GetInternalFormatD3D9(format);
     if (internal_format == D3DFMT_UNKNOWN) { return nullptr; }
 
-    IDirect3DSurface9 *ret = nullptr;
+    auto ret = ComPtr<IDirect3DSurface9>();
     auto hr = m_device->CreateOffscreenPlainSurface(width, height, internal_format, D3DPOOL_SYSTEMMEM, &ret, nullptr);
     return ret;
 }
@@ -180,7 +180,8 @@ static HRESULT LockSurfaceAndRead(void *dst, size_t read_size, IDirect3DSurface9
         auto *src_pixels = (const char*)locked.pBits;
         int dst_pitch = width * GraphicsInterfaceD3D9::GetTexelSize(format);
         int src_pitch = locked.Pitch;
-        CopyRegion(dst_pixels, dst_pitch, src_pixels, src_pitch, height);
+        int num_rows = std::min<int>(height, (int)ceildiv<size_t>(read_size, dst_pitch));
+        CopyRegion(dst_pixels, dst_pitch, src_pixels, src_pitch, num_rows);
 
         surf->UnlockRect();
 
@@ -233,13 +234,14 @@ static HRESULT LockSurfaceAndWrite(IDirect3DSurface9 *surf, int width, int heigh
         auto *src_pixels = (const char*)src;
         int dst_pitch = locked.Pitch;
         int src_pitch = GraphicsInterfaceD3D9::GetTexelSize(format) * width;
+        int num_rows = std::min<int>(height, (int)ceildiv<size_t>(write_size, src_pitch));
 
         // こちらも ARGB32 の場合 BGRA に並べ替える必要がある
         if (format == TextureFormat::RGBAu8) {
-            copy_with_BGRA_RGBA_conversion((RGBA<uint8_t>*)dst_pixels, dst_pitch, (RGBA<uint8_t>*)src_pixels, src_pitch, height);
+            copy_with_BGRA_RGBA_conversion((RGBA<uint8_t>*)dst_pixels, dst_pitch, (RGBA<uint8_t>*)src_pixels, src_pitch, num_rows);
         }
         else {
-            CopyRegion(dst_pixels, dst_pitch, src_pixels, src_pitch, height);
+            CopyRegion(dst_pixels, dst_pitch, src_pixels, src_pitch, num_rows);
         }
         surf->UnlockRect();
     }

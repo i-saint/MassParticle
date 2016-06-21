@@ -100,7 +100,7 @@ ComPtr<ID3D11Texture2D> GraphicsInterfaceD3D11::createStagingTexture(int width, 
         desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
     }
 
-    ID3D11Texture2D *ret = nullptr;
+    auto ret = ComPtr<ID3D11Texture2D>();
     auto hr = m_device->CreateTexture2D(&desc, nullptr, &ret);
     return ret;
 }
@@ -117,7 +117,7 @@ ComPtr<ID3D11Buffer> GraphicsInterfaceD3D11::createStagingBuffer(size_t size, St
         desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
     }
 
-    ID3D11Buffer *ret = nullptr;
+    auto ret = ComPtr<ID3D11Buffer>();
     auto hr = m_device->CreateBuffer(&desc, nullptr, &ret);
     return ret;
 }
@@ -180,7 +180,8 @@ Result GraphicsInterfaceD3D11::readTexture2D(void *dst, size_t read_size, void *
         auto *src_pixels = (const char*)mapped.pData;
         int dst_pitch = width * GetTexelSize(format);
         int src_pitch = mapped.RowPitch;
-        CopyRegion(dst_pixels, dst_pitch, src_pixels, src_pitch, height);
+        int num_rows = std::min<int>(height, (int)ceildiv<size_t>(dst_size, dst_pitch));
+        CopyRegion(dst_pixels, dst_pitch, src_pixels, src_pitch, num_rows);
 
         m_context->Unmap(tex, 0);
         return S_OK;
@@ -216,7 +217,8 @@ Result GraphicsInterfaceD3D11::writeTexture2D(void *dst_tex_, int width, int hei
         auto *src_pixels = (const char*)src;
         int dst_pitch = mapped.RowPitch;
         int src_pitch = width * GetTexelSize(format);
-        CopyRegion(dst_pixels, dst_pitch, src_pixels, src_pitch, height);
+        int num_rows = std::min<int>(height, (int)ceildiv<size_t>(write_size, src_pitch));
+        CopyRegion(dst_pixels, dst_pitch, src_pixels, src_pitch, num_rows);
 
         m_context->Unmap(tex, 0);
         return S_OK;

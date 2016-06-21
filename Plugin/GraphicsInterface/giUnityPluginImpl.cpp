@@ -3,15 +3,15 @@
 #include "giUnityPluginImpl.h"
 
 #include "PluginAPI/IUnityGraphics.h"
-#ifdef gdSupportD3D9
+#ifdef giSupportD3D9
     #include <d3d9.h>
     #include "PluginAPI/IUnityGraphicsD3D9.h"
 #endif
-#ifdef gdSupportD3D11
+#ifdef giSupportD3D11
     #include <d3d11.h>
     #include "PluginAPI/IUnityGraphicsD3D11.h"
 #endif
-#ifdef gdSupportD3D12
+#ifdef giSupportD3D12
     #include <d3d12.h>
     #include "PluginAPI/IUnityGraphicsD3D12.h"
 #endif
@@ -26,22 +26,22 @@ static void UNITY_INTERFACE_API UnityOnGraphicsInterfaceEvent(UnityGfxDeviceEven
         auto unity_gfx = g_unity_interface->Get<IUnityGraphics>();
         auto api = unity_gfx->GetRenderer();
 
-#ifdef gdSupportD3D9
+#ifdef giSupportD3D9
         if (api == kUnityGfxRendererD3D9) {
             CreateGraphicsInterface(DeviceType::D3D9, g_unity_interface->Get<IUnityGraphicsD3D9>()->GetDevice());
         }
 #endif
-#ifdef gdSupportD3D11
+#ifdef giSupportD3D11
         if (api == kUnityGfxRendererD3D11) {
             CreateGraphicsInterface(DeviceType::D3D11, g_unity_interface->Get<IUnityGraphicsD3D11>()->GetDevice());
         }
 #endif
-#ifdef gdSupportD3D12
+#ifdef giSupportD3D12
         if (api == kUnityGfxRendererD3D12) {
             CreateGraphicsInterface(DeviceType::D3D12, g_unity_interface->Get<IUnityGraphicsD3D12>()->GetDevice());
         }
 #endif
-#ifdef gdSupportOpenGL
+#ifdef giSupportOpenGL
         if (api == kUnityGfxRendererOpenGL ||
             api == kUnityGfxRendererOpenGLCore ||
             api == kUnityGfxRendererOpenGLES20 ||
@@ -50,7 +50,7 @@ static void UNITY_INTERFACE_API UnityOnGraphicsInterfaceEvent(UnityGfxDeviceEven
             CreateGraphicsInterface(DeviceType::OpenGL, nullptr);
         }
 #endif
-#ifdef gdSupportVulkan
+#ifdef giSupportVulkan
         if (false) // todo
         {
             CreateGraphicsInterface(DeviceType::Vulkan, nullptr);
