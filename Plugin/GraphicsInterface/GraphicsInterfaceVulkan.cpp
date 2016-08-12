@@ -16,9 +16,9 @@ template<class T> class unique_handle;
     template<> class unique_handle<Type>\
     {\
     public:\
-        unique_handle(VkDevice dev, Type h = nullptr) : m_device(dev), m_handle(h) {}\
-        ~unique_handle() { if (m_handle) { Deleter(m_device, m_handle, nullptr); } }\
-        void detach() { m_handle = nullptr; }\
+        unique_handle(VkDevice dev, Type h = 0) : m_device(dev), m_handle(h) {}\
+        ~unique_handle() { if (m_handle) { Deleter(m_device, m_handle, 0); } }\
+        void detach() { m_handle = 0; }\
         Type get() { return m_handle; }\
         Type* addr() { return &m_handle; }\
         Type& ref() { return m_handle; }\
@@ -28,9 +28,12 @@ template<class T> class unique_handle;
     };
 
 Def(VkDeviceMemory, vkFreeMemory)
+// on x86, VkDeviceMemory, VkBuffer, VkImage, VkCommandPool etc. are typedef of uint64_t :(
+#ifdef _M_X64
 Def(VkBuffer, vkDestroyBuffer)
 Def(VkImage, vkDestroyImage)
 Def(VkCommandPool, vkDestroyCommandPool);
+#endif
 
 #undef Def
 
@@ -81,7 +84,9 @@ private:
     };
     VkResult createStagingBuffer(size_t size, StagingFlag flag, VkBuffer &buffer, VkDeviceMemory &memory);
     VkResult createStagingBuffer(VkBuffer target, StagingFlag flag, VkBuffer &buffer, VkDeviceMemory &memory);
+#ifdef _M_X64
     VkResult createStagingBuffer(VkImage target, StagingFlag flag, VkBuffer &buffer, VkDeviceMemory &memory);
+#endif
 
     // Body: [](void *mapped_memory) -> void
     template<class Body> VkResult map(VkDeviceMemory device_memory, const Body& body);
@@ -214,12 +219,14 @@ VkResult GraphicsInterfaceVulkan::createStagingBuffer(VkBuffer target, StagingFl
     return createStagingBuffer(mem_required.size, flag, buffer, memory);
 }
 
+#ifdef _M_X64
 VkResult GraphicsInterfaceVulkan::createStagingBuffer(VkImage target, StagingFlag flag, VkBuffer &buffer, VkDeviceMemory &memory)
 {
     VkMemoryRequirements mem_required;
     vkGetImageMemoryRequirements(m_device, target, &mem_required);
     return createStagingBuffer(mem_required.size, flag, buffer, memory);
 }
+#endif
 
 template<class Body>
 VkResult GraphicsInterfaceVulkan::map(VkDeviceMemory device_memory, const Body& body)
@@ -348,10 +355,10 @@ Result GraphicsInterfaceVulkan::createTexture2D(void **dst_tex, int width, int h
     vr = vkBindImageMemory(m_device, ret.get(), memory.get(), 0);
     if (vr != VK_SUCCESS) { return TranslateReturnCode(vr); }
 
-    *dst_tex = ret.get();
+    *dst_tex = (void*)ret.get();
 
     if (data) {
-        writeTexture2D(ret.get(), width, height, format, data, width * height * GetTexelSize(format));
+        writeTexture2D((void*)ret.get(), width, height, format, data, width * height * GetTexelSize(format));
     }
 
     ret.detach();
@@ -479,10 +486,10 @@ Result GraphicsInterfaceVulkan::createBuffer(void **dst_buf, size_t size, Buffer
     vr = vkBindBufferMemory(m_device, ret.get(), memory.get(), 0);
     if (vr != VK_SUCCESS) { return TranslateReturnCode(vr); }
 
-    *dst_buf = ret.get();
+    *dst_buf = (void*)ret.get();
 
     if (data) {
-        writeBuffer(ret.get(), data, size, type);
+        writeBuffer((void*)ret.get(), data, size, type);
     }
 
     ret.detach();
